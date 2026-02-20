@@ -7,6 +7,7 @@ function generateTeamId() {
     return Math.floor(100000 + Math.random() * 900000); // 6-digit ID
 }
 
+//Saving Login Info
 export async function loginAction(formData: TeamData) {
     // "use server"
     const client = await pool.connect();
