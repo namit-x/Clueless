@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { loginAction } from '@/app/api/auth/route'
+// import { loginAction } from '@/app/api/team/signup/route'
 
 // Types
 export interface TeamMember {
@@ -316,8 +316,8 @@ export default function TeamRegistrationPage() {
             setIsLoading(true);
             await new Promise(resolve => setTimeout(resolve, 1500));
             // setSubmittedTeam(teamData);
-            loginAction(teamData);
-            console.log(teamData);
+            fetch("/api/team/signup", { method: "POST" });
+            // console.log(teamData);
             setIsLoading(false);
         }
     };
