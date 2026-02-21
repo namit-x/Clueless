@@ -25,6 +25,7 @@
     "tailwind-merge": "2.3.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "20.11.30",
     "@types/pg": "8.16.0",
     "@types/react": "18.3.3",
