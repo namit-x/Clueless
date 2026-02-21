@@ -58,14 +58,13 @@ const MemberInputCard = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className={`border rounded-xl overflow-hidden transition-all duration-300 ${isActive
-                ? 'border-blue-400 shadow-lg shadow-blue-100'
-                : 'border-gray-200 hover:border-gray-300'
-                }`}
+            className={`glass border border-border rounded-2xl overflow-hidden transition-all duration-300 ${
+  isActive ? 'neon-glow border-primary' : 'hover:border-primary/50'
+}`}
         >
             {/* Card Header - Always visible */}
             <div
-                className={`px-6 py-4 flex items-center justify-between cursor-pointer ${isActive ? 'bg-blue-50' : 'bg-gray-50'
+                className={`px-6 py-4 flex items-center justify-between cursor-pointer ${isActive ? 'bg-background/60' : 'bg-background/60'
                     }`}
                 onClick={onActivate}
             >
@@ -77,7 +76,7 @@ const MemberInputCard = ({
                         {index + 1}
                     </div>
                     <div>
-                        <h3 className="font-medium text-gray-900">
+                        <h3 className="font-medium text-gray-200">
                             {member.isLeader ? 'Team Lead' : `Member ${index + 1}`}
                             {member.isLeader && (
                                 <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
@@ -109,15 +108,18 @@ const MemberInputCard = ({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Name Field */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-400 mb-1 ">
                                         Full Name <span className="text-red-400">*</span>
                                     </label>
                                     <input
                                         type="text"
                                         value={member.name}
                                         onChange={(e) => onChange('name', e.target.value)}
-                                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all outline-none ${errors[`member-${index}-name`] ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                            }`}
+                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${
+                                                      errors[`member-${index}-name`] 
+                                                        ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive' 
+                                                        : 'border-border'
+                                                    }`}
                                         placeholder="Namit Rana"
                                     />
                                     {errors[`member-${index}-name`] && (
@@ -127,7 +129,7 @@ const MemberInputCard = ({
 
                                 {/* Mobile Field */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-400 mb-1">
                                         Mobile <span className="text-red-400">*</span>
                                     </label>
                                     <input
@@ -135,8 +137,11 @@ const MemberInputCard = ({
                                         value={member.mobile}
                                         onChange={(e) => onChange('mobile', e.target.value)}
                                         maxLength={10}
-                                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all outline-none ${errors[`member-${index}-mobile`] ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                            }`}
+                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${
+                                                      errors[`member-${index}-name`] 
+                                                        ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive' 
+                                                        : 'border-border'
+                                                    }`}
                                         placeholder="9876543210"
                                     />
                                     {errors[`member-${index}-mobile`] && (
@@ -146,15 +151,18 @@ const MemberInputCard = ({
 
                                 {/* Email Field */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-400 mb-1">
                                         Email <span className="text-red-400">*</span>
                                     </label>
                                     <input
                                         type="email"
                                         value={member.email}
                                         onChange={(e) => onChange('email', e.target.value)}
-                                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all outline-none ${errors[`member-${index}-email`] ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                            }`}
+                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${
+                                                      errors[`member-${index}-name`] 
+                                                        ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive' 
+                                                        : 'border-border'
+                                                    }`}
                                         placeholder="john@college.edu"
                                     />
                                     {errors[`member-${index}-email`] && (
@@ -164,14 +172,17 @@ const MemberInputCard = ({
 
                                 {/* Branch Field */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-gray-400 mb-1">
                                         Branch <span className="text-red-400">*</span>
                                     </label>
                                     <select
                                         value={member.branch}
                                         onChange={(e) => onChange('branch', e.target.value)}
-                                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all outline-none bg-white ${errors[`member-${index}-branch`] ? 'border-red-300 bg-red-50' : 'border-gray-300'
-                                            }`}
+                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${
+                                                      errors[`member-${index}-name`] 
+                                                        ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive' 
+                                                        : 'border-border'
+                                                    }`}
                                     >
                                         <option value="">Select branch</option>
                                         {BRANCHES.map(branch => (
@@ -335,14 +346,14 @@ export default function TeamRegistrationPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen gradient-bg grid-pattern py-16 px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    <h1 className="section-title font-display neon-text">
                         Team Registration
                     </h1>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                         Register your team for the upcoming hackathon
                     </p>
                 </div>
@@ -352,13 +363,13 @@ export default function TeamRegistrationPage() {
                     {[1, 2].map((step) => (
                         <div key={step} className="flex items-center">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${currentStep >= step
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-200 text-gray-500'
+                                ? 'bg-primary text-primary-foreground neon-glow'
+                                : 'bg-muted text-muted-foreground'
                                 }`}>
                                 {step}
                             </div>
                             {step < 2 && (
-                                <div className={`w-16 h-0.5 mx-2 ${currentStep > step ? 'bg-blue-500' : 'bg-gray-200'
+                                <div className={`w-16 h-0.5 mx-2 ${currentStep > step ? 'bg-primary' : 'bg-border'
                                     }`} />
                             )}
                         </div>
@@ -366,7 +377,7 @@ export default function TeamRegistrationPage() {
                 </div>
 
                 {/* Main Form */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+                <div className="glass-strong rounded-2xl border border-border p-8 md:p-10">
                     <AnimatePresence mode="wait">
                         {!submittedTeam ? (
                             <motion.div
@@ -379,10 +390,10 @@ export default function TeamRegistrationPage() {
                                 {/* Step 1: Team Basics */}
                                 {currentStep === 1 && (
                                     <div className="space-y-6">
-                                        <h2 className="text-xl font-semibold text-gray-800">Team Details</h2>
+                                        <h2 className="text-2xl font-display text-foreground tracking-wider">Team Details</h2>
 
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
                                                 Team Name <span className="text-red-400">*</span>
                                             </label>
                                             <input
@@ -398,7 +409,7 @@ export default function TeamRegistrationPage() {
                                                         });
                                                     }
                                                 }}
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all outline-none"
+                                                className="w-full px-4 py-2 border border-border bg-background/60 backdrop-blur-md rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none text-foreground"
                                                 placeholder="Enter your team name"
                                             />
                                             {errors.teamName && (
@@ -407,7 +418,7 @@ export default function TeamRegistrationPage() {
                                         </div>
 
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
                                                 Team Size <span className="text-red-400">*</span>
                                             </label>
                                             <div className="flex gap-3">
@@ -416,8 +427,8 @@ export default function TeamRegistrationPage() {
                                                         key={size}
                                                         onClick={() => handleTeamSizeChange(size)}
                                                         className={`px-6 py-2 rounded-lg border transition-all ${teamData.teamSize === size
-                                                            ? 'bg-blue-500 text-white border-blue-500'
-                                                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                                            ? 'bg-primary text-primary-foreground border-primary neon-glow'
+                                                            : 'bg-background/60 text-foreground border-border hover:border-primary/50'
                                                             }`}
                                                     >
                                                         {size}
@@ -429,7 +440,7 @@ export default function TeamRegistrationPage() {
                                         <div className="flex justify-end pt-4">
                                             <button
                                                 onClick={handleNextStep}
-                                                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                                className="px-6 py-2 bg-primary rounded-lg text-primary-foreground neon-glow hover:neon-glow-strong transition-all"
                                             >
                                                 Next Step
                                             </button>
@@ -441,7 +452,7 @@ export default function TeamRegistrationPage() {
                                 {currentStep === 2 && (
                                     <div className="space-y-6">
                                         <div className="flex items-center justify-between">
-                                            <h2 className="text-xl font-semibold text-gray-800">Team Members</h2>
+                                            <h2 className="text-xl font-semibold text-foreground">Team Members</h2>
                                             <p className="text-sm text-gray-500">
                                                 {teamData.members.filter(m => m.name && m.email && m.mobile && m.branch).length} of {teamData.teamSize} completed
                                             </p>
@@ -464,7 +475,7 @@ export default function TeamRegistrationPage() {
                                         <div className="flex justify-between pt-4">
                                             <button
                                                 onClick={handlePrevStep}
-                                                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                                className="px-6 py-2 border border-gray-300 rounded-lg border-border text-muted-foreground hover:border-primary hover:text-primary"
                                             >
                                                 Back
                                             </button>
@@ -488,7 +499,7 @@ export default function TeamRegistrationPage() {
                                 className="space-y-6"
                             >
                                 <div className="text-center">
-                                    <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-4">
+                                    <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/20 neon-glow rounded-full mb-4">
                                         <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                         </svg>
