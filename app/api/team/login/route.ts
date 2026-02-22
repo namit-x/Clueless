@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { pool } from "@/lib/db";
+import { createSessionToken } from "@/lib/auth";
 
 const loginSchema = z.object({
     teamName: z.string(),
@@ -53,7 +54,12 @@ export async function POST(req: Request) {
         }
 
         // ---------- Success ----------
-        return NextResponse.json({
+        const token = await createSessionToken({
+            teamId: team.team_id,
+            teamName: team.team_name,
+        });
+
+        const response = NextResponse.json({
             success: true,
             message: "Login successful",
             team: {
@@ -61,6 +67,19 @@ export async function POST(req: Request) {
                 name: team.team_name,
             },
         });
+
+        // ✅ Secure cookie (BEST PRACTICES)
+        response.cookies.set({
+            name: "session",
+            value: token,
+            httpOnly: true,              // JS cannot access cookie
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",             // protects CSRF for most cases
+            path: "/",
+            maxAge: 60 * 60 * 24 * 7,    // 7 days (seconds)
+        });
+
+        return response;
 
     } catch (error: any) {
         console.error("Login Error:", error);
