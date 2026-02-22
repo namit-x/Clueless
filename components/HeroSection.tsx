@@ -1,5 +1,4 @@
 'use client'
-import { useEffect, useState } from "react";
 import CountDown from "@/components/CountDown";
 
 const HeroSection = () => {
@@ -39,23 +38,6 @@ const HeroSection = () => {
             VIEW RULES
           </a>
         </div>
-
-        {/* Countdown */}
-        {/* <div className="flex justify-center gap-3 sm:gap-6 animate-fade-up" style={{ animationDelay: "0.6s" }}>
-          {[
-            { value: timeLeft.days, label: "Days" },
-            { value: timeLeft.hours, label: "Hours" },
-            { value: timeLeft.minutes, label: "Minutes" },
-            { value: timeLeft.seconds, label: "Seconds" },
-          ].map((item) => (
-            <div key={item.label} className="glass rounded-xl px-4 sm:px-6 py-3 sm:py-4 min-w-17.5 sm:min-w-22.5">
-              <div className="font-display text-2xl sm:text-3xl font-bold text-primary neon-text">
-                {pad(item.value)}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider">{item.label}</div>
-            </div>
-          ))}
-        </div> */}
         <CountDown />
       </div>
     </section>
