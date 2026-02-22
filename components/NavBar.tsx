@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 
 const navLinks = [
-  { label: "About", href: "#how-it-works" },
-  { label: "Games", href: "#games" },
-  { label: "Prizes", href: "#prizes" },
-  { label: "Rules", href: "#rules" },
-  { label: "FAQ", href: "#faq" },
+  { label: "About", href: "/#how-it-works" },
+  { label: "Games", href: "/#games" },
+  { label: "Prizes", href: "/#prizes" },
+  { label: "Rules", href: "/#rules" },
+  { label: "FAQ", href: "/#faq" },
 ];
 
 const Navbar = () => {
@@ -80,7 +80,7 @@ const Navbar = () => {
               className="mt-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-center neon-glow"
               onClick={() => setMobileOpen(false)}
             >
-              LogIn
+              Login
             </a>
           </div>
         </div>

@@ -2,8 +2,11 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from 'framer-motion';
 import { loginAction } from '@/app/api/auth/route'
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faAngleLeft } from "@fortawesome/free-solid-svg-icons";
 
 // Types
 export interface TeamMember {
@@ -222,6 +225,7 @@ const MemberInputCard = ({
 };
 
 export default function TeamRegistrationPage() {
+    const router = useRouter();
     const [teamData, setTeamData] = useState<TeamData>({
         teamName: '',
         teamSize: 3,
@@ -347,6 +351,14 @@ export default function TeamRegistrationPage() {
 
     return (
         <div className="min-h-screen gradient-bg grid-pattern py-16 px-4 sm:px-6 lg:px-8">
+        {/* Back Button */}
+            <button
+              onClick={() => router.back()}
+              className="absolute top-6 left-6 text-xl hover:scale-110 transition-transform"
+            >
+                <FontAwesomeIcon className="absolute top-6 left-6 p-3 rounded-full bg-muted hover:bg-primary hover:text-white transition-all shadow-md" icon={faAngleLeft} />
+            </button>
+            
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-8">

@@ -1,7 +1,7 @@
 "use server"
 import { pool } from "@/lib/db";
 
-import { TeamData } from "@/app/login/page";
+import { TeamData } from "@/app/(auth)/register/page";
 
 function generateTeamId() {
     return Math.floor(100000 + Math.random() * 900000); // 6-digit ID
