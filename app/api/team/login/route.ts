@@ -5,7 +5,7 @@ import { pool } from "@/lib/db";
 
 const loginSchema = z.object({
     teamName: z.string(),
-    password: z.string().min(6).max(100),
+    password: z.string(),
 });
 
 export async function POST(req: Request) {
