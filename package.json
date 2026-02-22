@@ -27,9 +27,11 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "recharts": "^3.7.0",
-    "tailwind-merge": "2.3.0"
+    "tailwind-merge": "2.3.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "20.11.30",
     "@types/pg": "8.16.0",
     "@types/react": "18.3.3",

@@ -4,7 +4,6 @@
 import React, { useState } from 'react';
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from 'framer-motion';
-import { loginAction } from '@/app/api/auth/route'
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAngleLeft } from "@fortawesome/free-solid-svg-icons";
 
@@ -331,8 +330,8 @@ export default function TeamRegistrationPage() {
             setIsLoading(true);
             await new Promise(resolve => setTimeout(resolve, 1500));
             // setSubmittedTeam(teamData);
-            loginAction(teamData);
-            console.log(teamData);
+            fetch("/api/team/signup", { method: "POST" });
+            // console.log(teamData);
             setIsLoading(false);
         }
     };
