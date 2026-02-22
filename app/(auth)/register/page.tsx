@@ -18,7 +18,7 @@ export interface TeamMember {
 
 export interface TeamData {
     teamName: string;
-    teamSize: number;
+    teamSize: number | null;
     members: TeamMember[];
 }
 
@@ -227,9 +227,10 @@ export default function TeamRegistrationPage() {
     const router = useRouter();
     const [teamData, setTeamData] = useState<TeamData>({
         teamName: '',
-        teamSize: 3,
+        teamSize: null,
         members: []
     });
+    const [formError, setFormError] = useState<string | null>(null);
 
     const [activeMemberIndex, setActiveMemberIndex] = useState<number | null>(null);
     const [submittedTeam, setSubmittedTeam] = useState<TeamData | null>(null);
@@ -325,16 +326,29 @@ export default function TeamRegistrationPage() {
         setCurrentStep(prev => prev - 1);
     };
 
-    const handleSubmit = async () => {
-        if (validateStep(2)) {
-            setIsLoading(true);
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            // setSubmittedTeam(teamData);
-            fetch("/api/team/signup", { method: "POST" });
-            // console.log(teamData);
-            setIsLoading(false);
-        }
-    };
+const handleSubmit = async () => {
+    setFormError(null); // reset old error
+
+    const isValid = validateStep(2);
+
+    if (!isValid) {
+        setFormError("Please check all required fields before submitting.");
+        return;
+    }
+
+    setIsLoading(true);
+
+    try {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        await fetch("/api/team/signup", { method: "POST" });
+
+    } catch (err) {
+        setFormError("Something went wrong. Please try again.");
+    }
+
+    setIsLoading(false);
+};
 
     const handleReset = () => {
         setTeamData({
@@ -432,7 +446,7 @@ export default function TeamRegistrationPage() {
                                             <label className="block text-sm font-medium text-gray-400 mb-2">
                                                 Team Size <span className="text-red-400">*</span>
                                             </label>
-                                            <div className="flex gap-3">
+                                            <div className="flex gap-4">
                                                 {TEAM_SIZES.map(size => (
                                                     <button
                                                         key={size}
@@ -490,6 +504,11 @@ export default function TeamRegistrationPage() {
                                             >
                                                 Back
                                             </button>
+                                            {formError && (
+                                              <p className="mt-3 text-sm text-red-500">
+                                                {formError}
+                                              </p>
+                                            )}                                            
                                             <button
                                                 onClick={handleSubmit}
                                                 disabled={isLoading}
@@ -498,6 +517,7 @@ export default function TeamRegistrationPage() {
                                             >
                                                 {isLoading ? 'Submitting...' : 'Submit Registration'}
                                             </button>
+
                                         </div>
                                     </div>
                                 )}
