@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAngleLeft } from "@fortawesome/free-solid-svg-icons";
-
+import { registeredTeams } from "@/lib/usernameMockData";
 // Types
 export interface TeamMember {
     name: string;
@@ -231,12 +231,27 @@ export default function TeamRegistrationPage() {
         members: []
     });
     const [formError, setFormError] = useState<string | null>(null);
+    const [teamName, setTeamName] = useState("");
+    const [teamNameError, setTeamNameError] = useState("");
 
     const [activeMemberIndex, setActiveMemberIndex] = useState<number | null>(null);
     const [submittedTeam, setSubmittedTeam] = useState<TeamData | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
+
+    // Check team name availability
+    const checkTeamName = (name: string) => {
+    const exists = registeredTeams.some(
+      (team) => team.teamName.toLowerCase() === name.toLowerCase()
+    );
+
+    if (exists) {
+      setTeamNameError("Team name already exists");
+    } else {
+      setTeamNameError("");
+    }
+    };
 
     // Initialize members when team size changes
     const initializeMembers = (size: number) => {
@@ -418,28 +433,51 @@ const handleSubmit = async () => {
                                         <h2 className="text-2xl font-display text-foreground tracking-wider">Team Details</h2>
 
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-400 mb-2">
-                                                Team Name <span className="text-red-400">*</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={teamData.teamName}
-                                                onChange={(e) => {
-                                                    setTeamData(prev => ({ ...prev, teamName: e.target.value }));
-                                                    if (errors.teamName) {
-                                                        setErrors(prev => {
-                                                            const newErrors = { ...prev };
-                                                            delete newErrors.teamName;
-                                                            return newErrors;
-                                                        });
-                                                    }
-                                                }}
-                                                className="w-full px-4 py-2 border border-border bg-background/60 backdrop-blur-md rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none text-foreground"
-                                                placeholder="Enter your team name"
-                                            />
-                                            {errors.teamName && (
-                                                <p className="mt-1 text-sm text-red-500">{errors.teamName}</p>
-                                            )}
+                                          <label className="block text-sm font-medium text-gray-400 mb-2">
+                                            Team Name <span className="text-red-400">*</span>
+                                          </label>
+                                                                        
+                                          <input
+                                            type="text"
+                                            value={teamData.teamName}
+                                            onChange={(e) => {
+                                              const value = e.target.value;
+                                            
+                                              setTeamData((prev) => ({ ...prev, teamName: value }));
+                                            
+                                              // Duplicate check (case insensitive, trimmed)
+                                              const exists = registeredTeams.some(
+                                                (team) =>
+                                                  team.teamName.toLowerCase().trim() ===
+                                                  value.toLowerCase().trim()
+                                              );
+                                            
+                                              if (exists) {
+                                                setErrors((prev) => ({
+                                                  ...prev,
+                                                  teamName: "Team with this name already exists",
+                                                }));
+                                              } else {
+                                                setErrors((prev) => {
+                                                  const newErrors = { ...prev };
+                                                  delete newErrors.teamName;
+                                                  return newErrors;
+                                                });
+                                              }
+                                            }}
+                                            className={`w-full px-4 py-2 border ${
+                                              errors.teamName
+                                                ? "border-red-500 focus:ring-red-400/30"
+                                                : "border-border focus:ring-primary/30 focus:border-primary"
+                                            } bg-background/60 backdrop-blur-md rounded-lg transition-all outline-none text-foreground`}
+                                            placeholder="Enter your team name"
+                                          />
+                                        
+                                          {errors.teamName && (
+                                            <p className="mt-1 text-sm text-red-500">
+                                              {errors.teamName}
+                                            </p>
+                                          )}
                                         </div>
 
                                         <div>
