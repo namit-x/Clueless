@@ -29,24 +29,25 @@ const Login = () => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = async (ev: FormEvent) => {
-    ev.preventDefault();
-    setLoginError("");
-    if (!validate()) return;
+const handleSubmit = async (ev: FormEvent<HTMLFormElement>) => {
+  ev.preventDefault();
 
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setLoading(false);
+  const form = ev.currentTarget;
+  const formData = new FormData(form);
 
-    // Mock: accept any credentials
-    // To simulate failure, uncomment below:
-    // setLoginError("Invalid team name or password");
-    // setShake(true);
-    // setTimeout(() => setShake(false), 600);
-    // return;
+  console.log("Form Data:", teamName, password);
+  // for (const [key, value] of formData.entries()) {
+  //   console.log(`${key}:`, value);
+  // }
 
-    router.push("/dashboard");
-  };
+
+  setLoginError("");
+  if (!validate()) return;
+
+  setLoading(true);
+  await new Promise((r) => setTimeout(r, 1500));
+  setLoading(false);
+};
 
     return (    
    <div className="min-h-screen bg-background gradient-bg grid-pattern flex flex-col items-center justify-center p-6 sm:p-8">
@@ -112,7 +113,7 @@ const Login = () => {
  <button type="button" className="text-xs text-muted-foreground hover:text-primary transition-colors">
             Forgot Password?
           </button>
-  <Button
+          <Button
             type="submit"
             disabled={loading}
             className="w-full h-12 font-display tracking-wider neon-glow-strong text-base"
