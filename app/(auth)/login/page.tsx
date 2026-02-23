@@ -65,11 +65,8 @@ const handleSubmit = async (ev: FormEvent<HTMLFormElement>) => {
         <p className="text-muted-foreground">
           Access your team dashboard and compete live.
         </p>
-        {/* <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/30">
-          <span className="h-2 w-2 rounded-full bg-secondary animate-glow-pulse" />
-          <span className="text-sm text-secondary font-medium">Event Starting Soon</span>
-        </div> */}
       </div>
+      
       {/* Login Card - centered */}
       <div
         className={cn(
@@ -85,8 +82,8 @@ const handleSubmit = async (ev: FormEvent<HTMLFormElement>) => {
               {loginError}
             </div>
           )}
-          <div className="space-y-4">
-            <div>
+          <div className="space-y-6">
+            <div className="space-y-2">
               <Label htmlFor="loginTeam">Team Name</Label>
               <Input
                 id="loginTeam"
@@ -98,7 +95,7 @@ const handleSubmit = async (ev: FormEvent<HTMLFormElement>) => {
               />
               {errors.teamName && <p className="text-xs text-destructive mt-1">{errors.teamName}</p>}
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="loginPass">Password</Label>
               <PasswordInput
                 id="loginPass"

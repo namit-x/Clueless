@@ -394,7 +394,7 @@ const handleSubmit = async () => {
                         Team Registration
                     </h1>
                     <p className="text-muted-foreground">
-                        Register your team for the upcoming hackathon
+                        Register your team for the upcoming Event
                     </p>
                 </div>
 
@@ -630,7 +630,7 @@ const handleSubmit = async () => {
 
                 {/* Simple Footer */}
                 <p className="mt-6 text-center text-sm text-gray-500">
-                    Hackathon registration • All fields marked with <span className="text-red-400">*</span> are required
+                    Event registration • All fields marked with <span className="text-red-400">*</span> are required
                 </p>
             </div>
         </div>
