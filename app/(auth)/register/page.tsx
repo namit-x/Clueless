@@ -1,12 +1,13 @@
 // app/team-register/page.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAngleLeft } from "@fortawesome/free-solid-svg-icons";
-import { registeredTeams } from "@/lib/usernameMockData";
+import { useDebounce } from '@/hooks/useDebounce';
+
 // Types
 export interface TeamMember {
     name: string;
@@ -19,6 +20,7 @@ export interface TeamMember {
 export interface TeamData {
     teamName: string;
     teamSize: number | null;
+    password: string;
     members: TeamMember[];
 }
 
@@ -60,9 +62,8 @@ const MemberInputCard = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className={`glass border border-border rounded-2xl overflow-hidden transition-all duration-300 ${
-  isActive ? 'neon-glow border-primary' : 'hover:border-primary/50'
-}`}
+            className={`glass border border-border rounded-2xl overflow-hidden transition-all duration-300 ${isActive ? 'neon-glow border-primary' : 'hover:border-primary/50'
+                }`}
         >
             {/* Card Header - Always visible */}
             <div
@@ -110,18 +111,17 @@ const MemberInputCard = ({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Name Field */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1 ">
+                                    <label className="block text-sm font-medium text-gray-400 mb-1">
                                         Full Name <span className="text-red-400">*</span>
                                     </label>
                                     <input
                                         type="text"
                                         value={member.name}
                                         onChange={(e) => onChange('name', e.target.value)}
-                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${
-                                                      errors[`member-${index}-name`] 
-                                                        ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive' 
-                                                        : 'border-border'
-                                                    }`}
+                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${errors[`member-${index}-name`]
+                                            ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive'
+                                            : 'border-border'
+                                            }`}
                                         placeholder="Namit Rana"
                                     />
                                     {errors[`member-${index}-name`] && (
@@ -139,11 +139,10 @@ const MemberInputCard = ({
                                         value={member.mobile}
                                         onChange={(e) => onChange('mobile', e.target.value)}
                                         maxLength={10}
-                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${
-                                                      errors[`member-${index}-name`] 
-                                                        ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive' 
-                                                        : 'border-border'
-                                                    }`}
+                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${errors[`member-${index}-mobile`]
+                                            ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive'
+                                            : 'border-border'
+                                            }`}
                                         placeholder="9876543210"
                                     />
                                     {errors[`member-${index}-mobile`] && (
@@ -160,11 +159,10 @@ const MemberInputCard = ({
                                         type="email"
                                         value={member.email}
                                         onChange={(e) => onChange('email', e.target.value)}
-                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${
-                                                      errors[`member-${index}-name`] 
-                                                        ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive' 
-                                                        : 'border-border'
-                                                    }`}
+                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${errors[`member-${index}-email`]
+                                            ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive'
+                                            : 'border-border'
+                                            }`}
                                         placeholder="john@college.edu"
                                     />
                                     {errors[`member-${index}-email`] && (
@@ -180,11 +178,10 @@ const MemberInputCard = ({
                                     <select
                                         value={member.branch}
                                         onChange={(e) => onChange('branch', e.target.value)}
-                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${
-                                                      errors[`member-${index}-name`] 
-                                                        ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive' 
-                                                        : 'border-border'
-                                                    }`}
+                                        className={`w-full px-4 py-2 border rounded-lg bg-background/60 backdrop-blur-md text-foreground placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all outline-none ${errors[`member-${index}-branch`]
+                                            ? 'border-destructive bg-destructive/10 focus:ring-destructive/30 focus:border-destructive'
+                                            : 'border-border'
+                                            }`}
                                     >
                                         <option value="">Select branch</option>
                                         {BRANCHES.map(branch => (
@@ -204,8 +201,7 @@ const MemberInputCard = ({
                                         <motion.div
                                             initial={{ width: 0 }}
                                             animate={{
-                                                width: `${[member.name, member.mobile, member.email, member.branch].filter(Boolean).length * 25
-                                                    }%`
+                                                width: `${[member.name, member.mobile, member.email, member.branch].filter(Boolean).length * 25}%`
                                             }}
                                             className="h-full bg-blue-400 rounded-full"
                                         />
@@ -228,11 +224,13 @@ export default function TeamRegistrationPage() {
     const [teamData, setTeamData] = useState<TeamData>({
         teamName: '',
         teamSize: null,
+        password: '',
         members: []
     });
     const [formError, setFormError] = useState<string | null>(null);
-    const [teamName, setTeamName] = useState("");
     const [teamNameError, setTeamNameError] = useState("");
+    const [isCheckingTeamName, setIsCheckingTeamName] = useState(false);
+    const [teamNameCheckSuccess, setTeamNameCheckSuccess] = useState(false);
 
     const [activeMemberIndex, setActiveMemberIndex] = useState<number | null>(null);
     const [submittedTeam, setSubmittedTeam] = useState<TeamData | null>(null);
@@ -240,18 +238,73 @@ export default function TeamRegistrationPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
 
-    // Check team name availability
-    const checkTeamName = (name: string) => {
-    const exists = registeredTeams.some(
-      (team) => team.teamName.toLowerCase() === name.toLowerCase()
-    );
+    // Debounce team name to avoid too many API calls
+    const debouncedTeamName = useDebounce(teamData.teamName, 300);
 
-    if (exists) {
-      setTeamNameError("Team name already exists");
-    } else {
-      setTeamNameError("");
-    }
-    };
+    // Live team name validation
+    useEffect(() => {
+        const checkTeamNameAvailability = async () => {
+            // Don't check if team name is empty or less than 3 characters
+            if (!debouncedTeamName || debouncedTeamName.trim().length < 3) {
+                setTeamNameError("");
+                setTeamNameCheckSuccess(false);
+                return;
+            }
+
+            setIsCheckingTeamName(true);
+            setTeamNameError(""); // Clear previous error while checking
+
+            try {
+                const response = await fetch('/api/team/check-name', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ teamName: debouncedTeamName }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    // Handle validation errors
+                    if (data.error) {
+                        setTeamNameError(data.error);
+                        setTeamNameCheckSuccess(false);
+                    }
+                    return;
+                }
+
+                if (!data.available) {
+                    setTeamNameError(data.message || "Team name already taken");
+                    setTeamNameCheckSuccess(false);
+
+                    // Also set in errors object for form validation
+                    setErrors(prev => ({
+                        ...prev,
+                        teamName: data.message || "Team name already taken"
+                    }));
+                } else {
+                    setTeamNameError("");
+                    setTeamNameCheckSuccess(true);
+
+                    // Clear team name error from errors object
+                    setErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.teamName;
+                        return newErrors;
+                    });
+                }
+            } catch (error) {
+                console.error('Error checking team name:', error);
+                setTeamNameError("Unable to verify team name. Please try again.");
+                setTeamNameCheckSuccess(false);
+            } finally {
+                setIsCheckingTeamName(false);
+            }
+        };
+
+        checkTeamNameAvailability();
+    }, [debouncedTeamName]);
 
     // Initialize members when team size changes
     const initializeMembers = (size: number) => {
@@ -303,6 +356,20 @@ export default function TeamRegistrationPage() {
         if (step === 1) {
             if (!teamData.teamName.trim()) {
                 newErrors.teamName = 'Team name is required';
+            } else if (teamNameError) {
+                newErrors.teamName = teamNameError;
+            } else if (!teamNameCheckSuccess) {
+                newErrors.teamName = 'Please wait while we check team name availability';
+            }
+
+            if (!teamData.password) {
+                newErrors.password = 'Password is required';
+            } else if (teamData.password.length < 6) {
+                newErrors.password = 'Password must be at least 6 characters';
+            }
+
+            if (!teamData.teamSize) {
+                newErrors.teamSize = 'Please select team size';
             }
         }
 
@@ -332,7 +399,7 @@ export default function TeamRegistrationPage() {
     };
 
     const handleNextStep = () => {
-        if (validateStep(currentStep)) {
+        if (validateStep(1)) {
             setCurrentStep(prev => prev + 1);
         }
     };
@@ -341,52 +408,76 @@ export default function TeamRegistrationPage() {
         setCurrentStep(prev => prev - 1);
     };
 
-const handleSubmit = async () => {
-    setFormError(null); // reset old error
+    const handleSubmit = async () => {
+        setFormError(null);
 
-    const isValid = validateStep(2);
+        // Final validation check for team name
+        if (teamNameError) {
+            setFormError("Please fix the team name error before submitting.");
+            return;
+        }
 
-    if (!isValid) {
-        setFormError("Please check all required fields before submitting.");
-        return;
-    }
+        const isValid = validateStep(2);
 
-    setIsLoading(true);
+        if (!isValid) {
+            setFormError("Please check all required fields before submitting.");
+            return;
+        }
 
-    try {
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        setIsLoading(true);
 
-        await fetch("/api/team/signup", { method: "POST" });
+        try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            // console.log("================================");
+            // console.log(teamData)
 
-    } catch (err) {
-        setFormError("Something went wrong. Please try again.");
-    }
+            // Uncomment when API is ready
+            await fetch("/api/team/signup", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(teamData)
+            });
 
-    setIsLoading(false);
-};
+            // Show success message
+            setSubmittedTeam(teamData);
+
+        } catch (err) {
+            setFormError("Something went wrong. Please try again.");
+            console.error("Submission error:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleReset = () => {
         setTeamData({
             teamName: '',
-            teamSize: 3,
+            teamSize: null,
+            password: '',
             members: []
         });
         setCurrentStep(1);
         setSubmittedTeam(null);
         setErrors({});
         setActiveMemberIndex(null);
+        setFormError(null);
+        setTeamNameError("");
+        setTeamNameCheckSuccess(false);
     };
 
     return (
         <div className="min-h-screen gradient-bg grid-pattern py-16 px-4 sm:px-6 lg:px-8">
-        {/* Back Button */}
+            {/* Back Button */}
             <button
-              onClick={() => router.back()}
-              className="absolute top-6 left-6 text-xl hover:scale-110 transition-transform"
+                onClick={() => router.back()}
+                className="absolute top-6 left-6 text-xl hover:scale-110 transition-transform"
             >
-                <FontAwesomeIcon className="absolute top-6 left-6 p-3 rounded-full bg-muted hover:bg-primary hover:text-white transition-all shadow-md" icon={faAngleLeft} />
+                <FontAwesomeIcon className="p-3 rounded-full bg-muted hover:bg-primary hover:text-white transition-all shadow-md" icon={faAngleLeft} />
             </button>
-            
+
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-8">
@@ -433,51 +524,102 @@ const handleSubmit = async () => {
                                         <h2 className="text-2xl font-display text-foreground tracking-wider">Team Details</h2>
 
                                         <div>
-                                          <label className="block text-sm font-medium text-gray-400 mb-2">
-                                            Team Name <span className="text-red-400">*</span>
-                                          </label>
-                                                                        
-                                          <input
-                                            type="text"
-                                            value={teamData.teamName}
-                                            onChange={(e) => {
-                                              const value = e.target.value;
-                                            
-                                              setTeamData((prev) => ({ ...prev, teamName: value }));
-                                            
-                                              // Duplicate check (case insensitive, trimmed)
-                                              const exists = registeredTeams.some(
-                                                (team) =>
-                                                  team.teamName.toLowerCase().trim() ===
-                                                  value.toLowerCase().trim()
-                                              );
-                                            
-                                              if (exists) {
-                                                setErrors((prev) => ({
-                                                  ...prev,
-                                                  teamName: "Team with this name already exists",
-                                                }));
-                                              } else {
-                                                setErrors((prev) => {
-                                                  const newErrors = { ...prev };
-                                                  delete newErrors.teamName;
-                                                  return newErrors;
-                                                });
-                                              }
-                                            }}
-                                            className={`w-full px-4 py-2 border ${
-                                              errors.teamName
-                                                ? "border-red-500 focus:ring-red-400/30"
-                                                : "border-border focus:ring-primary/30 focus:border-primary"
-                                            } bg-background/60 backdrop-blur-md rounded-lg transition-all outline-none text-foreground`}
-                                            placeholder="Enter your team name"
-                                          />
-                                        
-                                          {errors.teamName && (
-                                            <p className="mt-1 text-sm text-red-500">
-                                              {errors.teamName}
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                Team Name <span className="text-red-400">*</span>
+                                            </label>
+
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={teamData.teamName}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        setTeamData((prev) => ({ ...prev, teamName: value }));
+                                                        // Clear team name error when user starts typing again
+                                                        if (teamNameError) {
+                                                            setTeamNameError("");
+                                                        }
+                                                    }}
+                                                    className={`w-full px-4 py-2 border ${errors.teamName || teamNameError
+                                                        ? "border-red-500 focus:ring-red-400/30"
+                                                        : teamNameCheckSuccess
+                                                            ? "border-green-500 focus:ring-green-400/30"
+                                                            : "border-border focus:ring-primary/30 focus:border-primary"
+                                                        } bg-background/60 backdrop-blur-md rounded-lg transition-all outline-none text-foreground pr-10`}
+                                                    placeholder="Enter your team name"
+                                                    minLength={3}
+                                                    maxLength={50}
+                                                />
+
+                                                {/* Status indicator */}
+                                                {teamData.teamName.length >= 3 && (
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                        {isCheckingTeamName ? (
+                                                            <div className="w-5 h-5 border-2 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+                                                        ) : teamNameCheckSuccess ? (
+                                                            <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        ) : teamNameError ? (
+                                                            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        ) : null}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Error/Success message */}
+                                            {teamNameError && (
+                                                <p className="mt-1 text-sm text-red-500">
+                                                    {teamNameError}
+                                                </p>
+                                            )}
+                                            {teamNameCheckSuccess && !teamNameError && teamData.teamName.length >= 3 && (
+                                                <p className="mt-1 text-sm text-green-500">
+                                                    Team name is available!
+                                                </p>
+                                            )}
+                                            {teamData.teamName.length > 0 && teamData.teamName.length < 3 && (
+                                                <p className="mt-1 text-sm text-yellow-500">
+                                                    Team name must be at least 3 characters
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* New Password Field */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                Password <span className="text-red-400">*</span>
+                                            </label>
+                                            <input
+                                                type="password"
+                                                value={teamData.password}
+                                                onChange={(e) => {
+                                                    setTeamData(prev => ({ ...prev, password: e.target.value }));
+                                                    // Clear password error if exists
+                                                    if (errors.password) {
+                                                        setErrors(prev => {
+                                                            const newErrors = { ...prev };
+                                                            delete newErrors.password;
+                                                            return newErrors;
+                                                        });
+                                                    }
+                                                }}
+                                                className={`w-full px-4 py-2 border ${errors.password
+                                                    ? "border-red-500 focus:ring-red-400/30"
+                                                    : "border-border focus:ring-primary/30 focus:border-primary"
+                                                    } bg-background/60 backdrop-blur-md rounded-lg transition-all outline-none text-foreground`}
+                                                placeholder="Enter team password"
+                                            />
+                                            {errors.password && (
+                                                <p className="mt-1 text-sm text-red-500">
+                                                    {errors.password}
+                                                </p>
+                                            )}
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Password must be at least 6 characters
                                             </p>
-                                          )}
                                         </div>
 
                                         <div>
@@ -493,17 +635,25 @@ const handleSubmit = async () => {
                                                             ? 'bg-primary text-primary-foreground border-primary neon-glow'
                                                             : 'bg-background/60 text-foreground border-border hover:border-primary/50'
                                                             }`}
+                                                        type="button"
                                                     >
                                                         {size}
                                                     </button>
                                                 ))}
                                             </div>
+                                            {errors.teamSize && (
+                                                <p className="mt-1 text-sm text-red-500">{errors.teamSize}</p>
+                                            )}
                                         </div>
 
                                         <div className="flex justify-end pt-4">
                                             <button
                                                 onClick={handleNextStep}
-                                                className="px-6 py-2 bg-primary rounded-lg text-primary-foreground neon-glow hover:neon-glow-strong transition-all"
+                                                disabled={!!teamNameError || isCheckingTeamName || !teamData.teamName || !teamData.password || !teamData.teamSize}
+                                                className={`px-6 py-2 bg-primary rounded-lg text-primary-foreground neon-glow hover:neon-glow-strong transition-all ${(!!teamNameError || isCheckingTeamName || !teamData.teamName || !teamData.password || !teamData.teamSize)
+                                                    ? 'opacity-50 cursor-not-allowed'
+                                                    : ''
+                                                    }`}
                                             >
                                                 Next Step
                                             </button>
@@ -535,6 +685,14 @@ const handleSubmit = async () => {
                                             ))}
                                         </div>
 
+                                        {formError && (
+                                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                                <p className="text-sm text-red-600">
+                                                    {formError}
+                                                </p>
+                                            </div>
+                                        )}
+
                                         <div className="flex justify-between pt-4">
                                             <button
                                                 onClick={handlePrevStep}
@@ -542,11 +700,6 @@ const handleSubmit = async () => {
                                             >
                                                 Back
                                             </button>
-                                            {formError && (
-                                              <p className="mt-3 text-sm text-red-500">
-                                                {formError}
-                                              </p>
-                                            )}                                            
                                             <button
                                                 onClick={handleSubmit}
                                                 disabled={isLoading}
@@ -555,7 +708,6 @@ const handleSubmit = async () => {
                                             >
                                                 {isLoading ? 'Submitting...' : 'Submit Registration'}
                                             </button>
-
                                         </div>
                                     </div>
                                 )}
@@ -589,6 +741,11 @@ const handleSubmit = async () => {
                                             <div>
                                                 <p className="text-gray-500">Team Size</p>
                                                 <p className="font-medium text-gray-900">{submittedTeam.teamSize} members</p>
+                                            </div>
+                                            {/* Show password in summary (optional) */}
+                                            <div className="col-span-2">
+                                                <p className="text-gray-500">Password</p>
+                                                <p className="font-medium text-gray-900">{"•".repeat(submittedTeam.password.length)}</p>
                                             </div>
                                         </div>
                                     </div>
