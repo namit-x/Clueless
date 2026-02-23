@@ -29,25 +29,53 @@ const Login = () => {
     return Object.keys(e).length === 0;
   };
 
-const handleSubmit = async (ev: FormEvent<HTMLFormElement>) => {
-  ev.preventDefault();
+  const handleSubmit = async () => {
+    // Validate first before making API call
+    if (!validate()) return;
 
-  const form = ev.currentTarget;
-  const formData = new FormData(form);
+    setLoginError("");
+    setLoading(true);
 
-  console.log("Form Data:", teamName, password);
-  // for (const [key, value] of formData.entries()) {
-  //   console.log(`${key}:`, value);
-  // }
+    try {
+      console.log("Form Data:", teamName, password);
 
+      const response = await fetch("/api/team/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ teamName, password })
+      });
 
-  setLoginError("");
-  if (!validate()) return;
+      const data = await response.json();
 
-  setLoading(true);
-  await new Promise((r) => setTimeout(r, 1500));
-  setLoading(false);
-};
+      if (!response.ok) {
+        // Handle API error response
+        setLoginError(data.message || "Login failed. Please try again.");
+        return;
+      }
+
+      // Simulate additional processing time if needed
+      // await new Promise((r) => setTimeout(r, 1500));
+
+      // Handle successful login
+      console.log("Login successful:", data);
+
+      // You might want to:
+      // - Store auth token in localStorage/context
+      // - Redirect to dashboard
+      // - Update user state
+      // localStorage.setItem('token', data.token);
+      // router.push('/dashboard');
+
+    } catch (error) {
+      // Handle network errors
+      console.error("Login error:", error);
+      setLoginError("Network error. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
     return (    
    <div className="min-h-screen bg-background gradient-bg grid-pattern flex flex-col items-center justify-center p-6 sm:p-8">
@@ -78,7 +106,10 @@ const handleSubmit = async (ev: FormEvent<HTMLFormElement>) => {
         )}
         style={{ animationDelay: "0.15s" }}
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={(e)=>{
+            e.preventDefault();
+            handleSubmit();
+        }} className="space-y-6">
           <h2 className="font-display text-xl font-bold tracking-wide text-center">Team Login</h2>
           {loginError && (
             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-sm text-destructive text-center">
