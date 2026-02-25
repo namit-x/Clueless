@@ -91,7 +91,7 @@ const Login = () => {
       <div className="text-center space-y-4 animate-fade-up mb-8 max-w-md">
         <p className="section-title font-display neon-text">Welcome Back</p>
         <p className="text-muted-foreground">
-          Access your team dashboard and compete live.
+          Access the Game Arena and Compete live.
         </p>
       </div>
       
