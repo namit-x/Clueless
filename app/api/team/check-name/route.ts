@@ -1,9 +1,5 @@
-// FOR LIVE TEAM NAME VALIDATION
-
-
-
 import { NextResponse } from "next/server";
-import { pool } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const schema = z.object({
@@ -11,21 +7,19 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
-    let client;
-
     try {
         const body = await req.json();
         const { teamName } = schema.parse(body);
 
-        client = await pool.connect();
+        const { data, error } = await supabaseAdmin
+            .from("teams")
+            .select("team_id")
+            .ilike("teamName", teamName.trim()) // case-insensitive
+            .limit(1);
 
-        // Case-insensitive check (important)
-        const result = await client.query(
-            `SELECT 1 FROM teams WHERE LOWER(team_name) = LOWER($1) LIMIT 1`,
-            [teamName.trim()]
-        );
+        if (error) throw error;
 
-        const available = result.rowCount === 0;
+        const available = data.length === 0;
 
         return NextResponse.json({
             available,
@@ -44,7 +38,5 @@ export async function POST(req: Request) {
             },
             { status: 400 }
         );
-    } finally {
-        if (client) client.release();
     }
 }
