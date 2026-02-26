@@ -38,6 +38,7 @@ const Login = () => {
 
     try {
       console.log("Form Data:", teamName, password);
+      console.log("Login button clicked");
 
       const response = await fetch("/api/team/login", {
         method: "POST",
@@ -51,7 +52,7 @@ const Login = () => {
 
       if (!response.ok) {
         // Handle API error response
-        setLoginError(data.message || "Login failed. Please try again.");
+        setLoginError(data.error || data.message || "Login failed. Please try again.");
         return;
       }
 
