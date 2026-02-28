@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { teamSignupSchema } from "@/lib/validators/team";
-import { TeamSignupInput } from "@/types/team";
+import { TeamSignupInput } from "@/lib/types/team";
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { ZodError } from "zod";
