@@ -437,26 +437,37 @@ export default function TeamRegistrationPage() {
         setIsLoading(true);
 
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            // console.log("================================");
-            // console.log(teamData)
-
-            // Uncomment when API is ready
-            await fetch("/api/team/register", {
+            // Request
+            const res = await fetch("/api/team/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(teamData)
+                body: JSON.stringify(teamData),
             });
 
-            // Show success message
+            // Parse backend response
+            const data = await res.json();
+
+            // ✅ Print status + message in console
+            // console.log("Status Code:", res.status);
+            // console.log("Response Message:", data.message);
+            // console.log("Full Response:", data);
+
+            // If backend returned error status
+            if (!res.ok) {
+                throw new Error(data.message || "Request failed");
+            }
+
+            // Success
             setSubmittedTeam(teamData);
 
-        } catch (err) {
-            setFormError("Something went wrong. Please try again.");
+        } catch (err: any) {
             console.error("Submission error:", err);
+
+            setFormError(
+                err.message || "Something went wrong. Please try again."
+            );
         } finally {
             setIsLoading(false);
         }
@@ -839,11 +850,6 @@ export default function TeamRegistrationPage() {
                         )}
                     </AnimatePresence>
                 </div>
-
-                {/* Simple Footer */}
-                {/* <p className="mt-6 text-center text-sm text-gray-500">
-                    Event registration • All fields marked with <span className="text-red-400">*</span> are required
-                </p> */}
             </div>
         </div>
     );
