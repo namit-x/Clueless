@@ -10,15 +10,28 @@ function getJwtSecret(): Uint8Array {
     return new TextEncoder().encode(jwtSecret);
 }
 
-export async function createSessionToken(payload: {
+/**
+ * Session payload types
+ */
+type AdminPayload = {
+    role: "admin";
+    adminName: string;
+};
+
+type UserPayload = {
+    role: "user";
     teamId: number;
     teamName: string;
-}) {
+};
+
+type SessionPayload = AdminPayload | UserPayload;
+
+export async function createSessionToken(payload: SessionPayload) {
     const secret = getJwtSecret();
 
     return await new SignJWT(payload)
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
-        .setExpirationTime("7d") // session duration
+        .setExpirationTime("7d")
         .sign(secret);
 }

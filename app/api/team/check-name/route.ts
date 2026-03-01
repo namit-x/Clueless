@@ -14,7 +14,7 @@ export async function POST(req: Request) {
         const { data, error } = await supabaseAdmin
             .from("teams")
             .select("team_id")
-            .ilike("teamName", teamName.trim()) // case-insensitive
+            .ilike("team_name", teamName.trim()) // case-insensitive
             .limit(1);
 
         if (error) throw error;
