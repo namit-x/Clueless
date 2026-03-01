@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono as GeistMono } from "next/font/google";
 import "./globals.css";
 import DisableDevTools from "@/components/DisableDevTools";
 
@@ -8,7 +8,7 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
+const geistMono = GeistMono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
