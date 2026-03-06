@@ -72,7 +72,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: teamError.message }, { status: 400 });
     }
 
-    const membersWithTeam = members.map((m:any) => ({
+    const membersWithTeam = members.map((m) => ({
       member_id: crypto.randomUUID(),
       team_id: teamId,
       name: m.name.trim(),
