@@ -1,4 +1,7 @@
+'use client';
 import GameCard from "./GameCard"
+import {useRouter} from "next/navigation";
+
 
 type Game = {
   id: number
@@ -13,6 +16,7 @@ type Props = {
 }
 
 export default function GamesGrid({ games }: Props) {
+  const router = useRouter();
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {games.map((game) => (
@@ -24,7 +28,7 @@ export default function GamesGrid({ games }: Props) {
           rewardWordEarned={game.reward_word_earned}
           onPlay={() => {
             if (game.state === "ACTIVE") {
-              window.location.href = "/games"
+              router.push("/games");
             }
           }}
         />

@@ -438,7 +438,7 @@ export default function TeamRegistrationPage() {
 
         try {
             // Request
-            const res = await fetch("/api/team/register", {
+            const res = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

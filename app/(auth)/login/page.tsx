@@ -40,7 +40,7 @@ const Login = () => {
       console.log("Form Data:", teamName, password);
       console.log("Login button clicked");
 
-      const response = await fetch("/api/team/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,9 +1,21 @@
+import {useRouter} from "next/navigation";
+
+
 type Props = {
   teamName: string
   penaltyTime: number
 }
 
+
 export default function DashboardHeader({ teamName, penaltyTime }: Props) {
+  const router = useRouter();
+  const logout = async () => {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+    router.push("/");
+  };
   return (
     <div className="flex items-center justify-between border-b pb-4 mb-6">
       <div>
@@ -13,7 +25,7 @@ export default function DashboardHeader({ teamName, penaltyTime }: Props) {
         </p>
       </div>
 
-      <button className="text-red-500 hover:underline">
+      <button onClick={logout} className="text-red-500 hover:underline">
         Logout
       </button>
     </div>
