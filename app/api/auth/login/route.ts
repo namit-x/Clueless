@@ -33,25 +33,17 @@ export async function POST(req: Request) {
 
     /* ---------------- ADMIN LOGIN ---------------- */
 
-    const normalizedTeamName = teamName.trim();
-
-    /* ---------------- ADMIN LOGIN ---------------- */
-
     const adminIndex = ADMIN_USERS.findIndex(
-      (adminName) =>
+      (adminName, i) =>
         adminName.trim() === normalizedTeamName &&
-        adminName.trim() === normalizedTeamName &&
-        ADMIN_PASSWORDS[ADMIN_USERS.indexOf(adminName)] === password
+        ADMIN_PASSWORDS[i] === password
     );
 
     if (adminIndex !== -1) {
-      const adminName = ADMIN_USERS[adminIndex];
-
-      const adminName = ADMIN_USERS[adminIndex];
+      const adminName = ADMIN_USERS[adminIndex].trim();
 
       const token = await createSessionToken({
         role: "admin",
-        adminName,
         adminName,
       });
 
@@ -64,17 +56,9 @@ export async function POST(req: Request) {
           role: "admin",
         },
         token,
-        message: "Login successful",
-        user: {
-          id: `admin_${adminIndex}`,
-          name: adminName,
-          role: "admin",
-        },
-        token,
       });
 
       response.cookies.set({
-        name: "session",
         name: "session",
         value: token,
         httpOnly: true,
@@ -87,7 +71,6 @@ export async function POST(req: Request) {
       return response;
     }
 
-    /* ---------------- TEAM LOGIN ---------------- */
     /* ---------------- TEAM LOGIN ---------------- */
 
     const { data: team, error: teamError } = await supabaseAdmin
@@ -164,10 +147,6 @@ export async function POST(req: Request) {
         { error: "Invalid input data" },
         { status: 400 }
       );
-      return NextResponse.json(
-        { error: "Invalid input data" },
-        { status: 400 }
-      );
     }
 
     if (error instanceof Error && error.message.includes("JWT_SECRET")) {
@@ -177,10 +156,6 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json(
-      { error: "Unexpected server error" },
-      { status: 500 }
-    );
     return NextResponse.json(
       { error: "Unexpected server error" },
       { status: 500 }
