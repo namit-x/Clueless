@@ -45,9 +45,9 @@ const Login = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ teamName, password })
+        body: JSON.stringify({ teamName, password }),
+        credentials: "include", // Include cookies for session management
       });
-
       const data = await response.json();
 
       if (!response.ok) {
