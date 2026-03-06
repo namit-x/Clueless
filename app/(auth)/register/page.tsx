@@ -450,9 +450,9 @@ export default function TeamRegistrationPage() {
             const data = await res.json();
 
             // ✅ Print status + message in console
-            // console.log("Status Code:", res.status);
-            // console.log("Response Message:", data.message);
-            // console.log("Full Response:", data);
+            console.log("Status Code:", res.status);
+            console.log("Response Message:", data.message);
+            console.log("Full Response:", data);
 
             // If backend returned error status
             if (!res.ok) {

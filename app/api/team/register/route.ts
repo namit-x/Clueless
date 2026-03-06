@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { teamSignupSchema } from "../../../../validators/team";
+import { teamSignupSchema } from "@/validators/team";
 
 export async function POST(req: Request) {
   try {

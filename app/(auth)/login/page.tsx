@@ -64,7 +64,7 @@ const Login = () => {
 
       // - Redirect to dashboard
       router.push('/dashboard');
-      
+
       // You might want to:
       // - Store auth token in localStorage/context
       // - Update user state
@@ -79,8 +79,8 @@ const Login = () => {
     }
   };
 
-    return (    
-   <div className="min-h-screen bg-background gradient-bg grid-pattern flex flex-col items-center justify-center p-6 sm:p-8">
+  return (
+    <div className="min-h-screen bg-background gradient-bg grid-pattern flex flex-col items-center justify-center p-6 sm:p-8">
       {/* Back Button */}
       <button
         onClick={() => router.back()}
@@ -96,7 +96,7 @@ const Login = () => {
           Access the Game Arena and Compete live.
         </p>
       </div>
-      
+
       {/* Login Card - centered */}
       <div
         className={cn(
@@ -105,9 +105,9 @@ const Login = () => {
         )}
         style={{ animationDelay: "0.15s" }}
       >
-        <form onSubmit={(e)=>{
-            e.preventDefault();
-            handleSubmit();
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit();
         }} className="space-y-6">
           <h2 className="font-display text-xl font-bold tracking-wide text-center">Team Login</h2>
           {loginError && (
@@ -133,14 +133,14 @@ const Login = () => {
               <PasswordInput
                 id="loginPass"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)} 
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
                 error={errors.password}
               />
               {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
             </div>
           </div>
- <button type="button" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+          <button type="button" className="text-xs text-muted-foreground hover:text-primary transition-colors">
             Forgot Password?
           </button>
           <Button
@@ -160,7 +160,7 @@ const Login = () => {
         </form>
       </div>
     </div>
-    )
+  )
 
 
 };

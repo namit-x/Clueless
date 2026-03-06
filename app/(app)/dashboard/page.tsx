@@ -10,7 +10,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function loadDashboard() {
-      const res = await fetch("/api/team/dashboard", {
+      const res = await fetch("/api/admin/games", {
         credentials: "include",
       });
 

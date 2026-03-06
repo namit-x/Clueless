@@ -29,27 +29,53 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { teamName, password } = loginSchema.parse(body);
 
-    // --- ADMIN CHECK ---
+    const normalizedTeamName = teamName.trim();
+
+    /* ---------------- ADMIN LOGIN ---------------- */
+
+    const normalizedTeamName = teamName.trim();
+
+    /* ---------------- ADMIN LOGIN ---------------- */
+
     const adminIndex = ADMIN_USERS.findIndex(
       (adminName) =>
-        adminName.trim() === teamName.trim() &&
+        adminName.trim() === normalizedTeamName &&
+        adminName.trim() === normalizedTeamName &&
         ADMIN_PASSWORDS[ADMIN_USERS.indexOf(adminName)] === password
     );
 
     if (adminIndex !== -1) {
+      const adminName = ADMIN_USERS[adminIndex];
+
+      const adminName = ADMIN_USERS[adminIndex];
+
       const token = await createSessionToken({
-        adminName: ADMIN_USERS[adminIndex],
         role: "admin",
+        adminName,
+        adminName,
       });
 
       const response = NextResponse.json({
         success: true,
-        message: "Admin login successful",
-        admin: { name: ADMIN_USERS[adminIndex] },
+        message: "Login successful",
+        user: {
+          id: `admin_${adminIndex}`,
+          name: adminName,
+          role: "admin",
+        },
+        token,
+        message: "Login successful",
+        user: {
+          id: `admin_${adminIndex}`,
+          name: adminName,
+          role: "admin",
+        },
+        token,
       });
 
       response.cookies.set({
-        name: "admin_session",
+        name: "session",
+        name: "session",
         value: token,
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -58,13 +84,11 @@ export async function POST(req: Request) {
         maxAge: 60 * 60 * 24 * 7,
       });
 
-      // console.log("Admin Success");
-
       return response;
     }
 
-    // --- NORMAL TEAM LOGIN ---
-    const normalizedTeamName = teamName.trim();
+    /* ---------------- TEAM LOGIN ---------------- */
+    /* ---------------- TEAM LOGIN ---------------- */
 
     const { data: team, error: teamError } = await supabaseAdmin
       .from("teams")
@@ -107,13 +131,18 @@ export async function POST(req: Request) {
     const token = await createSessionToken({
       teamId: team.team_id,
       teamName: team.team_name,
-      role: "user",
+      role: "team",
     });
 
     const response = NextResponse.json({
       success: true,
       message: "Login successful",
-      team: { id: team.team_id, name: team.team_name },
+      user: {
+        id: team.team_id,
+        name: team.team_name,
+        role: "team",
+      },
+      token,
     });
 
     response.cookies.set({
@@ -126,14 +155,19 @@ export async function POST(req: Request) {
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    // console.log("Success");
-
     return response;
   } catch (error: unknown) {
     console.error("Login Error:", error);
 
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid input data" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid input data" },
+        { status: 400 }
+      );
+      return NextResponse.json(
+        { error: "Invalid input data" },
+        { status: 400 }
+      );
     }
 
     if (error instanceof Error && error.message.includes("JWT_SECRET")) {
@@ -143,6 +177,13 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ error: "Unexpected server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unexpected server error" },
+      { status: 500 }
+    );
+    return NextResponse.json(
+      { error: "Unexpected server error" },
+      { status: 500 }
+    );
   }
 }
