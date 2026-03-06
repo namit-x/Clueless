@@ -3,7 +3,7 @@
 
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { teamStepOneSchema } from "@/lib/validators/teamStepOne";
+import { teamStepOneSchema } from "../../../../validators/teamStepOne";
 import { ZodError } from "zod";
 
 export async function POST(req: Request) {

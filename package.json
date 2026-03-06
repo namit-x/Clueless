@@ -29,6 +29,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "recharts": "^3.7.0",
+    "supabase": "^2.76.17",
     "tailwind-merge": "2.3.0",
     "uuid": "^13.0.0",
     "zod": "^4.3.6"

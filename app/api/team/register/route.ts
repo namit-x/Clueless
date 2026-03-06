@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { teamSignupSchema } from "@/lib/validators/team";
+import { teamSignupSchema } from "../../../../validators/team";
 
 export async function POST(req: Request) {
   try {
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     if (authError || !authData.user) {
       const authMessage =
         authError?.message?.includes("already") ||
-        authError?.message?.includes("registered")
+          authError?.message?.includes("registered")
           ? "Leader email is already registered"
           : authError?.message || "Unable to create auth account";
       return NextResponse.json({ error: authMessage }, { status: 400 });
