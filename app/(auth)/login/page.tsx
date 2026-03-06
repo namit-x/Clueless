@@ -49,6 +49,8 @@ const Login = () => {
         credentials: "include", // Include cookies for session management
       });
       const data = await response.json();
+      const role = data.user.role;
+      console.log("Login successful:", data);
 
       if (!response.ok) {
         // Handle API error response
@@ -56,14 +58,18 @@ const Login = () => {
         return;
       }
 
+      if (role === "admin") {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
+
+      
       // Simulate additional processing time if needed
       // await new Promise((r) => setTimeout(r, 1500));
 
       // Handle successful login
-      console.log("Login successful:", data);
-
-      // - Redirect to dashboard
-      router.push('/dashboard');
+      // - Redirect based on role
 
       // You might want to:
       // - Store auth token in localStorage/context
