@@ -19,7 +19,7 @@ type AdminPayload = {
 };
 
 type UserPayload = {
-    role: "user";
+    role: "team";
     teamId: number;
     teamName: string;
 };
