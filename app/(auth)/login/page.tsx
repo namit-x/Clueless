@@ -62,12 +62,13 @@ const Login = () => {
       // Handle successful login
       console.log("Login successful:", data);
 
+      // - Redirect to dashboard
+      router.push('/dashboard');
+      
       // You might want to:
       // - Store auth token in localStorage/context
-      // - Redirect to dashboard
       // - Update user state
       // localStorage.setItem('token', data.token);
-      // router.push('/dashboard');
 
     } catch (error) {
       // Handle network errors
@@ -132,7 +133,7 @@ const Login = () => {
               <PasswordInput
                 id="loginPass"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)} 
                 placeholder="Enter password"
                 error={errors.password}
               />
