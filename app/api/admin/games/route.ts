@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, game });
 
     } catch (err: any) {
+        // console.log(err.message);
         return NextResponse.json(
             { success: false, error: err.message },
             { status: 400 }

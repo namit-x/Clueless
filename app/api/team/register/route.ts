@@ -56,24 +56,23 @@ export async function POST(req: Request) {
     }
 
     const ownerId = authData.user.id;
-    const teamId = crypto.randomUUID();
 
-    const { error: teamError } = await supabaseAdmin.from("teams").insert([
+    const { data: teamData, error: teamError } = await supabaseAdmin.from("teams").insert([
       {
-        team_id: teamId,
         team_name: normalizedTeamName,
         team_size: teamSize,
         owner_id: ownerId,
       },
-    ]);
+    ]).select().single();
 
-    if (teamError) {
+    if (teamError || !teamData) {
       await supabaseAdmin.auth.admin.deleteUser(ownerId);
-      return NextResponse.json({ error: teamError.message }, { status: 400 });
+      return NextResponse.json({ error: teamError?.message || "Failed to create team" }, { status: 400 });
     }
 
+    const teamId = teamData.team_id;
+
     const membersWithTeam = members.map((m) => ({
-      member_id: crypto.randomUUID(),
       team_id: teamId,
       name: m.name.trim(),
       mobile: m.mobile.trim(),
