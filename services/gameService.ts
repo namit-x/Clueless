@@ -15,3 +15,31 @@ export async function createGame(data: any) {
 
     return game;
 }
+
+export async function getCurrentGameForTeam() {
+    try {
+        const { data, error } = await supabaseAdmin
+            .from("games")
+            .select("id, name, description, order_index, status")
+            .eq("is_active", true)
+            .order("order_index", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            console.error(
+                "[GameService][getCurrentGameForTeam] Database query failed:",
+                error.message
+            );
+            throw new Error("Database error while fetching current game");
+        }
+
+        return data;
+    } catch (error: any) {
+        console.error(
+            "[GameService][getCurrentGameForTeam] Unexpected service error:",
+            error.message
+        );
+        throw new Error("Service failed to retrieve current game");
+    }
+}
