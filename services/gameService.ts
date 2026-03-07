@@ -21,7 +21,7 @@ export async function getCurrentGameForTeam() {
         const { data, error } = await supabaseAdmin
             .from("games")
             .select("id, name, description, order_index, status")
-            .eq("is_active", true)
+            .eq("is_active", false)
             .order("order_index", { ascending: true })
             .limit(1)
             .maybeSingle();
