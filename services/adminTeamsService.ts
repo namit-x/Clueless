@@ -26,3 +26,16 @@ export async function approveTeamService(teamId: string) {
         throw new Error(`SERVICE_TEAM_APPROVAL_FAILED: ${error.message}`);
     }
 }
+
+import { rejectTeamRepo } from "@/lib/repositories/teamsRepo";
+
+export async function rejectTeamService(teamId: string) {
+    try {
+        const team = await rejectTeamRepo(teamId);
+
+        return team;
+
+    } catch (error: any) {
+        throw new Error(`SERVICE_TEAM_REJECT_FAILED: ${error.message}`);
+    }
+}

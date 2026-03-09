@@ -39,3 +39,25 @@ export async function approveTeamRepo(teamId: string) {
     throw new Error(`DB_TEAM_APPROVAL_FAILED: ${error.message}`);
   }
 }
+
+export async function rejectTeamRepo(teamId: string) {
+  const query = `
+    UPDATE teams
+    SET is_approved = false
+    WHERE team_id = $1
+    RETURNING team_id, team_name, is_approved;
+  `;
+
+  try {
+    const result = await pool.query(query, [teamId]);
+
+    if (result.rowCount === 0) {
+      throw new Error("TEAM_NOT_FOUND");
+    }
+
+    return result.rows[0];
+
+  } catch (error: any) {
+    throw new Error(`DB_TEAM_REJECT_FAILED: ${error.message}`);
+  }
+}
