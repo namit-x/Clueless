@@ -1,6 +1,8 @@
 import { createGame } from "@/services/gameService";
 import { NextResponse } from "next/server";
 import { getCurrentGameForTeam } from "@/services/gameService";
+import { startGameService } from "@/services/gameService";
+import { endGameService } from "@/services/gameService";
 
 export async function createGameController(body: any) {
     const game = await createGame(body);
@@ -49,5 +51,31 @@ export async function getCurrentGameController(user: any) {
             },
             { status: 500 }
         );
+    }
+}
+
+export async function startGameController(gameId: string) {
+    try {
+
+        const game = await startGameService(gameId);
+
+        return game;
+
+    } catch (error: any) {
+        throw new Error(`CONTROLLER_START_GAME_FAILED: ${error.message}`);
+    }
+}
+
+
+export async function endGameController(gameId: string) {
+
+    try {
+
+        const game = await endGameService(gameId);
+
+        return game;
+
+    } catch (error: any) {
+        throw new Error(`CONTROLLER_END_GAME_FAILED: ${error.message}`);
     }
 }

@@ -61,3 +61,16 @@ export async function rejectTeamRepo(teamId: string) {
     throw new Error(`DB_TEAM_REJECT_FAILED: ${error.message}`);
   }
 }
+
+export async function getApprovedTeamsRepo() {
+  const query = `
+    SELECT team_id
+    FROM teams
+    WHERE is_approved = true
+    ORDER BY team_id;
+  `;
+
+  const result = await pool.query(query);
+
+  return result.rows;
+}
