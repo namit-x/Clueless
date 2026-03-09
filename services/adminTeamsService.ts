@@ -13,3 +13,16 @@ export async function fetchAllTeamsService() {
         throw new Error(`SERVICE_FETCH_TEAMS_FAILED: ${error.message}`);
     }
 }
+
+import { approveTeamRepo } from "@/lib/repositories/teamsRepo";
+
+export async function approveTeamService(teamId: string) {
+    try {
+        const team = await approveTeamRepo(teamId);
+
+        return team;
+
+    } catch (error: any) {
+        throw new Error(`SERVICE_TEAM_APPROVAL_FAILED: ${error.message}`);
+    }
+}
