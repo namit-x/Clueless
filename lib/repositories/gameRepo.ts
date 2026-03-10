@@ -53,3 +53,70 @@ export async function endGameRepo(gameId: string) {
     throw new Error(`DB_END_GAME_FAILED: ${error.message}`);
   }
 }
+
+export async function pauseGameRepo(gameId: string) {
+
+  const query = `
+    UPDATE games
+    SET status = 'PAUSED'
+    WHERE id = $1
+    RETURNING id, status;
+  `;
+
+  try {
+
+    const result = await pool.query(query, [gameId]);
+
+    if (result.rowCount === 0) {
+      throw new Error("GAME_NOT_FOUND");
+    }
+
+    return result.rows[0];
+
+  } catch (error: any) {
+    throw new Error(`DB_PAUSE_GAME_FAILED: ${error.message}`);
+  }
+}
+
+export async function restartGameRepo(gameId: string) {
+
+  const client = await pool.connect();
+
+  try {
+
+    await client.query("BEGIN");
+
+    await client.query(`DELETE FROM team_routes`);
+    await client.query(`DELETE FROM team_round_progress`);
+    await client.query(`DELETE FROM submissions`);
+    await client.query(`DELETE FROM reward_words`);
+    await client.query(`DELETE FROM final_submissions`);
+
+    const result = await client.query(`
+      UPDATE games
+      SET status = 'NOT_STARTED',
+          started_at = NULL,
+          ended_at = NULL
+      WHERE id = $1
+      RETURNING id, status;
+    `, [gameId]);
+
+    await client.query("COMMIT");
+
+    if (result.rowCount === 0) {
+      throw new Error("GAME_NOT_FOUND");
+    }
+
+    return result.rows[0];
+
+  } catch (error) {
+
+    await client.query("ROLLBACK");
+    throw new Error(`DB_RESTART_GAME_FAILED: ${(error as Error).message}`);
+
+  } finally {
+
+    client.release();
+
+  }
+}

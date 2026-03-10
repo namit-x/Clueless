@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { getCurrentGameForTeam } from "@/services/gameService";
 import { startGameService } from "@/services/gameService";
 import { endGameService } from "@/services/gameService";
+import { pauseGameService } from "@/services/gameService";
+import { restartGameService } from "@/services/gameService";
 
 export async function createGameController(body: any) {
     const game = await createGame(body);
@@ -77,5 +79,34 @@ export async function endGameController(gameId: string) {
 
     } catch (error: any) {
         throw new Error(`CONTROLLER_END_GAME_FAILED: ${error.message}`);
+    }
+}
+
+export async function pauseGameController(gameId: string) {
+
+    try {
+
+        const game = await pauseGameService(gameId);
+
+        return game;
+
+    } catch (error: any) {
+        throw new Error(`CONTROLLER_PAUSE_GAME_FAILED: ${error.message}`);
+    }
+}
+
+
+export async function restartGameController(gameId: string) {
+
+    try {
+
+        const game = await restartGameService(gameId);
+
+        return game;
+
+    } catch (error: any) {
+
+        throw new Error(`CONTROLLER_RESTART_GAME_FAILED: ${error.message}`);
+
     }
 }

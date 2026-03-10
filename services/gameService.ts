@@ -3,7 +3,8 @@ import { getGameByIdRepo, activateGameRepo, endGameRepo } from "@/lib/repositori
 import { getApprovedTeamsRepo } from "@/lib/repositories/teamsRepo";
 import { getAllRoutesRepo, insertTeamRoutesRepo } from "@/lib/repositories/teamRoutesRepo";
 import { initializeTeamRoundProgressRepo } from "@/lib/repositories/teamRoundProgressRepo";
-
+import { pauseGameRepo } from "@/lib/repositories/gameRepo";
+import { restartGameRepo } from "@/lib/repositories/gameRepo";
 
 export async function createGame(data: any) {
     const { id, ...gameData } = data;
@@ -95,4 +96,31 @@ export async function endGameService(gameId: string) {
     const endedGame = await endGameRepo(gameId);
 
     return endedGame;
+}
+
+
+export async function pauseGameService(gameId: string) {
+
+    const game = await getGameByIdRepo(gameId);
+
+    if (game.status !== "ACTIVE") {
+        throw new Error("GAME_NOT_ACTIVE_CANNOT_PAUSE");
+    }
+
+    const pausedGame = await pauseGameRepo(gameId);
+
+    return pausedGame;
+}
+
+export async function restartGameService(gameId: string) {
+
+    const game = await getGameByIdRepo(gameId);
+
+    if (!game) {
+        throw new Error("GAME_NOT_FOUND");
+    }
+
+    const restartedGame = await restartGameRepo(gameId);
+
+    return restartedGame;
 }
