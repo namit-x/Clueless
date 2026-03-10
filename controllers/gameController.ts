@@ -1,4 +1,4 @@
-import { createGame } from "@/services/gameService";
+import { createGame, startTeamGameService } from "@/services/gameService";
 import { NextResponse } from "next/server";
 import { getCurrentGameForTeam } from "@/services/gameService";
 import { startGameService } from "@/services/gameService";
@@ -107,6 +107,21 @@ export async function restartGameController(gameId: string) {
     } catch (error: any) {
 
         throw new Error(`CONTROLLER_RESTART_GAME_FAILED: ${error.message}`);
+
+    }
+}
+
+export async function startTeamGameController(teamId: string) {
+
+    try {
+
+        const roundData = await startTeamGameService(teamId);
+
+        return roundData;
+
+    } catch (error: any) {
+
+        throw new Error(`CONTROLLER_START_TEAM_GAME_FAILED: ${error.message}`);
 
     }
 }

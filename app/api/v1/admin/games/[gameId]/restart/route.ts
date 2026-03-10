@@ -11,7 +11,6 @@ export async function PATCH(
     try {
 
         const user = verifyToken(req);
-
         validateAdmin(user);
 
         const { gameId } = await context.params;

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/middleware/verifyToken";
-import { validateAdmin } from "@/middleware/validateAdmin";
-import { restartGameController } from "@/controllers/gameController";
+import { startTeamGameController } from "@/controllers/gameController";
 
-export async function PATCH(
+export async function POST(
     req: NextRequest,
     context: { params: Promise<{ gameId: string }> }
 ) {
@@ -11,20 +10,23 @@ export async function PATCH(
     try {
 
         const user = verifyToken(req);
-        validateAdmin(user);
 
-        const { gameId } = await context.params;
+        const teamId = user.teamId;
 
-        const game = await restartGameController(gameId);
+        if (!teamId) {
+            throw new Error("TEAM_ID_MISSING_FROM_TOKEN");
+        }
+
+        const result = await startTeamGameController(teamId);
 
         return NextResponse.json({
             success: true,
-            game
+            ...result
         });
 
     } catch (err: any) {
 
-        console.error("ADMIN_RESET_GAME_ERROR:", err.message);
+        console.error("TEAM_START_GAME_ERROR:", err.message);
 
         return NextResponse.json(
             { success: false, error: err.message },

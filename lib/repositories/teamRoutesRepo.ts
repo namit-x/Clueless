@@ -32,3 +32,20 @@ export async function insertTeamRoutesRepo(
         throw new Error(`DB_INSERT_TEAM_ROUTES_FAILED: ${error.message}`);
     }
 }
+
+export async function getTeamRouteRepo(teamId: string) {
+
+    const query = `
+    SELECT route_id
+    FROM team_routes
+    WHERE team_id = $1
+  `;
+
+    const result = await pool.query(query, [teamId]);
+
+    if (result.rowCount === 0) {
+        throw new Error("TEAM_ROUTE_NOT_FOUND");
+    }
+
+    return result.rows[0].route_id;
+}

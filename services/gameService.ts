@@ -1,10 +1,11 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getGameByIdRepo, activateGameRepo, endGameRepo } from "@/lib/repositories/gameRepo";
 import { getApprovedTeamsRepo } from "@/lib/repositories/teamsRepo";
-import { getAllRoutesRepo, insertTeamRoutesRepo } from "@/lib/repositories/teamRoutesRepo";
-import { initializeTeamRoundProgressRepo } from "@/lib/repositories/teamRoundProgressRepo";
+import { getAllRoutesRepo, getTeamRouteRepo, insertTeamRoutesRepo } from "@/lib/repositories/teamRoutesRepo";
+import { activateFirstRoundRepo, initializeTeamRoundProgressRepo } from "@/lib/repositories/teamRoundProgressRepo";
 import { pauseGameRepo } from "@/lib/repositories/gameRepo";
 import { restartGameRepo } from "@/lib/repositories/gameRepo";
+import { getRoundClueRepo } from "@/lib/repositories/routeLocationsRepo";
 
 export async function createGame(data: any) {
     const { id, ...gameData } = data;
@@ -123,4 +124,18 @@ export async function restartGameService(gameId: string) {
     const restartedGame = await restartGameRepo(gameId);
 
     return restartedGame;
+}
+
+export async function startTeamGameService(teamId: string) {
+
+    const routeId = await getTeamRouteRepo(teamId);
+
+    const roundId = await activateFirstRoundRepo(teamId);
+
+    const clue = await getRoundClueRepo(routeId, 1);
+
+    return {
+        round: 1,
+        clue
+    };
 }
