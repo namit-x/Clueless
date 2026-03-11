@@ -1,6 +1,6 @@
 import { createGame, getCurrentRoundService, getTeamProgressService, startTeamGameService } from "@/services/gameService";
 import { NextResponse } from "next/server";
-import { getCurrentGameForTeam } from "@/services/gameService";
+import { getGamesForTeam } from "@/services/gameService";
 import { startGameService } from "@/services/gameService";
 import { endGameService } from "@/services/gameService";
 import { pauseGameService } from "@/services/gameService";
@@ -13,7 +13,7 @@ export async function createGameController(body: any) {
     return game;
 }
 
-export async function getCurrentGameController(user: any) {
+export async function getGamesController(user: any) {
     try {
         if (!user) {
             console.error("[GameController] Missing authenticated user context");
@@ -23,7 +23,7 @@ export async function getCurrentGameController(user: any) {
             );
         }
 
-        const game = await getCurrentGameForTeam();
+        const game = await getGamesForTeam();
 
         if (!game) {
             console.warn(

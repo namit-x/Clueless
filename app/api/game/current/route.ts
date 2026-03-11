@@ -1,12 +1,14 @@
+// FETCHES THE CURRENT GAME
+
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/middleware/verifyToken";
-import { getCurrentGameController } from "@/controllers/gameController";
+import { getGamesController } from "@/controllers/gameController";
 
 export async function GET(req: NextRequest) {
     try {
         const user = verifyToken(req);
 
-        return getCurrentGameController(user);
+        return getGamesController(user);
 
     } catch (error: any) {
         if (error.message === "Unauthorized") {

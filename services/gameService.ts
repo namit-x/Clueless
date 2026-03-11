@@ -26,31 +26,40 @@ export async function createGame(data: any) {
     return game;
 }
 
-export async function getCurrentGameForTeam() {
+export async function getGamesForTeam() {
     try {
+
         const { data, error } = await supabaseAdmin
             .from("games")
             .select("id, name, description, order_index, status")
-            .eq("is_active", false)
-            .order("order_index", { ascending: true })
-            .limit(1)
-            .maybeSingle();
+            .order("order_index", { ascending: true });
 
         if (error) {
             console.error(
-                "[GameService][getCurrentGameForTeam] Database query failed:",
+                "[GameService][getGamesForTeam] Database query failed:",
                 error.message
             );
-            throw new Error("Database error while fetching current game");
+            throw new Error("Database error while fetching games");
         }
 
-        return data;
+        const games = data.map((game) => ({
+            id: game.status === "LIVE" || game.status === "PAUSED" ? game.id : null,
+            name: game.name,
+            description: game.description,
+            order_index: game.order_index,
+            status: game.status
+        }));
+
+        return games;
+
     } catch (error: any) {
+
         console.error(
-            "[GameService][getCurrentGameForTeam] Unexpected service error:",
+            "[GameService][getGamesForTeam] Unexpected service error:",
             error.message
         );
-        throw new Error("Service failed to retrieve current game");
+
+        throw new Error("Service failed to retrieve games");
     }
 }
 
