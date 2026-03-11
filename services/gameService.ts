@@ -142,15 +142,18 @@ export async function startTeamGameService(teamId: string) {
 
 export async function getCurrentRoundService(teamId: string) {
 
-    
     const routeId = await getTeamRouteRepo(teamId);
-    
-    const roundNumber = await getCurrentRoundRepo(teamId);
-    
+
+    const { roundId, roundNumber } = await getCurrentRoundRepo(teamId);
+
     const clue = await getClueForRoundRepo(routeId, roundNumber);
 
     return {
+        roundId,
         round: roundNumber,
         clue
     };
 }
+
+
+// f2fbfb07 - 8715 - 4792 - a0c9 - 439bf62804e5

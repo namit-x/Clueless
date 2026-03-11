@@ -44,7 +44,7 @@ export async function activateFirstRoundRepo(teamId: string) {
 export async function getCurrentRoundRepo(teamId: string) {
 
   const query = `
-    SELECT r.round_number
+    SELECT r.id, r.round_number
     FROM team_round_progress trp
     JOIN rounds r ON trp.round_id = r.id
     WHERE trp.team_id = $1
@@ -58,5 +58,48 @@ export async function getCurrentRoundRepo(teamId: string) {
     throw new Error("ACTIVE_ROUND_NOT_FOUND");
   }
 
-  return result.rows[0].round_number;
+  return {
+    roundId: result.rows[0].id,
+    roundNumber: result.rows[0].round_number
+  };
+}
+
+export async function decreaseAttemptRepo(teamId: string, roundId: string) {
+
+  const query = `
+    UPDATE team_round_progress
+    SET attempt_count = attempt_count + 1
+    WHERE team_id = $1 AND round_id = $2
+  `;
+
+  await pool.query(query, [teamId, roundId]);
+}
+
+export async function completeRoundRepo(teamId: string, roundId: string) {
+
+  const query = `
+    UPDATE team_round_progress
+    SET status = 'COMPLETED',
+        completed_at = NOW()
+    WHERE team_id = $1 AND round_id = $2
+  `;
+
+  await pool.query(query, [teamId, roundId]);
+}
+
+export async function activateNextRoundRepo(teamId: string, currentRoundNumber: number) {
+
+  const query = `
+    UPDATE team_round_progress
+    SET status = 'ACTIVE'
+    WHERE team_id = $1
+    AND round_id = (
+      SELECT id
+      FROM rounds
+      WHERE round_number = $2
+      LIMIT 1
+    )
+  `;
+
+  await pool.query(query, [teamId, currentRoundNumber + 1]);
 }
