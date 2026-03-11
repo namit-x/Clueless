@@ -2,10 +2,10 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { getGameByIdRepo, activateGameRepo, endGameRepo } from "@/lib/repositories/gameRepo";
 import { getApprovedTeamsRepo } from "@/lib/repositories/teamsRepo";
 import { getAllRoutesRepo, getTeamRouteRepo, insertTeamRoutesRepo } from "@/lib/repositories/teamRoutesRepo";
-import { activateFirstRoundRepo, initializeTeamRoundProgressRepo } from "@/lib/repositories/teamRoundProgressRepo";
+import { activateFirstRoundRepo, getCurrentRoundRepo, initializeTeamRoundProgressRepo } from "@/lib/repositories/teamRoundProgressRepo";
 import { pauseGameRepo } from "@/lib/repositories/gameRepo";
 import { restartGameRepo } from "@/lib/repositories/gameRepo";
-import { getRoundClueRepo } from "@/lib/repositories/routeLocationsRepo";
+import { getClueForRoundRepo, getRoundClueRepo } from "@/lib/repositories/routeLocationsRepo";
 
 export async function createGame(data: any) {
     const { id, ...gameData } = data;
@@ -136,6 +136,21 @@ export async function startTeamGameService(teamId: string) {
 
     return {
         round: 1,
+        clue
+    };
+}
+
+export async function getCurrentRoundService(teamId: string) {
+
+    
+    const routeId = await getTeamRouteRepo(teamId);
+    
+    const roundNumber = await getCurrentRoundRepo(teamId);
+    
+    const clue = await getClueForRoundRepo(routeId, roundNumber);
+
+    return {
+        round: roundNumber,
         clue
     };
 }

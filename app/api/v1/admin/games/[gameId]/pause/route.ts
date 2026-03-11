@@ -10,9 +10,9 @@ export async function PATCH(
 
     try {
 
-        const user = verifyToken(req);
+        const user = verifyToken(req); //Authentication
 
-        validateAdmin(user);
+        validateAdmin(user); //Authorization
 
         const { gameId } = await context.params;
 

@@ -40,3 +40,23 @@ export async function activateFirstRoundRepo(teamId: string) {
 
   return result.rows[0].round_id;
 }
+
+export async function getCurrentRoundRepo(teamId: string) {
+
+  const query = `
+    SELECT r.round_number
+    FROM team_round_progress trp
+    JOIN rounds r ON trp.round_id = r.id
+    WHERE trp.team_id = $1
+    AND trp.status = 'ACTIVE'
+    LIMIT 1
+  `;
+
+  const result = await pool.query(query, [teamId]);
+
+  if (result.rowCount === 0) {
+    throw new Error("ACTIVE_ROUND_NOT_FOUND");
+  }
+
+  return result.rows[0].round_number;
+}

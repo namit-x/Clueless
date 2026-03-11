@@ -1,4 +1,4 @@
-import { createGame, startTeamGameService } from "@/services/gameService";
+import { createGame, getCurrentRoundService, startTeamGameService } from "@/services/gameService";
 import { NextResponse } from "next/server";
 import { getCurrentGameForTeam } from "@/services/gameService";
 import { startGameService } from "@/services/gameService";
@@ -122,6 +122,21 @@ export async function startTeamGameController(teamId: string) {
     } catch (error: any) {
 
         throw new Error(`CONTROLLER_START_TEAM_GAME_FAILED: ${error.message}`);
+
+    }
+}
+
+export async function getCurrentRoundController(teamId: string) {
+
+    try {
+        
+        const roundData = await getCurrentRoundService(teamId);
+
+        return roundData;
+
+    } catch (error: any) {
+
+        throw new Error(`CONTROLLER_GET_CURRENT_ROUND_FAILED: ${error.message}`);
 
     }
 }
