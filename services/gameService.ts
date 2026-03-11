@@ -6,6 +6,9 @@ import { activateFirstRoundRepo, getCurrentRoundRepo, initializeTeamRoundProgres
 import { pauseGameRepo } from "@/lib/repositories/gameRepo";
 import { restartGameRepo } from "@/lib/repositories/gameRepo";
 import { getClueForRoundRepo, getRoundClueRepo } from "@/lib/repositories/routeLocationsRepo";
+import { getTeamProgressRepo } from "@/lib/repositories/teamProgressRepo";
+import { getAllGamesRepo } from "@/lib/repositories/gameRepo";
+import { resumeGameRepo } from "@/lib/repositories/gameRepo";
 
 export async function createGame(data: any) {
     const { id, ...gameData } = data;
@@ -155,5 +158,34 @@ export async function getCurrentRoundService(teamId: string) {
     };
 }
 
+export async function getTeamProgressService(teamId: string) {
 
+    const progress = await getTeamProgressRepo(teamId);
+
+    return progress;
+
+}
+
+export async function getAllGamesService() {
+
+    const games = await getAllGamesRepo();
+
+    return games;
+
+}
+
+export async function resumeGameService(gameId: string) {
+
+    try {
+
+        const game = await resumeGameRepo(gameId);
+
+        return game;
+
+    } catch (error: any) {
+
+        throw new Error(`SERVICE_RESUME_GAME_FAILED: ${error.message}`);
+
+    }
+}
 // f2fbfb07 - 8715 - 4792 - a0c9 - 439bf62804e5

@@ -17,26 +17,42 @@ export async function getGameByIdRepo(gameId: string) {
 }
 
 export async function activateGameRepo(gameId: string) {
-    const query = `
+
+  const query = `
     UPDATE games
-    SET status = 'ACTIVE', started_at = NOW()
+    SET
+      is_active = true,
+      status = 'LIVE',
+      started_at = NOW()
     WHERE id = $1
-    RETURNING id, status;
+    RETURNING id, status, is_active, started_at;
   `;
+
+  try {
 
     const result = await pool.query(query, [gameId]);
 
+    if (result.rowCount === 0) {
+      throw new Error("GAME_NOT_FOUND");
+    }
+
     return result.rows[0];
+
+  } catch (error: any) {
+    throw new Error(`DB_ACTIVATE_GAME_FAILED: ${error.message}`);
+  }
 }
 
 export async function endGameRepo(gameId: string) {
 
   const query = `
     UPDATE games
-    SET status = 'ENDED',
-        ended_at = NOW()
+    SET
+      is_active = false,
+      status = 'ENDED',
+      ended_at = NOW()
     WHERE id = $1
-    RETURNING id, status, ended_at;
+    RETURNING id, status, is_active, ended_at;
   `;
 
   try {
@@ -58,9 +74,11 @@ export async function pauseGameRepo(gameId: string) {
 
   const query = `
     UPDATE games
-    SET status = 'PAUSED'
+    SET
+      status = 'PAUSED',
+      paused_at = NOW()
     WHERE id = $1
-    RETURNING id, status;
+    RETURNING id, status, is_active, paused_at;
   `;
 
   try {
@@ -75,6 +93,32 @@ export async function pauseGameRepo(gameId: string) {
 
   } catch (error: any) {
     throw new Error(`DB_PAUSE_GAME_FAILED: ${error.message}`);
+  }
+}
+
+export async function resumeGameRepo(gameId: string) {
+
+  const query = `
+    UPDATE games
+    SET
+      status = 'LIVE',
+      resumed_at = NOW()
+    WHERE id = $1
+    RETURNING id, status, is_active, resumed_at;
+  `;
+
+  try {
+
+    const result = await pool.query(query, [gameId]);
+
+    if (result.rowCount === 0) {
+      throw new Error("GAME_NOT_FOUND");
+    }
+
+    return result.rows[0];
+
+  } catch (error: any) {
+    throw new Error(`DB_RESUME_GAME_FAILED: ${error.message}`);
   }
 }
 
@@ -119,4 +163,24 @@ export async function restartGameRepo(gameId: string) {
     client.release();
 
   }
+}
+
+export async function getAllGamesRepo() {
+
+  const query = `
+    SELECT
+      id,
+      name,
+      status,
+      description,
+      order_index
+    FROM games
+    WHERE is_active = true
+    ORDER BY order_index ASC
+  `;
+
+  const result = await pool.query(query);
+
+  return result.rows;
+
 }
