@@ -10,7 +10,7 @@ export async function PATCH(
 
     try {
 
-        const user = verifyToken(req); //Authentication
+        const user = await verifyToken(req); //Authentication
 
         validateAdmin(user); //Authorization
 

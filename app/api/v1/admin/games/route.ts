@@ -5,7 +5,7 @@ import { getAllGamesController } from "@/controllers/gameController";
 export async function GET(req: NextRequest) {
     try {
 
-        const user = verifyToken(req);
+        const user = await verifyToken(req);
 
         const result = await getAllGamesController(user);
 

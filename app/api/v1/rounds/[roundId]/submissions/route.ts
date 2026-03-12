@@ -9,7 +9,7 @@ export async function POST(
 
     try {
 
-        const user = verifyToken(req);
+        const user = await verifyToken(req);
 
         const teamId = user.teamId;
 

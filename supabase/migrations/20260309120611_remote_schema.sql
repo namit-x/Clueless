@@ -202,6 +202,20 @@ CREATE TABLE IF NOT EXISTS "public"."teams" (
 ALTER TABLE "public"."teams" OWNER TO "postgres";
 
 
+-- Create sessions table for single-login enforcement
+CREATE TABLE IF NOT EXISTS "public"."sessions" (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    owner_type text NOT NULL,
+    owner_id text NOT NULL,
+    session_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    expires_at timestamp without time zone NOT NULL,
+    CONSTRAINT sessions_owner_type_check CHECK ((owner_type = ANY (ARRAY['team'::text, 'admin'::text])))
+);
+
+ALTER TABLE "public"."sessions" OWNER TO "postgres";
+
+
 ALTER TABLE ONLY "public"."admin_logs"
     ADD CONSTRAINT "admin_logs_pkey" PRIMARY KEY ("id");
 
@@ -227,8 +241,17 @@ ALTER TABLE ONLY "public"."games"
 
 
 
-ALTER TABLE ONLY "public"."members"
-    ADD CONSTRAINT "members_pkey" PRIMARY KEY ("member_id");
+-- Add primary key to members table if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE table_name = 'members' AND constraint_name = 'members_pkey'
+    ) THEN
+        ALTER TABLE ONLY "public"."members"
+            ADD CONSTRAINT "members_pkey" PRIMARY KEY ("member_id");
+    END IF;
+END $$;
 
 
 
@@ -277,17 +300,20 @@ ALTER TABLE ONLY "public"."teams"
 
 
 
+-- Sessions table constraints
+ALTER TABLE ONLY "public"."sessions"
+    ADD CONSTRAINT "sessions_pkey" PRIMARY KEY ("id");
+
+ALTER TABLE ONLY "public"."sessions"
+    ADD CONSTRAINT "sessions_session_id_key" UNIQUE ("session_id");
+
+
 CREATE OR REPLACE TRIGGER "assign_game_order" BEFORE INSERT ON "public"."games" FOR EACH ROW EXECUTE FUNCTION "public"."set_game_order_index"();
 
 
 
 ALTER TABLE ONLY "public"."final_submissions"
     ADD CONSTRAINT "final_submissions_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("team_id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."members"
-    ADD CONSTRAINT "fk_team" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("team_id") ON DELETE CASCADE;
 
 
 
