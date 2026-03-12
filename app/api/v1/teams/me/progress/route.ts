@@ -5,7 +5,7 @@ import { getTeamProgressController } from "@/controllers/gameController";
 export async function GET(req: NextRequest) {
     try {
 
-        const user = verifyToken(req);
+        const user = await verifyToken(req);
 
         const teamId = user.teamId;
 

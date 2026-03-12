@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { createSessionToken } from "@/lib/auth";
+import { createSessionController } from "@/controllers/sessionController";
 
 const loginSchema = z.object({
   teamName: z.string().trim().min(1),
@@ -24,7 +25,15 @@ const supabaseAuthClient = createClient(
 const ADMIN_USERS = process.env.ADMIN_STRINGS?.split(",") || [];
 const ADMIN_PASSWORDS = process.env.ADMIN_PASS?.split(",") || [];
 
-export async function POST(req: Request) {
+function getUserAgent(req: NextRequest): string | undefined {
+  try {
+    return req.headers.get("user-agent") ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { teamName, password } = loginSchema.parse(body);
@@ -42,9 +51,17 @@ export async function POST(req: Request) {
     if (adminIndex !== -1) {
       const adminName = ADMIN_USERS[adminIndex].trim();
 
+      const { sessionId } = await createSessionController({
+        ownerType: "admin",
+        ownerId: `admin_${adminIndex}`,
+        ttlMs: 1000 * 60 * 60 * 24 * 7,
+        // userAgent: getUserAgent(req),
+      });
+
       const token = await createSessionToken({
         role: "admin",
         adminName,
+        sessionId,
       });
 
       const response = NextResponse.json({
@@ -101,7 +118,7 @@ export async function POST(req: Request) {
     const { data: authData, error: authError } =
       await supabaseAuthClient.auth.signInWithPassword({
         email: ownerEmail,
-        password,
+        password
       });
 
     if (authError || !authData.user) {
@@ -111,10 +128,17 @@ export async function POST(req: Request) {
       );
     }
 
+    const { sessionId } = await createSessionController({
+      ownerType: "team",
+      ownerId: String(team.team_id),
+      ttlMs: 1000 * 60 * 60 * 24 * 7
+    });
+
     const token = await createSessionToken({
       teamId: team.team_id,
       teamName: team.team_name,
       role: "team",
+      sessionId
     });
 
     const response = NextResponse.json({

@@ -16,12 +16,14 @@ function getJwtSecret(): Uint8Array {
 type AdminPayload = {
     role: "admin";
     adminName: string;
+    sessionId: string;
 };
 
 type UserPayload = {
     role: "team";
     teamId: number;
     teamName: string;
+    sessionId: string;
 };
 
 type SessionPayload = AdminPayload | UserPayload;
