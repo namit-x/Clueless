@@ -1,24 +1,12 @@
 "use client";
 
 import { useState } from "react";
-
-type UIStatus = "pending" | "running" | "paused" | "ended";
-
-type Game = {
-  id: string;
-  name: string;
-  order_index: number;
-  status: UIStatus;
-  started_at?: string | null;
-  paused_at?: string | null;
-  resumed_at?: string | null;
-  ended_at?: string | null;
-};
+import type { AdminGame } from "@/lib/types/adminGames";
 
 type Props = {
-  game: Game;
+  game: AdminGame;
   refetchGames: () => Promise<void>;
-  isStartAllowed: boolean;   // ⭐ timeline control prop
+  isStartAllowed: boolean;
 };
 
 export default function GameCard({
@@ -26,83 +14,27 @@ export default function GameCard({
   refetchGames,
   isStartAllowed,
 }: Props) {
-
   const [loading, setLoading] = useState(false);
 
-  const isPending = game.status === "pending";
-  const isRunning = game.status === "running";
-  const isPaused = game.status === "paused";
-  const isEnded = game.status === "ended";
+  // ⭐ local lifecycle permissions
+  const canStart = game.status === "pending" && isStartAllowed;
+  const canPause = game.status === "running";
+  const canResume = game.status === "paused";
+  const canEnd = canPause || canResume;
+  const canRestart = game.status === "ended";
 
-  const pauseResumeLabel = isRunning ? "Pause" : "Resume";
+  const pauseResumeLabel = canPause ? "Pause" : "Resume";
 
-  async function handleStart() {
+  async function callApi(action: string) {
     try {
       setLoading(true);
 
-      await fetch(`/api/v1/admin/games/${game.id}/start`, {
+      await fetch(`/api/v1/admin/games/${game.id}/${action}`, {
         method: "PATCH",
         credentials: "include",
       });
 
       await refetchGames();
-
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handlePauseResume() {
-    try {
-      setLoading(true);
-
-      const endpoint = isRunning ? "pause" : "resume";
-
-      await fetch(`/api/v1/admin/games/${game.id}/${endpoint}`, {
-        method: "PATCH",
-        credentials: "include",
-      });
-
-      await refetchGames();
-
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleEnd() {
-    try {
-      setLoading(true);
-
-      await fetch(`/api/v1/admin/games/${game.id}/end`, {
-        method: "PATCH",
-        credentials: "include",
-      });
-
-      await refetchGames();
-
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleRestart() {
-    try {
-      const confirmRestart = confirm(
-        "Restarting will reset all team progress. Continue?"
-      );
-
-      if (!confirmRestart) return;
-
-      setLoading(true);
-
-      await fetch(`/api/v1/admin/games/${game.id}/restart`, {
-        method: "PATCH",
-        credentials: "include",
-      });
-
-      await refetchGames();
-
     } finally {
       setLoading(false);
     }
@@ -110,67 +42,52 @@ export default function GameCard({
 
   return (
     <div
-      className={`border rounded-xl p-4 flex justify-between items-start ${
-        isRunning ? "border-green-500 bg-green-50" : ""
+      className={`border rounded-xl p-4 flex justify-between ${
+        game.status === "running" ? "border-green-500 bg-green-50" : ""
       }`}
     >
-
-      {/* LEFT */}
       <div>
-        <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold">
-            {game.order_index}. {game.name}
-          </h3>
-
-          {isRunning && (
-            <span className="text-xs bg-green-600 text-white px-2 py-1 rounded">
-              LIVE
-            </span>
-          )}
-        </div>
-
-        <p className="text-sm text-gray-500 mt-1">
-          Status: {game.status}
-        </p>
+        <h3 className="font-semibold">
+          {game.order_index}. {game.name}
+        </h3>
+        <p className="text-sm text-gray-500">{game.status}</p>
       </div>
 
-      {/* RIGHT */}
       <div className="flex gap-2">
-
         <button
-          disabled={!isPending || !isStartAllowed || loading}
-          onClick={handleStart}
+          disabled={!canStart || loading}
+          onClick={() => callApi("start")}
           className="px-3 py-1 border rounded disabled:opacity-40"
         >
           Start
         </button>
 
         <button
-          disabled={!(isRunning || isPaused) || loading}
-          onClick={handlePauseResume}
+          disabled={!(canPause || canResume) || loading}
+          onClick={() =>
+            callApi(canPause ? "pause" : "resume")
+          }
           className="px-3 py-1 border rounded disabled:opacity-40"
         >
           {pauseResumeLabel}
         </button>
 
         <button
-          disabled={!(isRunning || isPaused) || loading}
-          onClick={handleEnd}
+          disabled={!canEnd || loading}
+          onClick={() => callApi("end")}
           className="px-3 py-1 border rounded disabled:opacity-40"
         >
           End
         </button>
 
         <button
-          disabled={!isEnded || loading}
-          onClick={handleRestart}
+          disabled={!canRestart || loading}
+          onClick={() => callApi("restart")}
           className="px-3 py-1 border rounded disabled:opacity-40"
         >
           Restart
         </button>
-
       </div>
-
     </div>
   );
 }

@@ -2,47 +2,40 @@
 
 import { useEffect, useState } from "react";
 import GameCard from "./GameCard";
-
-type UIStatus = "pending" | "running" | "paused" | "ended";
-
-type Game = {
-  id: string;
-  name: string;
-  order_index: number;
-  status: UIStatus;
-  started_at?: string | null;
-  paused_at?: string | null;
-  resumed_at?: string | null;
-  ended_at?: string | null;
-};
+import type { AdminGame } from "@/lib/types/adminGames";
 
 export default function GameControlPanel() {
-
-  const [games, setGames] = useState<Game[]>([]);
+  const [games, setGames] = useState<AdminGame[]>([]);
   const [loading, setLoading] = useState(true);
-  const activeIndex = games.findIndex(g => g.status === "running");
 
   async function fetchGames() {
-    const res = await fetch("/api/v1/admin/games", {
-      credentials: "include",
-    });
+    try {
+      setLoading(true);
 
-    const json = await res.json();
+      const res = await fetch("/api/v1/admin/games", {
+        credentials: "include",
+      });
 
-    const mapped = json.games.map((g: any) => ({
-      ...g,
-      status:
-        g.status === "NOT_STARTED"
-          ? "pending"
-          : g.status === "ACTIVE"
-          ? "running"
-          : g.status === "PAUSED"
-          ? "paused"
-          : "ended",
-    }));
+      const json = await res.json();
+      console.log("Fetched games:", json);
 
-    setGames(mapped);
-    setLoading(false);
+      // ⭐ IMPORTANT: backend → UI status mapping
+      const mapped: AdminGame[] = (json.games || []).map((g: any) => ({
+        ...g,
+        status:
+          g.status === "NOT_STARTED"
+            ? "pending"
+            : g.status === "ACTIVE"
+            ? "running"
+            : g.status === "PAUSED"
+            ? "paused"
+            : "ended",
+      }));
+
+      setGames(mapped);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -51,24 +44,43 @@ export default function GameControlPanel() {
 
   if (loading) return <div>Loading games...</div>;
 
+  // ⭐ currently running or paused game
+  const activeGame = games.find(
+    (g) => g.status === "running" || g.status === "paused"
+  );
+
+  // ⭐ correctly pick highest order ended game
+  const lastEndedGame = [...games]
+    .filter((g) => g.status === "ended")
+    .sort((a, b) => b.order_index - a.order_index)[0];
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Game Control</h2>
 
       {games
         .sort((a, b) => a.order_index - b.order_index)
-        .map((game) => (
-          <GameCard
-            key={game.id}
-            game={game}
-            refetchGames={fetchGames}
-            isStartAllowed={
-              activeIndex === -1
-                ? game.order_index === 1
-                : game.order_index === activeIndex + 2
-            }
-          />
-        ))}
+        .map((game) => {
+          let isStartAllowed = false;
+
+          if (activeGame) {
+            isStartAllowed = false;
+          } else if (!lastEndedGame) {
+            isStartAllowed = game.order_index === 1;
+          } else {
+            isStartAllowed =
+              game.order_index === lastEndedGame.order_index + 1;
+          }
+
+          return (
+            <GameCard
+              key={game.id}
+              game={game}
+              refetchGames={fetchGames}
+              isStartAllowed={isStartAllowed}
+            />
+          );
+        })}
     </div>
   );
 }
