@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
     try {
         // authenticate
         const user = await verifyToken(req);
+
         // authorize
         validateAdmin(user);
         
