@@ -3,7 +3,7 @@ import { approveTeamService } from "@/services/adminTeamsService";
 import { rejectTeamService } from "@/services/adminTeamsService";
 
 export async function getAllTeamsController() {
-    try {
+    try {        
         const teams = await fetchAllTeamsService();
 
         return teams;

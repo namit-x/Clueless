@@ -6,11 +6,10 @@ import { getAllTeamsController } from "@/controllers/adminTeamsController";
 export async function GET(req: NextRequest) {
     try {
         // authenticate
-        const user = verifyToken(req);
-
+        const user = await verifyToken(req);
         // authorize
         validateAdmin(user);
-
+        
         // controller
         const teams = await getAllTeamsController();
 

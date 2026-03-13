@@ -5,18 +5,19 @@ import { approveTeamController } from "@/controllers/adminTeamsController";
 
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { teamId: string } }
+    { params }: { params: Promise<{ teamId: string }> }
 ) {
     try {
+        // resolve dynamic route params
+        const { teamId } = await params;
 
         // authenticate
-        const user = verifyToken(req);
+        const user = await verifyToken(req);
 
         // authorize
         validateAdmin(user);
 
-        const { teamId } = params;
-
+        // controller
         const team = await approveTeamController(teamId);
 
         return NextResponse.json({
@@ -25,13 +26,12 @@ export async function PATCH(
         });
 
     } catch (err: any) {
-
-        console.error("ADMIN_APPROVE_TEAM_ERROR:", err.message);
+        console.error("ADMIN_APPROVE_TEAM_ERROR:", err?.message);
 
         return NextResponse.json(
             {
                 success: false,
-                error: err.message
+                error: err?.message || "INTERNAL_SERVER_ERROR"
             },
             { status: 400 }
         );
