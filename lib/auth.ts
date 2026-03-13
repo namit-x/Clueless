@@ -21,7 +21,7 @@ type AdminPayload = {
 
 type UserPayload = {
     role: "team";
-    teamId: number;
+    teamId: string;
     teamName: string;
     sessionId: string;
 };

@@ -4,6 +4,7 @@ import { validateSessionController } from "@/controllers/sessionController";
 
 type JwtPayload = {
     teamId?: string;
+    teamName?: string;
     role?: string;
     adminName?: string;
     sessionId?: string;
@@ -64,4 +65,3 @@ export async function verifyToken(req: NextRequest): Promise<JwtPayload> {
         throw new Error("Invalid token");
     }
 }
-
