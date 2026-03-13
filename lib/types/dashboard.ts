@@ -13,11 +13,16 @@ export interface GameCardData {
 
 export interface TeamDashboardInfo {
   name: string;
-  penalty_time_seconds: number;
+  // penalty_time_seconds: number;
 }
+
+export interface TeamDashboardData {
+  name: string;
+}
+
 
 export interface DashboardResponse {
   team: TeamDashboardInfo;
-  games: GameCardData[];
+  // games: GameCardData[];
 }
 

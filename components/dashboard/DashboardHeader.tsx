@@ -3,11 +3,11 @@ import {useRouter} from "next/navigation";
 
 type Props = {
   teamName: string
-  penaltyTime: number
+  // penaltyTime: number
 }
 
 
-export default function DashboardHeader({ teamName, penaltyTime }: Props) {
+export default function DashboardHeader({ teamName }: Props) {
   const router = useRouter();
   const logout = async () => {
     await fetch("/api/auth/logout", {
@@ -21,7 +21,7 @@ export default function DashboardHeader({ teamName, penaltyTime }: Props) {
       <div>
         <h1 className="text-xl font-semibold">Team: {teamName}</h1>
         <p className="text-sm text-gray-500">
-          Penalty Time: +{penaltyTime}s
+          {/* Penalty Time: +{penaltyTime}s */}
         </p>
       </div>
 

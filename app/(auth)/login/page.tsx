@@ -52,6 +52,10 @@ const Login = () => {
       const role = data?.user?.role;
       console.log("Login successful:", data);
 
+      // To store Team Credentials
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+
       if (!response.ok) {
         // Handle API error response
         setLoginError(data.error || data.message || "Login failed. Please try again.");
