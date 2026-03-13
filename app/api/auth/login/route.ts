@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     const { data: team, error: teamError } = await supabaseAdmin
       .from("teams")
       .select("team_id, team_name, owner_id")
-      .ilike("team_name", normalizedTeamName)
+      .eq("team_name", normalizedTeamName)
       .maybeSingle();
 
     if (teamError || !team || !team.owner_id) {

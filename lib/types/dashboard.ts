@@ -20,4 +20,3 @@ export interface DashboardResponse {
   team: TeamDashboardInfo;
   games: GameCardData[];
 }
-

@@ -32,9 +32,11 @@ export async function createOrReplaceSession(
 
     const params: CreateOrReplaceSessionParams = {
         ownerType: input.ownerType as OwnerType,
-        ownerId: input.ownerId,
+        ownerId: input.ownerId, // here team is being sent
         expiresAt
     };
+
+    console.log("Creating session for", params.ownerType, params.ownerId);
 
     const result = await createOrReplaceSessionRepo(params);
 

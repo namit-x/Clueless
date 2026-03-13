@@ -33,10 +33,41 @@ export interface SessionRow {
 export async function createOrReplaceSessionRepo(
     params: CreateOrReplaceSessionParams
 ): Promise<CreateOrReplaceSessionResult> {
+
+    console.log("Checking existing active session...");
     const client = await pool.connect();
 
     try {
         await client.query("BEGIN");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // I WAS HERE MOTHER FUCKERRRRRRR
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         const existing = await client.query<Pick<SessionRow, "session_id">>(
             `
