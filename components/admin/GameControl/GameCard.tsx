@@ -16,7 +16,7 @@ export default function GameCard({
 }: Props) {
   const [loading, setLoading] = useState(false);
 
-  // ⭐ local lifecycle permissions
+  // local lifecycle permissions
   const canStart = game.status === "pending" && isStartAllowed;
   const canPause = game.status === "running";
   const canResume = game.status === "paused";

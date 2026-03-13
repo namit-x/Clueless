@@ -49,7 +49,7 @@ const Login = () => {
         credentials: "include", // Include cookies for session management
       });
       const data = await response.json();
-      const role = data.user.role;
+      const role = data?.user?.role;
       console.log("Login successful:", data);
 
       if (!response.ok) {
@@ -76,10 +76,11 @@ const Login = () => {
       // - Update user state
       // localStorage.setItem('token', data.token);
 
-    } catch (error) {
+    } catch (error: any) {
       // Handle network errors
       console.error("Login error:", error);
-      setLoginError("Network error. Please check your connection.");
+      // setLoginError("Network error. Please check your connection.");
+      setLoginError(error.message);
     } finally {
       setLoading(false);
     }
@@ -172,4 +173,3 @@ const Login = () => {
 };
 
 export default Login;
-

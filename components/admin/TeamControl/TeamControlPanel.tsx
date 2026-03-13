@@ -12,7 +12,10 @@ type Team = {
 export default function TeamControlPanel() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+const [actionLoading, setActionLoading] = useState<{
+  teamId: string;
+  type: "enable" | "block";
+} | null>(null);
   const [search, setSearch] = useState("");
 
   async function fetchTeams() {
@@ -33,7 +36,8 @@ export default function TeamControlPanel() {
   }, []);
 
   async function enableTeam(teamId: string) {
-    setActionLoadingId(teamId);
+    setActionLoading({ teamId, type: "enable" });
+
 
     setTeams((prev) =>
       prev.map((t) =>
@@ -44,16 +48,19 @@ export default function TeamControlPanel() {
     try {
       await fetch(`/api/v1/admin/teams/${teamId}/approve`, {
         method: "PATCH",
+        credentials: "include",
       });
     } catch {
       fetchTeams();
     } finally {
-      setActionLoadingId(null);
+      setActionLoading(null);
+
     }
   }
 
   async function blockTeam(teamId: string) {
-    setActionLoadingId(teamId);
+    setActionLoading({ teamId, type: "block" });
+
 
     setTeams((prev) =>
       prev.map((t) =>
@@ -64,11 +71,13 @@ export default function TeamControlPanel() {
     try {
       await fetch(`/api/v1/admin/teams/${teamId}/reject`, {
         method: "PATCH",
+        credentials: "include",
       });
     } catch {
       fetchTeams();
     } finally {
-      setActionLoadingId(null);
+      setActionLoading(null);
+
     }
   }
 
@@ -138,19 +147,25 @@ export default function TeamControlPanel() {
             <div>
               {team.is_approved ? (
                 <button
-                  disabled={actionLoadingId === team.team_id}
+                  disabled={actionLoading?.teamId === team.team_id}
+
                   onClick={() => blockTeam(team.team_id)}
                   className="px-4 py-2 bg-red-500 hover:bg-red-600 text-gray-100 rounded-xl text-sm disabled:opacity-50"
                 >
-                  {actionLoadingId === team.team_id ? "Blocking..." : "Block"}
+                  {actionLoading?.teamId === team.team_id && actionLoading.type === "block"
+  ? "Blocking..."
+  : "Block"}
+
                 </button>
               ) : (
                 <button
-                  disabled={actionLoadingId === team.team_id}
+                  disabled={actionLoading?.teamId === team.team_id}
                   onClick={() => enableTeam(team.team_id)}
                   className="px-4 py-2 bg-green-500 hover:bg-green-600 text-gray-100 rounded-xl text-sm disabled:opacity-50"
                 >
-                  {actionLoadingId === team.team_id ? "Enabling..." : "Enable"}
+                  {actionLoading?.teamId === team.team_id && actionLoading.type === "enable"
+  ? "Enabling..."
+  : "Enable"}
                 </button>
               )}
             </div>
