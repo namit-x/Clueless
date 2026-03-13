@@ -19,7 +19,7 @@ export default function GameControlPanel() {
       const json = await res.json();
       console.log("Fetched games:", json);
 
-      // ⭐ IMPORTANT: backend → UI status mapping
+      //  IMPORTANT: backend → UI status mapping
       const mapped: AdminGame[] = (json.games || []).map((g: any) => ({
         ...g,
         status:
@@ -44,12 +44,12 @@ export default function GameControlPanel() {
 
   if (loading) return <div>Loading games...</div>;
 
-  // ⭐ currently running or paused game
+  //  currently running or paused game
   const activeGame = games.find(
     (g) => g.status === "running" || g.status === "paused"
   );
 
-  // ⭐ correctly pick highest order ended game
+  //  correctly pick highest order ended game
   const lastEndedGame = [...games]
     .filter((g) => g.status === "ended")
     .sort((a, b) => b.order_index - a.order_index)[0];

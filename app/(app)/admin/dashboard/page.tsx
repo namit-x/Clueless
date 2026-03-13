@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
-import GameControlPanel from "@/components/admin/GameControlPanel";
-import TeamControlPanel from "@/components/admin/TeamControlPanel";
-import TeamProgressPanel from "@/components/admin/TeamProgressPanel";
-import AdminLogsPanel from "@/components/admin/AdminLogsPanel";
+import GameControlPanel from "@/components/admin/GameControl/GameControlPanel";
+import TeamControlPanel from "@/components/admin/TeamControl/TeamControlPanel";
+import TeamProgressPanel from "@/components/admin/TeamProgress/TeamProgressPanel";
+import AdminLogsPanel from "@/components/admin/AdminLogs/AdminLogsPanel";
 
 export default function AdminDashboardPage() {
 

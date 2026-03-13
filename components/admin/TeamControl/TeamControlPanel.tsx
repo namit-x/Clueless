@@ -72,14 +72,14 @@ export default function TeamControlPanel() {
     }
   }
 
-  // ⭐ search filter
+  //  search filter
   const filteredTeams = useMemo(() => {
     return teams.filter((t) =>
       t.team_name.toLowerCase().includes(search.toLowerCase())
     );
   }, [teams, search]);
 
-  // ⭐ stats
+  //  stats
   const total = teams.length;
   const active = teams.filter((t) => t.is_approved).length;
   const blocked = total - active;
@@ -91,7 +91,7 @@ export default function TeamControlPanel() {
   return (
     <div className="p-6 space-y-6">
 
-      {/* ⭐ STATS BAR */}
+      {/*  STATS BAR */}
       <div className="flex gap-6">
         <div className="bg-gray-800 px-4 py-2 rounded-xl text-sm">
           Total Teams : <span className="font-semibold">{total}</span>
@@ -104,15 +104,15 @@ export default function TeamControlPanel() {
         </div>
       </div>
 
-      {/* ⭐ SEARCH */}
+      {/*  SEARCH */}
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search team name..."
-        className="w-full border px-4 py-2 rounded-xl text-sm text-gray-900 outline-none focus:ring-2 focus:ring-blue-800 placeholder:text-gray-900"
+        className="w-full border px-4 py-2 rounded-xl text-sm bg-gray-700 text-gray-200 outline-none focus:ring-2 focus:ring-blue-800 placeholder:text-gray-200"
       />
 
-      {/* ⭐ TEAM LIST */}
+      {/*  TEAM LIST */}
       <div className="space-y-4">
         {filteredTeams.map((team) => (
           <div
@@ -140,7 +140,7 @@ export default function TeamControlPanel() {
                 <button
                   disabled={actionLoadingId === team.team_id}
                   onClick={() => blockTeam(team.team_id)}
-                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-gray-700 rounded-xl text-sm disabled:opacity-50"
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-gray-100 rounded-xl text-sm disabled:opacity-50"
                 >
                   {actionLoadingId === team.team_id ? "Blocking..." : "Block"}
                 </button>
@@ -148,7 +148,7 @@ export default function TeamControlPanel() {
                 <button
                   disabled={actionLoadingId === team.team_id}
                   onClick={() => enableTeam(team.team_id)}
-                  className="px-4 py-2 bg-green-500 hover:bg-green-600 text-gray-700 rounded-xl text-sm disabled:opacity-50"
+                  className="px-4 py-2 bg-green-500 hover:bg-green-600 text-gray-100 rounded-xl text-sm disabled:opacity-50"
                 >
                   {actionLoadingId === team.team_id ? "Enabling..." : "Enable"}
                 </button>
