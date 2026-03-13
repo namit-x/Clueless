@@ -9,35 +9,57 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardResponse | null>(null);
 
   useEffect(() => {
-  async function loadDashboard() {
-  // Get team data from localStorage (stored during login)
-  
-  const userStr = localStorage.getItem('user');
-  if (!userStr) {
-    console.error('No user data found - user may not be logged in');
-    // Handle redirect to login or error state
-    return;
-  }
-  const user = JSON.parse(userStr);
-  console.log("Loaded user from localStorage:", user);
+    async function loadDashboard() {
+      try {
+        // Get team data from localStorage
+        const userStr = localStorage.getItem("user");
+        if (!userStr) {
+          console.error("No user data found - user may not be logged in");
+          return;
+        }
 
-  // Fetch games and penalty data from the API
-  const res = await fetch("/api/game/current", {
-    credentials: "include",
-  });
+        const user = JSON.parse(userStr);
+        console.log("Dashboard loaded for user:", user);
 
-  const json = await res.json();
-  console.log("Game data:", json);
+        // Fetch games
+        const res = await fetch("/api/game/current", {
+          credentials: "include",
+        });
 
-  // Combine: team name from login/localStorage, rest from API
-  setData({
-    team: {
-      name: user.name,  // From login response
-      // penalty_time_seconds: json.team.penalty_time_seconds,  // From API
-    },
-    // games: json.games,  // From API
-  });
-}
+        const gam = await res.json();
+        console.log("Dashboard API raw:", gam);
+
+        if (!gam?.game || !Array.isArray(gam.game)) {
+          console.error("Invalid games response shape");
+          return;
+        }
+
+        // IMPORTANT: do NOT filter null ids
+          const gamesData = gam.game.map((g: any) => ({
+            id: g.id ?? `locked-${g.name}`,
+            name: g.name,
+            state:
+            g.status === "LIVE"     
+              ? "ACTIVE"
+              : g.status === "ENDED"  
+              ? "ENDED"
+              : g.status === "PAUSED"
+              ? "PAUSED"
+              : "NOT_STARTED",
+                    }));
+            console.log("Dashboard processed games:", gamesData);
+
+        setData({
+          team: {
+            name: user.name,
+          },
+          games: gamesData,
+        });
+
+      } catch (err) {
+        console.error("Dashboard load failed:", err);
+      }
+    }
 
     loadDashboard();
   }, []);
@@ -46,14 +68,8 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6">
-
-      <DashboardHeader
-        teamName={data.team.name}
-        // penaltyTime={data.team.penalty_time_seconds}
-      />
-
-      {/* <GamesGrid games={data.games} /> */}
-
+      <DashboardHeader teamName={data.team.name} />
+      <GamesGrid games={data.games} />
     </div>
   );
 }

@@ -1,14 +1,13 @@
-export type GameState = "COMPLETED" | "ACTIVE" | "LOCKED";
+export type GameState = "NOT_STARTED" | "ACTIVE" | "PAUSED" | "ENDED";
 
 export interface GameCardData {
-  id: number;
+  id: string;
   name: string;
-  order_index: number;
-
+  // order_index: number;
   state: GameState;
 
-  time_taken_seconds?: number;
-  reward_word_earned?: boolean;
+  // time_taken_seconds?: number;
+  // reward_word_earned?: boolean;
 }
 
 export interface TeamDashboardInfo {
@@ -23,6 +22,6 @@ export interface TeamDashboardData {
 
 export interface DashboardResponse {
   team: TeamDashboardInfo;
-  // games: GameCardData[];
+  games: GameCardData[];
 }
 

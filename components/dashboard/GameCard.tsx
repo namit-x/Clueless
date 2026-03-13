@@ -1,38 +1,35 @@
-type GameState = "COMPLETED" | "ACTIVE" | "LOCKED"
+type GameState = "NOT_STARTED" | "ACTIVE" | "PAUSED" | "ENDED";
 
 type Props = {
   name: string
   state: GameState
-  timeTaken?: number
-  rewardWordEarned?: boolean
+  // timeTaken?: number
+  // rewardWordEarned?: boolean
   onPlay?: () => void
 }
 
 export default function GameCard({
   name,
   state,
-  timeTaken,
-  rewardWordEarned,
+  // timeTaken,
+  // rewardWordEarned,
   onPlay,
 }: Props) {
   return (
     <div
       className={`border rounded-lg p-4 transition 
       ${state === "ACTIVE" ? "border-green-500 shadow-lg" : "border-gray-300"}
-      ${state === "LOCKED" ? "opacity-50" : ""}
+      ${state === "NOT_STARTED" ? "opacity-50" : ""}
       `}
     >
       <h2 className="text-lg font-semibold mb-2">{name}</h2>
 
-      {state === "COMPLETED" && (
+      {state === "ENDED" && (
         <>
-          <p className="text-green-600">Completed ✔</p>
-          {timeTaken && (
-            <p className="text-sm">Time Taken: {timeTaken}s</p>
-          )}
-          {rewardWordEarned && (
+          <p className="text-sm">Game have ended</p>
+            {/* <p className="text-green-600">Completed ✔</p> */}
+            <p className="text-sm">Time Taken: __s</p>
             <p className="text-sm">Reward Word Earned ✔</p>
-          )}
         </>
       )}
 
@@ -45,8 +42,12 @@ export default function GameCard({
         </button>
       )}
 
-      {state === "LOCKED" && (
-        <p className="text-sm">Complete previous game to unlock 🔒</p>
+      {state === "PAUSED" && (
+        <p className="text-yellow-600">Game Paused ⏸</p>
+      )}
+
+      {state === "NOT_STARTED" && (
+        <p className="text-sm">Game not started</p>
       )}
     </div>
   )
