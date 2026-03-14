@@ -4,8 +4,8 @@ export async function GET() {
 
   const dashboard = {
     team: {
-      name: "CyberSyntax",
       penalty_time_seconds: 40,
+      isActive: true,
     },
 
     games: [
@@ -13,7 +13,7 @@ export async function GET() {
         id: 1,
         name: "Treasure Hunt",
         order_index: 1,
-        state: "COMPLETED",
+        state: "ACTIVE",
         time_taken_seconds: 452,
         reward_word_earned: true,
       },
