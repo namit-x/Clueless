@@ -43,9 +43,14 @@ export default function GameCard({
   return (
     <div
       className={`border rounded-xl p-4 flex justify-between ${
-        game.status === "running" ? "border-green-500 bg-green-50" : ""
+        game.status === "running" ? "border-green-500 "
+      : game.status === "paused" ? "border-yellow-500 "
+      : game.status === "ended" ? "border-red-500 "
+      : ""
       }`}
     >
+      
+      {/* LEFT */}
       <div>
         <h3 className="font-semibold">
           {game.order_index}. {game.name}
@@ -53,6 +58,8 @@ export default function GameCard({
         <p className="text-sm text-gray-500">{game.status}</p>
       </div>
 
+
+      {/* RIGHT */}
       <div className="flex gap-2">
         <button
           disabled={!canStart || loading}

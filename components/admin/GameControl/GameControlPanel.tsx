@@ -25,7 +25,7 @@ export default function GameControlPanel() {
         status:
           g.status === "NOT_STARTED"
             ? "pending"
-            : g.status === "ACTIVE"
+            : g.status === "LIVE"
             ? "running"
             : g.status === "PAUSED"
             ? "paused"
