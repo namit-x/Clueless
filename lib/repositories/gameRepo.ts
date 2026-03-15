@@ -2,7 +2,7 @@ import { pool } from "@/lib/db";
 
 export async function getGameByIdRepo(gameId: string) {
   const query = `
-    SELECT id, is_active
+    SELECT id, name, is_active
     FROM games
     WHERE id = $1;
   `;
@@ -28,19 +28,13 @@ export async function activateGameRepo(gameId: string) {
     RETURNING id, status, is_active, started_at;
   `;
 
-  try {
+  const result = await pool.query(query, [gameId]);
 
-    const result = await pool.query(query, [gameId]);
-
-    if (result.rowCount === 0) {
-      throw new Error("GAME_NOT_FOUND");
-    }
-
-    return result.rows[0];
-
-  } catch (error: any) {
-    throw new Error(`DB_ACTIVATE_GAME_FAILED: ${error.message}`);
+  if (result.rowCount === 0) {
+    throw new Error("GAME_NOT_FOUND");
   }
+
+  return result.rows[0];
 }
 
 export async function endGameRepo(gameId: string) {
@@ -55,19 +49,13 @@ export async function endGameRepo(gameId: string) {
     RETURNING id, status, is_active, ended_at;
   `;
 
-  try {
+  const result = await pool.query(query, [gameId]);
 
-    const result = await pool.query(query, [gameId]);
-
-    if (result.rowCount === 0) {
-      throw new Error("GAME_NOT_FOUND");
-    }
-
-    return result.rows[0];
-
-  } catch (error: any) {
-    throw new Error(`DB_END_GAME_FAILED: ${error.message}`);
+  if (result.rowCount === 0) {
+    throw new Error("GAME_NOT_FOUND");
   }
+
+  return result.rows[0];
 }
 
 export async function pauseGameRepo(gameId: string) {
@@ -81,19 +69,13 @@ export async function pauseGameRepo(gameId: string) {
     RETURNING id, status, is_active, paused_at;
   `;
 
-  try {
+  const result = await pool.query(query, [gameId]);
 
-    const result = await pool.query(query, [gameId]);
-
-    if (result.rowCount === 0) {
-      throw new Error("GAME_NOT_FOUND");
-    }
-
-    return result.rows[0];
-
-  } catch (error: any) {
-    throw new Error(`DB_PAUSE_GAME_FAILED: ${error.message}`);
+  if (result.rowCount === 0) {
+    throw new Error("GAME_NOT_FOUND");
   }
+
+  return result.rows[0];
 }
 
 export async function resumeGameRepo(gameId: string) {
@@ -107,19 +89,13 @@ export async function resumeGameRepo(gameId: string) {
     RETURNING id, status, is_active, resumed_at;
   `;
 
-  try {
+  const result = await pool.query(query, [gameId]);
 
-    const result = await pool.query(query, [gameId]);
-
-    if (result.rowCount === 0) {
-      throw new Error("GAME_NOT_FOUND");
-    }
-
-    return result.rows[0];
-
-  } catch (error: any) {
-    throw new Error(`DB_RESUME_GAME_FAILED: ${error.message}`);
+  if (result.rowCount === 0) {
+    throw new Error("GAME_NOT_FOUND");
   }
+
+  return result.rows[0];
 }
 
 export async function restartGameRepo(gameId: string) {
@@ -175,7 +151,6 @@ export async function getAllGamesRepo() {
       description,
       order_index
     FROM games
-    WHERE is_active = true
     ORDER BY order_index ASC
   `;
 

@@ -40,7 +40,8 @@ export default function GameCard({
         >
           Play ▶
         </button>
-      )}
+      )
+      }
 
       {state === "PAUSED" && (
         <p className="text-yellow-600">Game Paused ⏸</p>

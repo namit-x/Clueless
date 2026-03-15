@@ -7,6 +7,29 @@ import { restartGameRepo } from "@/lib/repositories/gameRepo";
 import { getClueForRoundRepo, getRoundClueRepo } from "@/lib/repositories/routeLocationsRepo";
 import { getTeamProgressRepo } from "@/lib/repositories/teamProgressRepo";
 import { getAllGamesRepo } from "@/lib/repositories/gameRepo";
+import { startTreasureHuntGame } from "./games/treasureHuntService";
+import { startBlindCodeGame } from "./games/blindCodeService";
+import { startQuizGame } from "./games/quizService";
+import { startDigitManipulationGame } from "./games/digitManipulationService";
+
+/**
+ * Game Handler Registry
+ * 
+ * Maps game names to their corresponding start handler functions.
+ * When a new game type is added, register it here.
+ * 
+ * @example
+ * "Treasure Hunt" → startTreasureHuntGame
+ * "Blind Code" → startBlindCodeGame
+ * "Quiz" → startQuizGame
+ * "Digit Manipulation" → startDigitManipulationGame
+ */
+const gameHandlers: Record<string, (gameId: string) => Promise<any>> = {
+    "Treasure Hunt": startTreasureHuntGame,
+    "Blind Code": startBlindCodeGame,
+    "Quiz": startQuizGame,
+    "Digit Manipulation": startDigitManipulationGame,
+};
 
 export async function createGame(data: any) {
     const { id, ...gameData } = data;
@@ -62,46 +85,52 @@ export async function getGamesForTeam() {
     }
 }
 
+/**
+ * Start Game Dispatcher
+ * 
+ * Routes game start requests to the appropriate game-specific handler.
+ * 
+ * Flow:
+ * 1. Fetch game metadata
+ * 2. Validate game state (not already started)
+ * 3. Dispatch to registered game handler
+ * 4. Handler initializes rounds, assigns routes, and activates game
+ * 
+ * @param gameId - The ID of the game to start
+ * @returns - Updated game object from handler
+ * 
+ * @throws GAME_NOT_FOUND - Game does not exist
+ * @throws GAME_ALREADY_STARTED - Game is already active
+ * @throws UNKNOWN_GAME_TYPE - Game type not registered
+ */
 export async function startGameService(gameId: string) {
 
     try {
 
-
+        // Step 1: Fetch game metadata
         const game = await getGameByIdRepo(gameId);
 
+        if (!game) {
+            throw new Error("GAME_NOT_FOUND");
+        }
+
+        // Step 2: Validate game state
         if (game.is_active === true) {
             throw new Error("GAME_ALREADY_STARTED");
         }
 
-        const teams = await getApprovedTeamsRepo();
-        const routes = await getAllRoutesRepo();
+        // Step 3: Dispatch to registered handler
+        const handler = gameHandlers[game.name];
 
-        if (routes.length < teams.length) {
-            throw new Error("INSUFFICIENT_ROUTES");
+        if (!handler) {
+            throw new Error(`UNKNOWN_GAME_TYPE: ${game.name}`);
         }
 
-        const mappings = teams.map((team: any, i: number) => ({
-            team_id: team.team_id,
-            route_id: routes[i].id
-        }));
+        // Step 4: Execute game-specific initialization
+        return await handler(gameId);
 
-        console.log("ROUTE_ASSIGNMENT_DEBUG", {
-            approvedTeams: teams.length,
-            routes: routes.length,
-            mappings: mappings.length
-        });
-
-        await insertTeamRoutesRepo(mappings);
-
-        await initializeTeamRoundProgressRepo();
-        // console.log("Here")
-
-        const activeGame = await activateGameRepo(gameId);
-
-        return activeGame;
-    }
-    catch (error: any) {
-        return error;
+    } catch (error: any) {
+        throw error;
     }
 }
 

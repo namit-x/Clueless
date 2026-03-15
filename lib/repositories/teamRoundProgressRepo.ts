@@ -1,20 +1,23 @@
 import { pool } from "@/lib/db";
 
-export async function initializeTeamRoundProgressRepo() {
+export async function initializeTeamRoundProgressRepo(gameId: string) {
 
-    const query = `
-    INSERT INTO team_round_progress (team_id, round_id, status, attempt_count)
-    SELECT
-      t.team_id,
-      r.id,
-      'LOCKED',
-      0
-    FROM teams t
-    CROSS JOIN rounds r
-    WHERE t.is_approved = true;
-  `;
+  const query = `
+        INSERT INTO team_round_progress (team_id, round_id, status, attempt_count)
+        SELECT
+            t.team_id,
+            r.id,
+            'LOCKED',
+            0
+        FROM teams t
+        CROSS JOIN rounds r
+        WHERE
+            t.is_approved = true
+            AND r.game_id = $1
+        ON CONFLICT (team_id, round_id) DO NOTHING
+    `;
 
-    await pool.query(query);
+  await pool.query(query, [gameId]);
 }
 
 export async function activateFirstRoundRepo(teamId: string) {
