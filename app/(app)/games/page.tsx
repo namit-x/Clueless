@@ -18,14 +18,14 @@ export default function GamesPage() {
   const [teamBlocked, setTeamBlocked] = useState(false);
 
  useEffect(() => {
-    // ✅ defined INSIDE useEffect so it's never stale
+    // defined INSIDE useEffect so it's never stale
 async function checkTeamAccess() {
   const teamRes = await fetch("/api/team/dashboard", {
     credentials: "include",
   });
 
   const teamJson = await teamRes.json();
-  // console.log("Team dashboard data:", teamJson); // ✅ log the dashboard data for debugging
+  console.log("Team dashboard data:", teamJson); // log the dashboard data for debugging
 
   if (teamJson.team?.isActive === false) {
     setTeamBlocked(true);
@@ -68,11 +68,7 @@ async function init() {
 
 init();
 
-// ✅ poll init() instead of just checkTeamAccess
-// so game data also refreshes when team is unblocked
-const interval = setInterval(init, 5000);
-return () => clearInterval(interval);
-  }, []); // ✅ empty deps is fine — setters from useState are stable
+  }, []);
 
 
   const gameComponents: Record<number, JSX.Element> = {
