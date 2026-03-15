@@ -3,6 +3,7 @@ import authReducer from "./slices/authSlice";
 import teamReducer from "./slices/teamSlice";
 import gamesReducer from "./slices/gamesSlice";
 import adminGamesReducer from "./slices/adminGamesSlice";
+import adminTeamsReducer from "./slices/adminTeamsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     team: teamReducer,
     games: gamesReducer,
     adminGames: adminGamesReducer,
+    adminTeams: adminTeamsReducer,
   },
 });
 

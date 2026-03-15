@@ -1,106 +1,41 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
-type Team = {
-  team_id: string;
-  team_name: string;
-  team_size: number;
-  is_approved: boolean;
-};
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchAdminTeamsThunk, approveTeamThunk, rejectTeamThunk } from "@/store/slices/adminTeamsSlice";
+import {
+  selectAllAdminTeams,
+  selectAdminTeamsStatus,
+  selectAdminTeamStats,
+  selectAdminTeamActionStatus,
+} from "@/store/selectors/adminTeamsSelectors";
 
 export default function TeamControlPanel() {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
-const [actionLoading, setActionLoading] = useState<{
-  teamId: string;
-  type: "enable" | "block";
-} | null>(null);
+  const dispatch = useAppDispatch();
   const [search, setSearch] = useState("");
 
-  async function fetchTeams() {
-    try {
-      const res = await fetch("/api/v1/admin/teams");
-      const data = await res.json();
-      setTeams(data.teams || []);
-      console.log
-    } catch (err) {
-      console.error("Failed to fetch teams", err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const teams = useAppSelector(selectAllAdminTeams);
+  const status = useAppSelector(selectAdminTeamsStatus);
+  const { total, active, blocked } = useAppSelector(selectAdminTeamStats);
 
   useEffect(() => {
-    fetchTeams();
-  }, []);
+    dispatch(fetchAdminTeamsThunk());
+  }, [dispatch]);
 
-  async function enableTeam(teamId: string) {
-    setActionLoading({ teamId, type: "enable" });
-
-
-    setTeams((prev) =>
-      prev.map((t) =>
-        t.team_id === teamId ? { ...t, is_approved: true } : t
-      )
-    );
-
-    try {
-      await fetch(`/api/v1/admin/teams/${teamId}/approve`, {
-        method: "PATCH",
-        credentials: "include",
-      });
-    } catch {
-      fetchTeams();
-    } finally {
-      setActionLoading(null);
-
-    }
-  }
-
-  async function blockTeam(teamId: string) {
-    setActionLoading({ teamId, type: "block" });
-
-
-    setTeams((prev) =>
-      prev.map((t) =>
-        t.team_id === teamId ? { ...t, is_approved: false } : t
-      )
-    );
-
-    try {
-      await fetch(`/api/v1/admin/teams/${teamId}/reject`, {
-        method: "PATCH",
-        credentials: "include",
-      });
-    } catch {
-      fetchTeams();
-    } finally {
-      setActionLoading(null);
-
-    }
-  }
-
-  //  search filter
   const filteredTeams = useMemo(() => {
     return teams.filter((t) =>
       t.team_name.toLowerCase().includes(search.toLowerCase())
     );
   }, [teams, search]);
 
-  //  stats
-  const total = teams.length;
-  const active = teams.filter((t) => t.is_approved).length;
-  const blocked = total - active;
-
-  if (loading) {
+  if (status === "loading" || status === "idle") {
     return <div className="p-6 text-gray-500">Loading teams...</div>;
   }
 
   return (
     <div className="p-6 space-y-6">
 
-      {/*  STATS BAR */}
+      {/* STATS BAR */}
       <div className="flex gap-6">
         <div className="bg-gray-800 px-4 py-2 rounded-xl text-sm">
           Total Teams : <span className="font-semibold">{total}</span>
@@ -113,7 +48,7 @@ const [actionLoading, setActionLoading] = useState<{
         </div>
       </div>
 
-      {/*  SEARCH */}
+      {/* SEARCH */}
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -121,61 +56,54 @@ const [actionLoading, setActionLoading] = useState<{
         className="w-full border px-4 py-2 rounded-xl text-sm bg-gray-700 text-gray-200 outline-none focus:ring-2 focus:ring-blue-800 placeholder:text-gray-200"
       />
 
-      {/*  TEAM LIST */}
+      {/* TEAM LIST */}
       <div className="space-y-4">
         {filteredTeams.map((team) => (
-          <div
-            key={team.team_id}
-            className="border rounded-2xl p-4 flex items-center justify-between shadow-sm"
-          >
-            <div>
-              <h3 className="font-semibold text-lg">{team.team_name}</h3>
-
-              <p className="text-sm text-gray-500">
-                Team Size: {team.team_size}
-              </p>
-
-              <p
-                className={`text-xs mt-1 font-medium ${
-                  team.is_approved ? "text-green-500" : "text-red-500"
-                }`}
-              >
-                {team.is_approved ? "Active" : "Blocked"}
-              </p>
-            </div>
-
-            <div>
-              {team.is_approved ? (
-                <button
-                  disabled={actionLoading?.teamId === team.team_id}
-
-                  onClick={() => blockTeam(team.team_id)}
-                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-gray-100 rounded-xl text-sm disabled:opacity-50"
-                >
-                  {actionLoading?.teamId === team.team_id && actionLoading.type === "block"
-  ? "Blocking..."
-  : "Block"}
-
-                </button>
-              ) : (
-                <button
-                  disabled={actionLoading?.teamId === team.team_id}
-                  onClick={() => enableTeam(team.team_id)}
-                  className="px-4 py-2 bg-green-500 hover:bg-green-600 text-gray-100 rounded-xl text-sm disabled:opacity-50"
-                >
-                  {actionLoading?.teamId === team.team_id && actionLoading.type === "enable"
-  ? "Enabling..."
-  : "Enable"}
-                </button>
-              )}
-            </div>
-          </div>
+          <TeamRow key={team.team_id} team={team} />
         ))}
 
         {filteredTeams.length === 0 && (
           <div className="text-gray-400 text-sm text-center py-10">
             No teams found
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TeamRow({ team }: { team: { team_id: string; team_name: string; team_size: number; is_approved: boolean } }) {
+  const dispatch = useAppDispatch();
+  const actionStatus = useAppSelector(selectAdminTeamActionStatus(team.team_id));
+  const isLoading = actionStatus === "loading:approve" || actionStatus === "loading:reject";
+
+  return (
+    <div className="border rounded-2xl p-4 flex items-center justify-between shadow-sm">
+      <div>
+        <h3 className="font-semibold text-lg">{team.team_name}</h3>
+        <p className="text-sm text-gray-500">Team Size: {team.team_size}</p>
+        <p className={`text-xs mt-1 font-medium ${team.is_approved ? "text-green-500" : "text-red-500"}`}>
+          {team.is_approved ? "Active" : "Blocked"}
+        </p>
+      </div>
+
+      <div>
+        {team.is_approved ? (
+          <button
+            disabled={isLoading}
+            onClick={() => dispatch(rejectTeamThunk(team.team_id))}
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-gray-100 rounded-xl text-sm disabled:opacity-50"
+          >
+            {actionStatus === "loading:reject" ? "Blocking..." : "Block"}
+          </button>
+        ) : (
+          <button
+            disabled={isLoading}
+            onClick={() => dispatch(approveTeamThunk(team.team_id))}
+            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-gray-100 rounded-xl text-sm disabled:opacity-50"
+          >
+            {actionStatus === "loading:approve" ? "Enabling..." : "Enable"}
+          </button>
         )}
       </div>
     </div>
