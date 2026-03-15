@@ -102,7 +102,7 @@ export async function endGameService(gameId: string) {
 
     const game = await getGameByIdRepo(gameId);
 
-    if (game.status !== "ACTIVE") {
+    if (game.status !== "ZZ") {
         throw new Error("GAME_NOT_ACTIVE");
     }
 
