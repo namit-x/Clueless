@@ -11,9 +11,12 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAngleLeft } from "@fortawesome/free-solid-svg-icons";
+import { useAppDispatch } from "@/store/hooks";
+import { setUser } from "@/store/slices/authSlice";
 
 const Login = () => {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [teamName, setTeamName] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -52,23 +55,20 @@ const Login = () => {
       const role = data?.user?.role;
       console.log("Login successful:", data);
 
-      // To store Team Credentials
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-
       if (!response.ok) {
         // Handle API error response
         setLoginError(data.error || data.message || "Login failed. Please try again.");
         return;
       }
-
       if (role === "admin") {
+        dispatch(setUser(data.user));
         router.push('/admin/dashboard');
       } else {
+        dispatch(setUser(data.user));
         router.push('/dashboard');
       }
 
-      
+
       // Simulate additional processing time if needed
       // await new Promise((r) => setTimeout(r, 1500));
 

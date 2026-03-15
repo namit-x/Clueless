@@ -2,9 +2,12 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAppDispatch } from "@/store/hooks";
+import { forceLogout } from "@/store/slices/authSlice";
 
 export function useSessionSSE() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     const es = new EventSource("/api/auth/session/stream", {
@@ -19,23 +22,11 @@ export function useSessionSSE() {
       console.log("[SSE] ping");
     });
 
-    es.addEventListener("FORCE_LOGOUT", async () => {
+    es.addEventListener("FORCE_LOGOUT", () => {
       console.log("[SSE] force logout");
-
       alert("Your team member have logged into another device. You have been logged out.");
-
-      try {
-        localStorage.removeItem("user");
-      } catch {}
-
       es.close();
-
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      router.replace("/login");
+      dispatch(forceLogout());
     });
 
     es.onerror = (e) => {
