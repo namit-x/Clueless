@@ -1,5 +1,6 @@
 import {useRouter} from "next/navigation";
-
+import { useAppDispatch } from "@/store/hooks";
+import { clearUser } from "@/store/slices/authSlice";
 
 type Props = {
   teamName: string
@@ -8,14 +9,17 @@ type Props = {
 
 
 export default function DashboardHeader({ teamName }: Props) {
+  const dispatch = useAppDispatch();
   const router = useRouter();
-  const logout = async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-    router.push("/");
-  };
+const logout = async () => {
+  await fetch("/api/auth/logout", {
+    method: "POST",
+    credentials: "include",
+  });
+  dispatch(clearUser());
+  localStorage.removeItem("user");
+  router.push("/");
+};
   return (
     <div className="flex items-center justify-between border-b pb-4 mb-6">
       <div>

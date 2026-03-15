@@ -45,8 +45,23 @@ const authSlice = createSlice({
     setHydrated(state) {
       state.hydrated = true;
     },
+    hydrateFromStorage(state) {
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          state.user = JSON.parse(userStr);
+          state.status = "authenticated";
+        } else {
+          state.status = "unauthenticated";
+        }
+      } catch {
+        state.status = "unauthenticated";
+      }
+      state.hydrated = true;
+    },
   },
 });
 
-export const { setUser, clearUser, forceLogout, resetForcedLogout, setHydrated } = authSlice.actions;
+export const { setUser, clearUser, forceLogout, resetForcedLogout, setHydrated, hydrateFromStorage } = authSlice.actions;
+
 export default authSlice.reducer;
