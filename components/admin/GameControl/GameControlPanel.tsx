@@ -23,7 +23,7 @@ export default function GameControlPanel() {
     dispatch(fetchAdminGamesThunk());
   }, [dispatch]);
 
-  if (status === "loading" || status === "idle") return <div>Loading games...</div>;
+  if (status === "idle") return <div>Loading games...</div>;
 
   return (
     <div className="space-y-4">

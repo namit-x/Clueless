@@ -28,7 +28,7 @@ export default function TeamControlPanel() {
     );
   }, [teams, search]);
 
-  if (status === "loading" || status === "idle") {
+  if (status === "idle") {
     return <div className="p-6 text-gray-500">Loading teams...</div>;
   }
 

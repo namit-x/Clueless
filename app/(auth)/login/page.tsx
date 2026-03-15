@@ -69,17 +69,6 @@ const Login = () => {
       }
 
 
-      // Simulate additional processing time if needed
-      // await new Promise((r) => setTimeout(r, 1500));
-
-      // Handle successful login
-      // - Redirect based on role
-
-      // You might want to:
-      // - Store auth token in localStorage/context
-      // - Update user state
-      // localStorage.setItem('token', data.token);
-
     } catch (error: any) {
       // Handle network errors
       console.error("Login error:", error);

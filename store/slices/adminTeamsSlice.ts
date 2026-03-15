@@ -34,26 +34,27 @@ export const fetchAdminTeamsThunk = createAsyncThunk(
 
 export const approveTeamThunk = createAsyncThunk(
     "adminTeams/approve",
-    async (teamId: string, { rejectWithValue }) => {
+    async (teamId: string, { dispatch }) => {
         await fetch(`/api/v1/admin/teams/${teamId}/approve`, {
             method: "PATCH",
             credentials: "include",
         });
+        dispatch(fetchAdminTeamsThunk());
         return teamId;
     }
 );
 
 export const rejectTeamThunk = createAsyncThunk(
     "adminTeams/reject",
-    async (teamId: string, { rejectWithValue }) => {
+    async (teamId: string, { dispatch }) => {
         await fetch(`/api/v1/admin/teams/${teamId}/reject`, {
             method: "PATCH",
             credentials: "include",
         });
+        dispatch(fetchAdminTeamsThunk());
         return teamId;
     }
 );
-
 const adminTeamsSlice = createSlice({
     name: "adminTeams",
     initialState,
@@ -83,6 +84,22 @@ const adminTeamsSlice = createSlice({
                 state.actionStatusById[action.meta.arg] = "loading:reject";
                 const team = state.items.find((t) => t.team_id === action.meta.arg);
                 if (team) team.is_approved = false;
+            })
+            .addCase(approveTeamThunk.fulfilled, (state, action) => {
+                delete state.actionStatusById[action.payload];
+            })
+            .addCase(approveTeamThunk.rejected, (state, action) => {
+                delete state.actionStatusById[action.meta.arg];
+                const team = state.items.find((t) => t.team_id === action.meta.arg);
+                if (team) team.is_approved = false;
+            })
+            .addCase(rejectTeamThunk.fulfilled, (state, action) => {
+                delete state.actionStatusById[action.payload];
+            })
+            .addCase(rejectTeamThunk.rejected, (state, action) => {
+                delete state.actionStatusById[action.meta.arg];
+                const team = state.items.find((t) => t.team_id === action.meta.arg);
+                if (team) team.is_approved = true;
             })
     },
 });
