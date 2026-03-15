@@ -3,12 +3,10 @@ import { getGameByIdRepo, activateGameRepo, endGameRepo } from "@/lib/repositori
 import { getApprovedTeamsRepo } from "@/lib/repositories/teamsRepo";
 import { getAllRoutesRepo, getTeamRouteRepo, insertTeamRoutesRepo } from "@/lib/repositories/teamRoutesRepo";
 import { activateFirstRoundRepo, getCurrentRoundRepo, initializeTeamRoundProgressRepo } from "@/lib/repositories/teamRoundProgressRepo";
-import { pauseGameRepo } from "@/lib/repositories/gameRepo";
 import { restartGameRepo } from "@/lib/repositories/gameRepo";
 import { getClueForRoundRepo, getRoundClueRepo } from "@/lib/repositories/routeLocationsRepo";
 import { getTeamProgressRepo } from "@/lib/repositories/teamProgressRepo";
 import { getAllGamesRepo } from "@/lib/repositories/gameRepo";
-import { resumeGameRepo } from "@/lib/repositories/gameRepo";
 
 export async function createGame(data: any) {
     const { id, ...gameData } = data;
@@ -31,7 +29,8 @@ export async function getGamesForTeam() {
 
         const { data, error } = await supabaseAdmin
             .from("games")
-            .select("id, name, description, order_index, status")
+            .select("id, name, description, order_index, is_active")
+            .eq("is_active", true)
             .order("order_index", { ascending: true });
 
         if (error) {
@@ -43,11 +42,11 @@ export async function getGamesForTeam() {
         }
 
         const games = data.map((game) => ({
-            id: game.status === "LIVE" || game.status === "PAUSED" ? game.id : null,
+            id: game.id,
             name: game.name,
             description: game.description,
             order_index: game.order_index,
-            status: game.status
+            is_active: game.is_active
         }));
 
         return games;
@@ -65,64 +64,58 @@ export async function getGamesForTeam() {
 
 export async function startGameService(gameId: string) {
 
-    const game = await getGameByIdRepo(gameId);
+    try {
 
-    if (game.status !== "NOT_STARTED") {
-        throw new Error("GAME_ALREADY_STARTED_OR_INVALID_STATE");
+
+        const game = await getGameByIdRepo(gameId);
+
+        if (game.is_active === true) {
+            throw new Error("GAME_ALREADY_STARTED");
+        }
+
+        const teams = await getApprovedTeamsRepo();
+        const routes = await getAllRoutesRepo();
+
+        if (routes.length < teams.length) {
+            throw new Error("INSUFFICIENT_ROUTES");
+        }
+
+        const mappings = teams.map((team: any, i: number) => ({
+            team_id: team.team_id,
+            route_id: routes[i].id
+        }));
+
+        console.log("ROUTE_ASSIGNMENT_DEBUG", {
+            approvedTeams: teams.length,
+            routes: routes.length,
+            mappings: mappings.length
+        });
+
+        await insertTeamRoutesRepo(mappings);
+
+        await initializeTeamRoundProgressRepo();
+        // console.log("Here")
+
+        const activeGame = await activateGameRepo(gameId);
+
+        return activeGame;
     }
-
-    const teams = await getApprovedTeamsRepo();
-    const routes = await getAllRoutesRepo();
-
-    if (routes.length < teams.length) {
-        throw new Error("INSUFFICIENT_ROUTES");
+    catch (error: any) {
+        return error;
     }
-
-    const mappings = teams.map((team: any, i: number) => ({
-        team_id: team.team_id,
-        route_id: routes[i].id
-    }));
-
-    console.log("ROUTE_ASSIGNMENT_DEBUG", {
-        approvedTeams: teams.length,
-        routes: routes.length,
-        mappings: mappings.length
-    });
-
-    await insertTeamRoutesRepo(mappings);
-
-    await initializeTeamRoundProgressRepo();
-
-    const activeGame = await activateGameRepo(gameId);
-
-    return activeGame;
 }
 
 export async function endGameService(gameId: string) {
 
     const game = await getGameByIdRepo(gameId);
 
-    if (game.status !== "ZZ") {
+    if (game.is_active !== true) {
         throw new Error("GAME_NOT_ACTIVE");
     }
 
     const endedGame = await endGameRepo(gameId);
 
     return endedGame;
-}
-
-
-export async function pauseGameService(gameId: string) {
-
-    const game = await getGameByIdRepo(gameId);
-
-    if (game.status !== "ACTIVE") {
-        throw new Error("GAME_NOT_ACTIVE_CANNOT_PAUSE");
-    }
-
-    const pausedGame = await pauseGameRepo(gameId);
-
-    return pausedGame;
 }
 
 export async function restartGameService(gameId: string) {
@@ -182,19 +175,3 @@ export async function getAllGamesService() {
     return games;
 
 }
-
-export async function resumeGameService(gameId: string) {
-
-    try {
-
-        const game = await resumeGameRepo(gameId);
-
-        return game;
-
-    } catch (error: any) {
-
-        throw new Error(`SERVICE_RESUME_GAME_FAILED: ${error.message}`);
-
-    }
-}
-// f2fbfb07 - 8715 - 4792 - a0c9 - 439bf62804e5

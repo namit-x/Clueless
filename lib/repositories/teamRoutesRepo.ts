@@ -22,6 +22,7 @@ export async function insertTeamRoutesRepo(
     const query = `
     INSERT INTO team_routes (team_id, route_id)
     VALUES ${mappings.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(",")}
+    ON CONFLICT (team_id) DO NOTHING;
   `;
 
     const params = mappings.flatMap(m => [m.team_id, m.route_id]);

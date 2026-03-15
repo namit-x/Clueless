@@ -15,9 +15,6 @@ type JwtPayload = {
 export async function verifyToken(req: NextRequest): Promise<JwtPayload> {
     const token = req.cookies.get("session")?.value;
 
-    console.log("received")
-
-
     if (!token) {
         console.error("[Auth][verifyToken] Missing session cookie");
         throw new Error("Unauthorized");

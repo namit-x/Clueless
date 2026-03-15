@@ -1,19 +1,19 @@
 import { pool } from "@/lib/db";
 
 export async function getGameByIdRepo(gameId: string) {
-    const query = `
-    SELECT id, status
+  const query = `
+    SELECT id, is_active
     FROM games
     WHERE id = $1;
   `;
 
-    const result = await pool.query(query, [gameId]);
+  const result = await pool.query(query, [gameId]);
 
-    if (result.rowCount === 0) {
-        throw new Error("GAME_NOT_FOUND");
-    }
+  if (result.rowCount === 0) {
+    throw new Error("GAME_NOT_FOUND");
+  }
 
-    return result.rows[0];
+  return result.rows[0];
 }
 
 export async function activateGameRepo(gameId: string) {

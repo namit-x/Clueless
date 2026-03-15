@@ -3,10 +3,8 @@ import { NextResponse } from "next/server";
 import { getGamesForTeam } from "@/services/gameService";
 import { startGameService } from "@/services/gameService";
 import { endGameService } from "@/services/gameService";
-import { pauseGameService } from "@/services/gameService";
 import { restartGameService } from "@/services/gameService";
 import { getAllGamesService } from "@/services/gameService";
-import { resumeGameService } from "@/services/gameService";
 
 export async function createGameController(body: any) {
     const game = await createGame(body);
@@ -84,20 +82,6 @@ export async function endGameController(gameId: string) {
     }
 }
 
-export async function pauseGameController(gameId: string) {
-
-    try {
-
-        const game = await pauseGameService(gameId);
-
-        return game;
-
-    } catch (error: any) {
-        throw new Error(`CONTROLLER_PAUSE_GAME_FAILED: ${error.message}`);
-    }
-}
-
-
 export async function restartGameController(gameId: string) {
 
     try {
@@ -131,7 +115,7 @@ export async function startTeamGameController(teamId: string) {
 export async function getCurrentRoundController(teamId: string) {
 
     try {
-        
+
         const roundData = await getCurrentRoundService(teamId);
 
         return roundData;
@@ -169,21 +153,6 @@ export async function getAllGamesController(user: any) {
     } catch (error: any) {
 
         throw new Error(`CONTROLLER_GET_ALL_GAMES_FAILED: ${error.message}`);
-
-    }
-}
-
-export async function resumeGameController(gameId: string) {
-
-    try {
-
-        const game = await resumeGameService(gameId);
-
-        return game;
-
-    } catch (error: any) {
-
-        throw new Error(`CONTROLLER_RESUME_GAME_FAILED: ${error.message}`);
 
     }
 }
