@@ -7,9 +7,29 @@ import TeamControlPanel from "@/components/admin/TeamControl/TeamControlPanel";
 import TeamProgressPanel from "@/components/admin/TeamProgress/TeamProgressPanel";
 import AdminLogsPanel from "@/components/admin/AdminLogs/AdminLogsPanel";
 
+import { useRouter } from "next/navigation";
+import { useAppDispatch } from "@/store/hooks";
+import { clearUser } from "@/store/slices/authSlice";
+
 export default function AdminDashboardPage() {
 
   const [activeSection, setActiveSection] = useState("games");
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+
+
+  async function handleLogout() {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      dispatch(clearUser());
+      router.replace("/login");
+    }
+  }
+
 
   return (
     <div className="flex h-screen">
@@ -26,8 +46,15 @@ export default function AdminDashboardPage() {
       <div className="flex-1 overflow-y-auto">
 
         {/* Header */}
-        <div className="border-b p-4">
+        <div className="flex items-center justify-between border-b p-4">
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+
+          <button
+            onClick={handleLogout}
+            className="rounded-md border border-red-400 px-4 py-2 text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
+          >
+            Logout
+          </button>
         </div>
 
         {/* Section Rendering */}
