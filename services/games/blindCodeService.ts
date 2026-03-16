@@ -23,7 +23,7 @@ function getBlindCodeChallenge(configuration: any) {
         throw new Error("BLIND_CODE_CHALLENGE_NOT_FOUND");
     }
 
-    return configuration.target_string;
+    return configuration.expected_output;
 }
 
 function getBlindCodeAnswer(configuration: any) {

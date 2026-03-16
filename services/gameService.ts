@@ -53,7 +53,7 @@ export async function getGamesForTeam() {
 
         const { data, error } = await supabaseAdmin
             .from("games")
-            .select("id, name, description, order_index, is_active")
+            .select("id, name, description, order_index, is_active, status")
             // .eq("is_active", true)
             .order("order_index", { ascending: true });
 
@@ -66,11 +66,12 @@ export async function getGamesForTeam() {
         }
 
         const games = data.map((game) => ({
-            id: game.id,
+            id: game.status !== "LIVE" ? "YOU_ARE_GAY" : game.id,
             name: game.name,
             description: game.description,
             order_index: game.order_index,
-            is_active: game.is_active
+            is_active: game.is_active,
+            status: game.status
         }));
 
         // Cache the result for 10 seconds
