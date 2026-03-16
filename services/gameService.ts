@@ -1,16 +1,11 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { getGameByIdRepo, activateGameRepo, endGameRepo } from "@/lib/repositories/gameRepo";
-import { getApprovedTeamsRepo } from "@/lib/repositories/teamsRepo";
-import { getAllRoutesRepo, getTeamRouteRepo, insertTeamRoutesRepo } from "@/lib/repositories/teamRoutesRepo";
-import { activateFirstRoundRepo, getCurrentRoundRepo, initializeTeamRoundProgressRepo } from "@/lib/repositories/teamRoundProgressRepo";
-import { restartGameRepo } from "@/lib/repositories/gameRepo";
-import { getClueForRoundRepo, getRoundClueRepo } from "@/lib/repositories/routeLocationsRepo";
+import { getActiveGameRepo, getAllGamesRepo, getGameByIdRepo, endGameRepo, restartGameRepo } from "@/lib/repositories/gameRepo";
 import { getTeamProgressRepo } from "@/lib/repositories/teamProgressRepo";
-import { getAllGamesRepo } from "@/lib/repositories/gameRepo";
 import { startTreasureHuntGame } from "./games/treasureHuntService";
 import { startBlindCodeGame } from "./games/blindCodeService";
 import { startQuizGame } from "./games/quizService";
 import { startDigitManipulationGame } from "./games/digitManipulationService";
+import { currentRoundHandlers, teamStartHandlers } from "./games/gameplayHandlers";
 import { getCached, setCached } from "@/lib/gameCache";
 
 /**
@@ -169,37 +164,28 @@ export async function restartGameService(gameId: string) {
     return restartedGame;
 }
 
-export async function startTeamGameService(teamId: string) {
-
-    // Parallelize independent queries: route lookup and first round activation can happen simultaneously
-    const [routeId, roundId] = await Promise.all([
-        getTeamRouteRepo(teamId),
-        activateFirstRoundRepo(teamId)
-    ]);
-
-    const clue = await getRoundClueRepo(routeId, 1);
-
-    return {
-        round: 1,
-        clue
-    };
-}
-
 export async function getCurrentRoundService(teamId: string) {
 
-    // Parallelize independent queries: route lookup and current round lookup can happen simultaneously
-    const [routeId, { roundId, roundNumber }] = await Promise.all([
-        getTeamRouteRepo(teamId),
-        getCurrentRoundRepo(teamId)
-    ]);
+    const game = await getActiveGameRepo();
+    const handler = currentRoundHandlers[game.name];
 
-    const clue = await getClueForRoundRepo(routeId, roundNumber);
+    if (!handler) {
+        throw new Error(`UNKNOWN_GAME_TYPE: ${game.name}`);
+    }
 
-    return {
-        roundId,
-        round: roundNumber,
-        clue
-    };
+    return handler(teamId);
+}
+
+export async function startTeamGameService(teamId: string, gameId: string) {
+
+    const game = await getGameByIdRepo(gameId);
+    const handler = teamStartHandlers[game.name];
+
+    if (!handler) {
+        throw new Error(`UNKNOWN_GAME_TYPE: ${game.name}`);
+    }
+
+    return handler(teamId);
 }
 
 export async function getTeamProgressService(teamId: string) {

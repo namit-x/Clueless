@@ -23,16 +23,17 @@ export async function initializeTeamRoundProgressRepo(gameId: string) {
 export async function activateFirstRoundRepo(teamId: string) {
 
   const query = `
-    UPDATE team_round_progress
+    UPDATE team_round_progress trp
     SET status = 'ACTIVE',
         started_at = NOW()
-    WHERE team_id = $1
-    AND round_id = (
-      SELECT id FROM rounds
-      WHERE round_number = 1
-      LIMIT 1
-    )
-    RETURNING round_id;
+    FROM rounds r
+    JOIN games g ON g.id = r.game_id
+    WHERE trp.round_id = r.id
+    AND trp.team_id = $1
+    AND trp.status = 'LOCKED'
+    AND r.round_number = 1
+    AND g.is_active = true
+    RETURNING trp.round_id;
   `;
 
   const result = await pool.query(query, [teamId]);

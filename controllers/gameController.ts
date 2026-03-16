@@ -97,11 +97,11 @@ export async function restartGameController(gameId: string) {
     }
 }
 
-export async function startTeamGameController(teamId: string) {
+export async function startTeamGameController(teamId: string, gameId: string) {
 
     try {
 
-        const roundData = await startTeamGameService(teamId);
+        const roundData = await startTeamGameService(teamId, gameId);
 
         return roundData;
 

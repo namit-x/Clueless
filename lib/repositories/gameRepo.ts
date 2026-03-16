@@ -16,6 +16,24 @@ export async function getGameByIdRepo(gameId: string) {
   return result.rows[0];
 }
 
+export async function getActiveGameRepo() {
+  const query = `
+    SELECT id, name, is_active
+    FROM games
+    WHERE is_active = true
+    ORDER BY started_at DESC NULLS LAST, order_index ASC
+    LIMIT 1;
+  `;
+
+  const result = await pool.query(query);
+
+  if (result.rowCount === 0) {
+    throw new Error("ACTIVE_GAME_NOT_FOUND");
+  }
+
+  return result.rows[0];
+}
+
 export async function activateGameRepo(gameId: string) {
 
   const query = `

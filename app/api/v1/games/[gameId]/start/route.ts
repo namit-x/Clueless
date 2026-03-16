@@ -17,7 +17,8 @@ export async function POST(
             throw new Error("TEAM_ID_MISSING_FROM_TOKEN");
         }
 
-        const result = await startTeamGameController(teamId);
+        const { gameId } = await context.params;
+        const result = await startTeamGameController(teamId, gameId);
 
         return NextResponse.json({
             success: true,
