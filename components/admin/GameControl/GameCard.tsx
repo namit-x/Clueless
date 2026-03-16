@@ -4,8 +4,6 @@ import { useState } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import {
   startAdminGameThunk,
-  pauseAdminGameThunk,
-  resumeAdminGameThunk,
   endAdminGameThunk,
   restartAdminGameThunk,
 } from "@/store/slices/adminGamesSlice";
@@ -13,20 +11,15 @@ import type { AdminGame } from "@/lib/types/adminGames";
 
 type Props = {
   game: AdminGame;
-  isStartAllowed: boolean;
 };
 
-export default function GameCard({ game, isStartAllowed }: Props) {
+export default function GameCard({ game }: Props) {
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
 
-  const canStart = game.status === "pending" && isStartAllowed;
-  const canPause = game.status === "running";
-  const canResume = game.status === "paused";
-  const canEnd = canPause || canResume;
+  const canStart = game.status === "pending";
+  const canEnd = game.status === "running";
   const canRestart = game.status === "ended";
-
-  const pauseResumeLabel = canPause ? "Pause" : "Resume";
 
   async function handleAction(thunk: any) {
     try {
@@ -41,7 +34,6 @@ export default function GameCard({ game, isStartAllowed }: Props) {
     <div
       className={`border rounded-xl p-4 flex justify-between ${
         game.status === "running" ? "border-green-500"
-        : game.status === "paused" ? "border-yellow-500"
         : game.status === "ended" ? "border-red-500"
         : ""
       }`}
@@ -62,14 +54,6 @@ export default function GameCard({ game, isStartAllowed }: Props) {
           className="px-3 py-1 border rounded disabled:opacity-40"
         >
           Start
-        </button>
-
-        <button
-          disabled={!(canPause || canResume) || loading}
-          onClick={() => handleAction(canPause ? pauseAdminGameThunk : resumeAdminGameThunk)}
-          className="px-3 py-1 border rounded disabled:opacity-40"
-        >
-          {pauseResumeLabel}
         </button>
 
         <button
