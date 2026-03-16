@@ -1,5 +1,6 @@
 import { getBlindCodeRound, startBlindCodeForTeam, submitBlindCodeAnswer } from "./blindCodeService";
 import { getTreasureHuntRound, startTreasureHuntForTeam, submitTreasureHuntAnswer } from "./treasureHuntService";
+import { completeTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
 
 export const teamStartHandlers: Record<string, (teamId: string) => Promise<any>> = {
     "Treasure Hunt": startTreasureHuntForTeam,

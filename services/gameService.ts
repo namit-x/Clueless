@@ -7,6 +7,9 @@ import { startQuizGame } from "./games/quizService";
 import { startDigitManipulationGame } from "./games/digitManipulationService";
 import { currentRoundHandlers, teamStartHandlers } from "./games/gameplayHandlers";
 import { getCached, setCached } from "@/lib/gameCache";
+import { createTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
+import { markTimedOutTeamGameResults } from "@/lib/repositories/teamGameResultsRepo";
+import { deleteTeamGameResultsByGameId } from "@/lib/repositories/teamGameResultsRepo";
 
 /**
  * Game Handler Registry
@@ -147,6 +150,8 @@ export async function endGameService(gameId: string) {
         throw new Error("GAME_NOT_ACTIVE");
     }
 
+    await markTimedOutTeamGameResults(gameId, 600);
+
     const endedGame = await endGameRepo(gameId);
 
     return endedGame;
@@ -159,6 +164,8 @@ export async function restartGameService(gameId: string) {
     if (!game) {
         throw new Error("GAME_NOT_FOUND");
     }
+
+    await deleteTeamGameResultsByGameId(gameId);
 
     const restartedGame = await restartGameRepo(gameId);
 
@@ -180,6 +187,14 @@ export async function getCurrentRoundService(teamId: string) {
 export async function startTeamGameService(teamId: string, gameId: string) {
 
     const game = await getGameByIdRepo(gameId);
+
+    if (!game) {
+        throw new Error("GAME_NOT_FOUND");
+    }
+
+    // START TIMER FOR TEAM
+    await createTeamGameResult(teamId, gameId);
+
     const handler = teamStartHandlers[game.name];
 
     if (!handler) {
@@ -204,3 +219,4 @@ export async function getAllGamesService() {
     return games;
 
 }
+

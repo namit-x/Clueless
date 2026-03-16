@@ -1,0 +1,117 @@
+import { pool } from "@/lib/db";
+
+export async function createTeamGameResult(teamId: string, gameId: string) {
+    const query = `
+        INSERT INTO team_game_results (
+            team_id,
+            game_id,
+            started_at,
+            status
+        )
+        VALUES ($1, $2, NOW(), 'IN_PROGRESS')
+        ON CONFLICT (team_id, game_id) DO NOTHING
+        RETURNING
+            id,
+            team_id,
+            game_id,
+            started_at,
+            completed_at,
+            completion_time,
+            penalty_seconds,
+            status,
+            created_at;
+    `;
+
+    const result = await pool.query(query, [teamId, gameId]);
+
+    if (result.rowCount && result.rowCount > 0) {
+        return result.rows[0];
+    }
+
+    return getTeamGameResult(teamId, gameId);
+}
+
+export async function getTeamGameResult(teamId: string, gameId: string) {
+    const query = `
+        SELECT
+            id,
+            team_id,
+            game_id,
+            started_at,
+            completed_at,
+            completion_time,
+            penalty_seconds,
+            status,
+            created_at
+        FROM team_game_results
+        WHERE team_id = $1
+          AND game_id = $2
+        LIMIT 1;
+    `;
+
+    const result = await pool.query(query, [teamId, gameId]);
+
+    return result.rows[0] ?? null;
+}
+
+export async function completeTeamGameResult(teamId: string, gameId: string) {
+    const query = `
+        UPDATE team_game_results
+        SET
+            completed_at = NOW(),
+            completion_time = NOW() - started_at,
+            status = 'COMPLETED'
+        WHERE team_id = $1
+          AND game_id = $2
+        RETURNING
+            id,
+            team_id,
+            game_id,
+            started_at,
+            completed_at,
+            completion_time,
+            penalty_seconds,
+            status,
+            created_at;
+    `;
+
+    const result = await pool.query(query, [teamId, gameId]);
+
+    return result.rows[0] ?? null;
+}
+
+export async function markTimedOutTeamGameResults(gameId: string, penaltySeconds: number) {
+    const query = `
+        UPDATE team_game_results
+        SET
+            completed_at = NOW(),
+            completion_time = NOW() - started_at,
+            penalty_seconds = $2,
+            status = 'TIME_OVER'
+        WHERE game_id = $1
+          AND status = 'IN_PROGRESS'
+        RETURNING
+            id,
+            team_id,
+            game_id,
+            started_at,
+            completed_at,
+            completion_time,
+            penalty_seconds,
+            status,
+            created_at;
+    `;
+
+    const result = await pool.query(query, [gameId, penaltySeconds]);
+
+    return result.rows;
+}
+
+export async function deleteTeamGameResultsByGameId(gameId: string) {
+    const query = `
+        DELETE FROM team_game_results
+        WHERE game_id = $1;
+    `;
+
+    await pool.query(query, [gameId]);
+}

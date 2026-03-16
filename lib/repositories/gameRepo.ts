@@ -76,46 +76,6 @@ export async function endGameRepo(gameId: string) {
   return result.rows[0];
 }
 
-export async function pauseGameRepo(gameId: string) {
-
-  const query = `
-    UPDATE games
-    SET
-      status = 'PAUSED',
-      paused_at = NOW()
-    WHERE id = $1
-    RETURNING id, status, is_active, paused_at;
-  `;
-
-  const result = await pool.query(query, [gameId]);
-
-  if (result.rowCount === 0) {
-    throw new Error("GAME_NOT_FOUND");
-  }
-
-  return result.rows[0];
-}
-
-export async function resumeGameRepo(gameId: string) {
-
-  const query = `
-    UPDATE games
-    SET
-      status = 'LIVE',
-      resumed_at = NOW()
-    WHERE id = $1
-    RETURNING id, status, is_active, resumed_at;
-  `;
-
-  const result = await pool.query(query, [gameId]);
-
-  if (result.rowCount === 0) {
-    throw new Error("GAME_NOT_FOUND");
-  }
-
-  return result.rows[0];
-}
-
 export async function restartGameRepo(gameId: string) {
 
   const client = await pool.connect();
