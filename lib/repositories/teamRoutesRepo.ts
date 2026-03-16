@@ -1,4 +1,5 @@
 import { pool } from "@/lib/db";
+import { getCached, setCached } from "@/lib/gameCache";
 
 export async function getAllRoutesRepo() {
     const query = `
@@ -36,6 +37,13 @@ export async function insertTeamRoutesRepo(
 
 export async function getTeamRouteRepo(teamId: string) {
 
+    // Check cache first (routes are immutable during gameplay)
+    const cacheKey = `team_route:${teamId}`;
+    const cached = getCached<string>(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
     const query = `
     SELECT route_id
     FROM team_routes
@@ -48,5 +56,10 @@ export async function getTeamRouteRepo(teamId: string) {
         throw new Error("TEAM_ROUTE_NOT_FOUND");
     }
 
-    return result.rows[0].route_id;
+    const routeId = result.rows[0].route_id;
+
+    // Cache for 10 seconds (team routes don't change during active gameplay)
+    setCached(cacheKey, routeId);
+
+    return routeId;
 }

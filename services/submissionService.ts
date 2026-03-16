@@ -1,5 +1,5 @@
 import { getRoundNumberRepo } from "@/lib/repositories/roundsRepo";
-import { getCorrectAnswerRepo } from "@/lib/repositories/routeLocationsRepo";
+import { getClueAndAnswerForRoundRepo } from "@/lib/repositories/routeLocationsRepo";
 import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 import { activateNextRoundRepo, completeRoundRepo, decreaseAttemptRepo } from "@/lib/repositories/teamRoundProgressRepo";
 import { getTeamRouteRepo } from "@/lib/repositories/teamRoutesRepo";
@@ -10,11 +10,14 @@ export async function submitAnswerService(
     answer: string
 ) {
 
-    const routeId = await getTeamRouteRepo(teamId);
+    // Parallelize independent queries: fetching route and round number can happen simultaneously
+    const [routeId, roundNumber] = await Promise.all([
+        getTeamRouteRepo(teamId),
+        getRoundNumberRepo(roundId)
+    ]);
 
-    const roundNumber = await getRoundNumberRepo(roundId);
-
-    const correctAnswer = await getCorrectAnswerRepo(routeId, roundNumber);
+    // Fetch clue and answer in a single query instead of two separate queries
+    const { correctAnswer } = await getClueAndAnswerForRoundRepo(routeId, roundNumber);
 
     const isCorrect = correctAnswer === answer.toLowerCase();
 

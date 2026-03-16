@@ -6,8 +6,11 @@ import { activateGameRepo } from "@/lib/repositories/gameRepo";
 
 export async function startTreasureHuntGame(gameId: string) {
 
-    const teams = await getApprovedTeamsRepo();
-    const routes = await getAllRoutesRepo();
+    // Parallelize independent fetches: teams and routes can be fetched simultaneously
+    const [teams, routes] = await Promise.all([
+        getApprovedTeamsRepo(),
+        getAllRoutesRepo()
+    ]);
 
     if (routes.length < teams.length) {
         throw new Error("INSUFFICIENT_ROUTES");
@@ -18,9 +21,11 @@ export async function startTreasureHuntGame(gameId: string) {
         route_id: routes[i].id
     }));
 
-    await insertTeamRoutesRepo(mappings);
-
-    await initializeTeamRoundProgressRepo(gameId);
+    // Parallelize route insertion and round progress initialization
+    await Promise.all([
+        insertTeamRoutesRepo(mappings),
+        initializeTeamRoundProgressRepo(gameId)
+    ]);
 
     return activateGameRepo(gameId);
 }

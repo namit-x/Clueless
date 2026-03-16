@@ -11,6 +11,7 @@ import { startTreasureHuntGame } from "./games/treasureHuntService";
 import { startBlindCodeGame } from "./games/blindCodeService";
 import { startQuizGame } from "./games/quizService";
 import { startDigitManipulationGame } from "./games/digitManipulationService";
+import { getCached, setCached } from "@/lib/gameCache";
 
 /**
  * Game Handler Registry
@@ -49,6 +50,11 @@ export async function createGame(data: any) {
 
 export async function getGamesForTeam() {
     try {
+        // Check cache first
+        const cached = getCached<any[]>("active_games");
+        if (cached) {
+            return cached;
+        }
 
         const { data, error } = await supabaseAdmin
             .from("games")
@@ -71,6 +77,9 @@ export async function getGamesForTeam() {
             order_index: game.order_index,
             is_active: game.is_active
         }));
+
+        // Cache the result for 10 seconds
+        setCached("active_games", games);
 
         return games;
 
@@ -162,9 +171,11 @@ export async function restartGameService(gameId: string) {
 
 export async function startTeamGameService(teamId: string) {
 
-    const routeId = await getTeamRouteRepo(teamId);
-
-    const roundId = await activateFirstRoundRepo(teamId);
+    // Parallelize independent queries: route lookup and first round activation can happen simultaneously
+    const [routeId, roundId] = await Promise.all([
+        getTeamRouteRepo(teamId),
+        activateFirstRoundRepo(teamId)
+    ]);
 
     const clue = await getRoundClueRepo(routeId, 1);
 
@@ -176,9 +187,11 @@ export async function startTeamGameService(teamId: string) {
 
 export async function getCurrentRoundService(teamId: string) {
 
-    const routeId = await getTeamRouteRepo(teamId);
-
-    const { roundId, roundNumber } = await getCurrentRoundRepo(teamId);
+    // Parallelize independent queries: route lookup and current round lookup can happen simultaneously
+    const [routeId, { roundId, roundNumber }] = await Promise.all([
+        getTeamRouteRepo(teamId),
+        getCurrentRoundRepo(teamId)
+    ]);
 
     const clue = await getClueForRoundRepo(routeId, roundNumber);
 

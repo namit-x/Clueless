@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
 import { NextRequest } from "next/server";
-import { validateSessionController } from "@/controllers/sessionController";
 
 type JwtPayload = {
     teamId?: string;
@@ -52,12 +51,6 @@ export async function verifyToken(req: NextRequest): Promise<JwtPayload> {
             }
             ownerId = `admin_${adminIndex}`;
         }
-
-        await validateSessionController({
-            ownerType,
-            ownerId,
-            sessionId: decoded.sessionId
-        });
 
         return decoded;
     } catch (error: any) {
