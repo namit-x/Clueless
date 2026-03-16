@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
 import { clearUser } from "@/store/slices/authSlice";
+import Link from "next/link";
 
 type AdminSidebarProps = {
   activeSection: string;
@@ -37,20 +38,22 @@ export default function AdminSidebar({
 
   return (
     <aside className="h-full flex flex-col">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold">Admin</h2>
-      </div>
+
+      <Link href="/" className="mb-6 block">
+        <h2 className="text-xl font-semibold hover:text-blue-300 ">
+          Home
+        </h2>
+      </Link>
 
       <nav className="flex flex-1 flex-col gap-2">
         {menu.map((item) => (
           <button
             key={item.id}
             onClick={() => onChangeSection(item.id)}
-            className={`px-3 py-2 rounded-md text-left transition ${
-              activeSection === item.id
+            className={`px-3 py-2 rounded-md text-left transition ${activeSection === item.id
                 ? "bg-white text-gray-900 font-medium"
                 : "hover:bg-gray-800 text-white"
-            }`}
+              }`}
           >
             {item.label}
           </button>

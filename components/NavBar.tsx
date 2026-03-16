@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
+import { useAppSelector } from "@/store/hooks";
 
 const navLinks = [
   { label: "About", href: "/#how-it-works" },
@@ -15,6 +16,16 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const user = useAppSelector((state) => state.auth.user);
+  const hydrated = useAppSelector((state) => state.auth.hydrated);
+
+  const dashboardHref =
+    user?.role === "admin" ? "/admin/dashboard" : "/dashboard";
+
+  const dashboardLabel =
+    user?.role === "admin" ? "Admin Dashboard" : "Team Dashboard";
+
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
@@ -23,9 +34,8 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "glass-strong shadow-lg shadow-background/50" : "bg-transparent"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "glass-strong shadow-lg shadow-background/50" : "bg-transparent"
+        }`}
     >
       <div className="section-container flex items-center justify-between h-16 sm:h-18">
         <a href="/" className="font-display text-sm sm:text-base font-bold text-primary tracking-wider neon-text">
@@ -43,12 +53,26 @@ const Navbar = () => {
               {link.label}
             </a>
           ))}
-          <a
-            href="/login"
-            className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-sm neon-glow hover:neon-glow-strong transition-all duration-300"
-          >
-            LogIn
-          </a>
+
+          {hydrated ? (
+            user ? (
+              <a
+                href={dashboardHref}
+                className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-sm neon-glow hover:neon-glow-strong transition-all duration-300"
+              >
+                {dashboardLabel}
+              </a>
+            ) : (
+              <a
+                href="/login"
+                className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-sm neon-glow hover:neon-glow-strong transition-all duration-300"
+              >
+                Login
+              </a>
+            )
+          ) : (
+            <div className="h-10 w-28" />
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -75,13 +99,28 @@ const Navbar = () => {
                 {link.label}
               </a>
             ))}
-            <a
-              href="/login"
-              className="mt-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-center neon-glow"
-              onClick={() => setMobileOpen(false)}
-            >
-              Login
-            </a>
+
+            {hydrated ? (
+              user ? (
+                <a
+                  href={dashboardHref}
+                  className="mt-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-center neon-glow"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {dashboardLabel}
+                </a>
+              ) : (
+                <a
+                  href="/login"
+                  className="mt-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-center neon-glow"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Login
+                </a>
+              )
+            ) : (
+              <div className="mt-2 h-11" />
+            )}
           </div>
         </div>
       )}
