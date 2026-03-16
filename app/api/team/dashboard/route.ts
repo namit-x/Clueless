@@ -5,7 +5,7 @@ export async function GET() {
   const dashboard = {
     team: {
       penalty_time_seconds: 40,
-      isActive: true,
+      is_active: true,
     },
 
     games: [

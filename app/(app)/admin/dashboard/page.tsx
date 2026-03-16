@@ -26,7 +26,7 @@ export default function AdminDashboardPage() {
       });
     } finally {
       dispatch(clearUser());
-      router.replace("/login");
+      router.replace("/");
     }
   }
 
