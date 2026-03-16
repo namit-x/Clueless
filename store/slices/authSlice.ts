@@ -29,15 +29,21 @@ const authSlice = createSlice({
     setUser(state, action: PayloadAction<User>) {
       state.user = action.payload;
       state.status = "authenticated";
+      // Save to localStorage for persistence
+      localStorage.setItem("user", JSON.stringify(action.payload));
     },
     clearUser(state) {
       state.user = null;
       state.status = "unauthenticated";
+      // Remove from localStorage
+      localStorage.removeItem("user");
     },
     forceLogout(state) {
       state.user = null;
       state.status = "unauthenticated";
       state.forcedLogout = true;
+      // Remove from localStorage
+      localStorage.removeItem("user");
     },
     resetForcedLogout(state) {
       state.forcedLogout = false;

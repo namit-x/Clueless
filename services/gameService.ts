@@ -59,7 +59,7 @@ export async function getGamesForTeam() {
         const { data, error } = await supabaseAdmin
             .from("games")
             .select("id, name, description, order_index, is_active")
-            .eq("is_active", true)
+            // .eq("is_active", true)
             .order("order_index", { ascending: true });
 
         if (error) {

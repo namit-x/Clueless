@@ -4,7 +4,7 @@ type Game = {
   id: string;
   name: string;
   order_index: number;
-  status: "NOT_STARTED" | "LIVE" | "PAUSED" | "ENDED";
+  is_active: boolean; // Changed from status to isActive (boolean)
 };
 
 type GamesState = {

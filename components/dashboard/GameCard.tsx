@@ -1,4 +1,4 @@
-type GameState = "NOT_STARTED" | "ACTIVE" | "PAUSED" | "ENDED";
+type GameState = "NOT_STARTED" | "ACTIVE" ;
 
 type Props = {
   name: string
@@ -24,14 +24,14 @@ export default function GameCard({
     >
       <h2 className="text-lg font-semibold mb-2">{name}</h2>
 
-      {state === "ENDED" && (
+      {/* {state === "ENDED" && (
         <>
           <p className="text-sm">Game have ended</p>
-            {/* <p className="text-green-600">Completed ✔</p> */}
+            <p className="text-green-600">Completed ✔</p>
             <p className="text-sm">Time Taken: __s</p>
             <p className="text-sm">Reward Word Earned ✔</p>
         </>
-      )}
+      )} */}
 
       {state === "ACTIVE" && (
         <button
@@ -42,10 +42,6 @@ export default function GameCard({
         </button>
       )
       }
-
-      {state === "PAUSED" && (
-        <p className="text-yellow-600">Game Paused ⏸</p>
-      )}
 
       {state === "NOT_STARTED" && (
         <p className="text-sm">Game not started</p>

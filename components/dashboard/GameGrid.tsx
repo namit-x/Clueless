@@ -6,7 +6,7 @@ import {useRouter} from "next/navigation";
 type Game = {
   id: string;
   name: string;
-  state: "NOT_STARTED" | "ACTIVE" | "PAUSED" | "ENDED";
+  state: "NOT_STARTED" | "ACTIVE";
 //   time_taken_seconds?: number
 //   reward_word_earned?: boolean
 }

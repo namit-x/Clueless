@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 type TeamSummary = {
-  isActive: boolean;
-  penaltyTimeSeconds?: number;
+  is_active: boolean;
+  penalty_time_seconds?: number;
 };
 
 type TeamState = {
