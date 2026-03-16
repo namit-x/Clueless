@@ -59,32 +59,64 @@ export async function getBlindCodeRound(teamId: string) {
     };
 }
 
+async function executeJudge0(sourceCode: string) {
+
+    const response = await fetch(
+        "https://ce.judge0.com/submissions?base64_encoded=false&wait=true",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                language_id: 62, // Java
+                source_code: sourceCode
+            })
+        }
+    );
+
+    return response.json();
+}
+
 export async function submitBlindCodeAnswer(
     teamId: string,
     roundId: string,
-    answer: string,
+    answer: string,          // this now contains Java code
     configuration: any,
     roundNumber: number
 ) {
 
-    const expectedAnswer = getBlindCodeAnswer(configuration).toLowerCase();
-    const isCorrect = expectedAnswer === answer.toLowerCase();
+    const expectedOutput = getBlindCodeAnswer(configuration).trim();
 
-    await insertSubmissionRepo(teamId, roundId, answer, isCorrect);
+    const judgeResult = await executeJudge0(answer);
+
+    const output = (judgeResult.stdout || "").trim();
+
+    const isCorrect = output === expectedOutput;
+
+    const evaluation =
+        judgeResult.stdout ||
+        judgeResult.stderr ||
+        judgeResult.compile_output ||
+        "NO_OUTPUT";
+
+    await insertSubmissionRepo(
+        teamId,
+        roundId,
+        answer,
+        isCorrect,
+        evaluation
+    );
 
     if (isCorrect) {
 
         await completeRoundRepo(teamId, roundId);
         await activateNextRoundRepo(teamId, roundNumber);
 
-        return {
-            correct: true
-        };
+        return { correct: true };
     }
 
     await decreaseAttemptRepo(teamId, roundId);
 
-    return {
-        correct: false
-    };
+    return { correct: false };
 }
