@@ -46,7 +46,7 @@ export default function DashboardPage() {
   if (teamBlocked) return <TeamBlockedScreen />;
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-gray-950 min-h-screen">
       <DashboardHeader teamName={user?.name ?? ""} />
       <GamesGrid games={games} />
     </div>
