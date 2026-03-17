@@ -30,8 +30,6 @@ export const fetchAdminGamesThunk = createAsyncThunk(
           ? "pending"
           : g.status === "LIVE"
           ? "running"
-          : g.status === "PAUSED"
-          ? "paused"
           : "ended",
     }));
 
@@ -50,22 +48,6 @@ export const startAdminGameThunk = createAsyncThunk(
   "adminGames/start",
   async (id: string, { dispatch }) => {
     await gameAction(id, "start");
-    dispatch(fetchAdminGamesThunk());
-  }
-);
-
-export const pauseAdminGameThunk = createAsyncThunk(
-  "adminGames/pause",
-  async (id: string, { dispatch }) => {
-    await gameAction(id, "pause");
-    dispatch(fetchAdminGamesThunk());
-  }
-);
-
-export const resumeAdminGameThunk = createAsyncThunk(
-  "adminGames/resume",
-  async (id: string, { dispatch }) => {
-    await gameAction(id, "resume");
     dispatch(fetchAdminGamesThunk());
   }
 );
