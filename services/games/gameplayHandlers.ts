@@ -17,7 +17,7 @@ export const submissionHandlers: Record<
     (teamId: string, roundId: string, answer: string, roundContext: any) => Promise<any>
 > = {
     "Treasure Hunt": (teamId, roundId, answer, roundContext) =>
-        submitTreasureHuntAnswer(teamId, roundId, answer, roundContext.roundNumber),
+        submitTreasureHuntAnswer(teamId, roundId, answer, roundContext.roundNumber, roundContext.gameId),
     "Blind Code": (teamId, roundId, answer, roundContext) =>
         submitBlindCodeAnswer(
             teamId,

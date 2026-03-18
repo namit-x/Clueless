@@ -2,8 +2,7 @@ import { getApprovedTeamsRepo } from "@/lib/repositories/teamsRepo";
 import { getAllRoutesRepo, getTeamRouteRepo, insertTeamRoutesRepo } from "@/lib/repositories/teamRoutesRepo";
 import {
     activateFirstRoundRepo,
-    activateNextRoundRepo,
-    completeRoundRepo,
+    completeAndAdvanceRoundRepo,
     decreaseAttemptRepo,
     getCurrentRoundRepo,
     initializeTeamRoundProgressRepo
@@ -11,6 +10,7 @@ import {
 import { activateGameRepo } from "@/lib/repositories/gameRepo";
 import { getClueAndAnswerForRoundRepo, getClueForRoundRepo, getRoundClueRepo } from "@/lib/repositories/routeLocationsRepo";
 import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
+import { completeTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
 
 export async function startTreasureHuntGame(gameId: string) {
 
@@ -75,29 +75,35 @@ export async function submitTreasureHuntAnswer(
     teamId: string,
     roundId: string,
     answer: string,
-    roundNumber: number
+    roundNumber: number,
+    gameId: string
 ) {
 
     const routeId = await getTeamRouteRepo(teamId);
     const { correctAnswer } = await getClueAndAnswerForRoundRepo(routeId, roundNumber);
 
-    const isCorrect = correctAnswer === answer.toLowerCase();
+    const isCorrect = correctAnswer.toLowerCase() === answer.trim().toLowerCase();
 
     await insertSubmissionRepo(teamId, roundId, answer, isCorrect, "Treasure Hunt");
 
     if (isCorrect) {
 
-        await completeRoundRepo(teamId, roundId);
-        await activateNextRoundRepo(teamId, roundNumber);
+        const advanced = await completeAndAdvanceRoundRepo(teamId, roundId, roundNumber, gameId);
+
+        if (advanced && roundNumber === 3) {
+            await completeTeamGameResult(teamId, gameId);
+            return { correct: true, gameCompleted: true };
+        }
 
         return {
             correct: true
         };
     }
 
-    await decreaseAttemptRepo(teamId, roundId);
+    const attemptCount = await decreaseAttemptRepo(teamId, roundId);
 
     return {
-        correct: false
+        correct: false,
+        attemptsLeft: 3 - attemptCount
     };
 }

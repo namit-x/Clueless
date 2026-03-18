@@ -68,15 +68,25 @@ export async function getCurrentRoundRepo(teamId: string) {
   };
 }
 
-export async function decreaseAttemptRepo(teamId: string, roundId: string) {
+export async function decreaseAttemptRepo(teamId: string, roundId: string): Promise<number> {
 
   const query = `
     UPDATE team_round_progress
     SET attempt_count = attempt_count + 1
-    WHERE team_id = $1 AND round_id = $2
+    WHERE team_id = $1
+      AND round_id = $2
+      AND status = 'ACTIVE'
+      AND attempt_count < 3
+    RETURNING attempt_count
   `;
 
-  await pool.query(query, [teamId, roundId]);
+  const result = await pool.query(query, [teamId, roundId]);
+
+  if (result.rowCount === 0) {
+    throw new Error("MAX_ATTEMPTS_REACHED");
+  }
+
+  return result.rows[0].attempt_count;
 }
 
 export async function completeRoundRepo(teamId: string, roundId: string) {
@@ -89,6 +99,69 @@ export async function completeRoundRepo(teamId: string, roundId: string) {
   `;
 
   await pool.query(query, [teamId, roundId]);
+}
+
+/**
+ * Atomically completes the current round and activates the next one.
+ * Uses a transaction with a status guard on the complete step to prevent
+ * double-processing from concurrent requests.
+ *
+ * Returns true if the round was completed, false if it was already completed
+ * (idempotent — safe to call twice).
+ *
+ * For round 3 (the last round), the next-round activation finds no rows and
+ * is a no-op. The caller is responsible for recording game completion in
+ * that case.
+ */
+export async function completeAndAdvanceRoundRepo(
+  teamId: string,
+  roundId: string,
+  roundNumber: number,
+  gameId: string
+): Promise<boolean> {
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const completeResult = await client.query(
+      `UPDATE team_round_progress
+       SET status = 'COMPLETED', completed_at = NOW()
+       WHERE team_id = $1
+         AND round_id = $2
+         AND status = 'ACTIVE'`,
+      [teamId, roundId]
+    );
+
+    if (completeResult.rowCount === 0) {
+      // Round was already completed by a concurrent request — safe no-op
+      await client.query("ROLLBACK");
+      return false;
+    }
+
+    await client.query(
+      `UPDATE team_round_progress
+       SET status = 'ACTIVE', started_at = NOW()
+       WHERE team_id = $1
+         AND round_id = (
+           SELECT id FROM rounds
+           WHERE game_id = $2
+             AND round_number = $3
+           LIMIT 1
+         )`,
+      [teamId, gameId, roundNumber + 1]
+    );
+
+    await client.query("COMMIT");
+    return true;
+
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
 }
 
 export async function activateNextRoundRepo(teamId: string, currentRoundNumber: number) {

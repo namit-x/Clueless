@@ -104,7 +104,7 @@ export default function TreasureHuntGame() {
             console.log("SUBMIT API: ", json);
 
             if (json.correct) {
-                await handleCorrectFlow();
+                await handleCorrectFlow(json);
             } else {
                 handleWrongFlow();
             }
@@ -125,10 +125,19 @@ export default function TreasureHuntGame() {
         }, 1000);
     }
 
-    async function handleCorrectFlow() {
+    async function handleCorrectFlow(submitResult: any) {
         setIsWrong(false);
         setShowSuccess(true);
         setAnswer("");
+<<<<<<< Updated upstream
+=======
+
+        if (submitResult.gameCompleted) {
+            setIsFinished(true);
+            return;
+        }
+
+>>>>>>> Stashed changes
         await fetchCurrentRound();
         setShowSuccess(false);
     }
@@ -145,6 +154,14 @@ export default function TreasureHuntGame() {
         return (
             <div className="text-2xl font-semibold">
                 ⏳ Waiting for admin to start the Treasure Hunt...
+            </div>
+        );
+    }
+
+    if (isFinished) {
+        return (
+            <div className="text-2xl font-semibold text-green-400">
+                🎉 You completed the Treasure Hunt!
             </div>
         );
     }
