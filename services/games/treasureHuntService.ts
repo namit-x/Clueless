@@ -4,7 +4,8 @@ import {
     activateFirstRoundRepo,
     completeAndAdvanceRoundRepo,
     decreaseAttemptRepo,
-    getCurrentRoundRepo,
+    getActiveOrFailedRoundRepo,
+    getRoundAttemptStatusRepo,
     initializeTeamRoundProgressRepo
 } from "@/lib/repositories/teamRoundProgressRepo";
 import { activateGameRepo } from "@/lib/repositories/gameRepo";
@@ -57,17 +58,26 @@ export async function startTreasureHuntForTeam(teamId: string) {
 
 export async function getTreasureHuntRound(teamId: string) {
 
-    const [routeId, { roundId, roundNumber }] = await Promise.all([
+    const [routeId, roundProgress] = await Promise.all([
         getTeamRouteRepo(teamId),
-        getCurrentRoundRepo(teamId)
+        getActiveOrFailedRoundRepo(teamId)
     ]);
 
-    const clue = await getClueForRoundRepo(routeId, roundNumber);
+    if (roundProgress.status === 'FAILED') {
+        return {
+            status: "FAILED",
+            message: "No active round. Attempts exhausted."
+        };
+    }
+
+    const clue = await getClueForRoundRepo(routeId, roundProgress.roundNumber);
 
     return {
-        roundId,
-        round: roundNumber,
-        clue
+        status: "ACTIVE",
+        roundId: roundProgress.roundId,
+        round: roundProgress.roundNumber,
+        clue,
+        attemptsLeft: 3 - roundProgress.attemptCount
     };
 }
 
@@ -79,6 +89,21 @@ export async function submitTreasureHuntAnswer(
     gameId: string
 ) {
 
+    const FAILED_RESPONSE = {
+        status: "FAILED",
+        reason: "MAX_ATTEMPTS_EXHAUSTED",
+        attemptsUsed: 3,
+        attemptsLeft: 0,
+        message: "You have used all attempts for this round"
+    };
+
+    // Pre-check: reject immediately if round is already failed or attempts exhausted.
+    // This runs before answer evaluation and any DB writes.
+    const progress = await getRoundAttemptStatusRepo(teamId, roundId);
+    if (progress.status !== 'ACTIVE' || progress.attemptCount >= 3) {
+        return FAILED_RESPONSE;
+    }
+
     const routeId = await getTeamRouteRepo(teamId);
     const { correctAnswer } = await getClueAndAnswerForRoundRepo(routeId, roundNumber);
 
@@ -88,22 +113,39 @@ export async function submitTreasureHuntAnswer(
 
     if (isCorrect) {
 
+        // completeAndAdvanceRoundRepo guards AND status = 'ACTIVE'.
+        // If a concurrent wrong answer set status to FAILED between our pre-check
+        // and here, advanced will be false — reject rather than silently advancing.
         const advanced = await completeAndAdvanceRoundRepo(teamId, roundId, roundNumber, gameId);
 
-        if (advanced && roundNumber === 3) {
-            await completeTeamGameResult(teamId, gameId);
-            return { correct: true, gameCompleted: true };
+        if (!advanced) {
+            return FAILED_RESPONSE;
         }
 
-        return {
-            correct: true
-        };
+        if (roundNumber === 3) {
+            await completeTeamGameResult(teamId, gameId);
+            return { status: "COMPLETED" };
+        }
+
+        return { status: "CORRECT" };
     }
 
-    const attemptCount = await decreaseAttemptRepo(teamId, roundId);
+    let attemptCount: number;
+    try {
+        attemptCount = await decreaseAttemptRepo(teamId, roundId);
+    } catch (e: any) {
+        // Race: another concurrent request exhausted attempts between pre-check and here
+        if (e.message === "MAX_ATTEMPTS_REACHED") return FAILED_RESPONSE;
+        throw e;
+    }
+
+    if (attemptCount >= 3) {
+        return FAILED_RESPONSE;
+    }
 
     return {
-        correct: false,
+        status: "INCORRECT",
+        attemptsUsed: attemptCount,
         attemptsLeft: 3 - attemptCount
     };
 }

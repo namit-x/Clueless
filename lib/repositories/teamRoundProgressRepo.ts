@@ -68,11 +68,57 @@ export async function getCurrentRoundRepo(teamId: string) {
   };
 }
 
+export async function getActiveOrFailedRoundRepo(teamId: string) {
+
+  const query = `
+    SELECT r.id, r.round_number, trp.status, trp.attempt_count
+    FROM team_round_progress trp
+    JOIN rounds r ON trp.round_id = r.id
+    WHERE trp.team_id = $1
+      AND trp.status IN ('ACTIVE', 'FAILED')
+    LIMIT 1
+  `;
+
+  const result = await pool.query(query, [teamId]);
+
+  if (result.rowCount === 0) {
+    throw new Error("ACTIVE_ROUND_NOT_FOUND");
+  }
+
+  return {
+    roundId: result.rows[0].id as string,
+    roundNumber: result.rows[0].round_number as number,
+    status: result.rows[0].status as string,
+    attemptCount: result.rows[0].attempt_count as number
+  };
+}
+
+export async function getRoundAttemptStatusRepo(teamId: string, roundId: string) {
+
+  const result = await pool.query(
+    `SELECT status, attempt_count
+     FROM team_round_progress
+     WHERE team_id = $1 AND round_id = $2`,
+    [teamId, roundId]
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error("ROUND_PROGRESS_NOT_FOUND");
+  }
+
+  return {
+    status: result.rows[0].status as string,
+    attemptCount: result.rows[0].attempt_count as number
+  };
+}
+
 export async function decreaseAttemptRepo(teamId: string, roundId: string): Promise<number> {
 
   const query = `
     UPDATE team_round_progress
-    SET attempt_count = attempt_count + 1
+    SET
+      attempt_count = attempt_count + 1,
+      status = CASE WHEN attempt_count + 1 >= 3 THEN 'FAILED' ELSE status END
     WHERE team_id = $1
       AND round_id = $2
       AND status = 'ACTIVE'

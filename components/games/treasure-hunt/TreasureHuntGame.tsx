@@ -6,7 +6,9 @@ export default function TreasureHuntGame() {
     const [clue, setClue] = useState("");
     const [loading, setLoading] = useState(true);
     const [isFinished, setIsFinished] = useState(false);
+    const [isRoundFailed, setIsRoundFailed] = useState(false);
     const [isWrong, setIsWrong] = useState(false);
+    const [attemptsLeft, setAttemptsLeft] = useState<number>(3);
     const [isWaiting, setIsWaiting] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -38,30 +40,29 @@ export default function TreasureHuntGame() {
             const json = await res.json();
             console.log("ROUND API: ", json);
             if (!res.ok || !json.success) {
-                console.log("ROUND status:", res.status);
-                console.log("ROUND ok:", res.ok);
-                console.log("ROUND API:", json);
-
-                setIsGameEnded(false);
-                setIsFinished(false);
-                setIsWaiting(false);
-                return;
-            }
-
-            if (json.isEnded) {
+                // Real infrastructure/auth error — treat as admin-ended
                 setIsGameEnded(true);
                 setIsFinished(false);
                 setIsWaiting(false);
+                setIsRoundFailed(false);
+                return;
+            }
+
+            if (json.status === "FAILED") {
+                setIsRoundFailed(true);
+                setIsWaiting(false);
+                setIsGameEnded(false);
                 setCurrentRound(null);
                 setClue("");
                 return;
             }
 
             if (!json.roundId) {
-                // restart OR not started
+                // game not yet started or restarted
                 setIsWaiting(true);
                 setIsFinished(false);
                 setIsGameEnded(false);
+                setIsRoundFailed(false);
                 setCurrentRound(null);
                 setClue("");
                 return;
@@ -69,7 +70,8 @@ export default function TreasureHuntGame() {
 
             setIsWaiting(false);
             setIsGameEnded(false);
-
+            setIsRoundFailed(false);
+            setAttemptsLeft(json.attemptsLeft ?? 3);
 
             setCurrentRound({
                 id: json.roundId,
@@ -103,10 +105,12 @@ export default function TreasureHuntGame() {
             const json = await res.json();
             console.log("SUBMIT API: ", json);
 
-            if (json.correct) {
+            if (json.status === "CORRECT" || json.status === "COMPLETED") {
                 await handleCorrectFlow(json);
-            } else {
-                handleWrongFlow();
+            } else if (json.status === "INCORRECT") {
+                handleWrongFlow(json.attemptsLeft ?? 0);
+            } else if (json.status === "FAILED") {
+                setIsRoundFailed(true);
             }
 
         } catch (err) {
@@ -116,28 +120,22 @@ export default function TreasureHuntGame() {
         }
     }
 
-    function handleWrongFlow() {
+    function handleWrongFlow(remaining: number) {
         setShowSuccess(false);
         setIsWrong(true);
-        // Refetch round data to sync attempt count
-        setTimeout(() => {
-            fetchCurrentRound();
-        }, 1000);
+        setAttemptsLeft(remaining);
     }
 
     async function handleCorrectFlow(submitResult: any) {
         setIsWrong(false);
         setShowSuccess(true);
         setAnswer("");
-<<<<<<< Updated upstream
-=======
 
-        if (submitResult.gameCompleted) {
+        if (submitResult.status === "COMPLETED") {
             setIsFinished(true);
             return;
         }
 
->>>>>>> Stashed changes
         await fetchCurrentRound();
         setShowSuccess(false);
     }
@@ -154,6 +152,14 @@ export default function TreasureHuntGame() {
         return (
             <div className="text-2xl font-semibold">
                 ⏳ Waiting for admin to start the Treasure Hunt...
+            </div>
+        );
+    }
+
+    if (isRoundFailed) {
+        return (
+            <div className="text-2xl font-semibold" style={{ color: "#ff6b6b" }}>
+                You have exhausted all attempts. Your journey ends here.
             </div>
         );
     }
@@ -261,7 +267,7 @@ export default function TreasureHuntGame() {
                         style={{ background: "#ff6b6b12", border: "0.5px solid #ff6b6b30", color: "#ff6b6b", backdropFilter: "blur(12px)" }}
                     >
                         <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" stroke="#ff6b6b" strokeWidth="1" fill="none" /><path d="M4.5 4.5l4 4M8.5 4.5l-4 4" stroke="#ff6b6b" strokeWidth="1.2" strokeLinecap="round" /></svg>
-                        Wrong answer — try again.
+                        Wrong answer — {attemptsLeft} attempt{attemptsLeft !== 1 ? "s" : ""} remaining.
                     </div>
                 )}
                 {showSuccess && (
