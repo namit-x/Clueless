@@ -58,7 +58,21 @@ export const rejectTeamThunk = createAsyncThunk(
 const adminTeamsSlice = createSlice({
     name: "adminTeams",
     initialState,
-    reducers: {},
+    reducers: {
+        // Direct upsert for realtime updates
+        upsertAdminTeam: (state, action) => {
+            const index = state.items.findIndex((t) => t.team_id === action.payload.team_id);
+            if (index >= 0) {
+                state.items[index] = action.payload;
+            } else {
+                state.items.push(action.payload);
+            }
+        },
+        // Direct delete for realtime updates
+        removeAdminTeam: (state, action) => {
+            state.items = state.items.filter((t) => t.team_id !== action.payload);
+        },
+    },
     extraReducers: (builder) => {
         builder
             .addCase(fetchAdminTeamsThunk.pending, (state) => {
@@ -76,32 +90,31 @@ const adminTeamsSlice = createSlice({
             // approve
             .addCase(approveTeamThunk.pending, (state, action) => {
                 state.actionStatusById[action.meta.arg] = "loading:approve";
-                const team = state.items.find((t) => t.team_id === action.meta.arg);
-                if (team) team.is_approved = true;
+                // Do NOT update is_approved here - wait for refetch
             })
             // reject
             .addCase(rejectTeamThunk.pending, (state, action) => {
                 state.actionStatusById[action.meta.arg] = "loading:reject";
-                const team = state.items.find((t) => t.team_id === action.meta.arg);
-                if (team) team.is_approved = false;
+                // Do NOT update is_approved here - wait for refetch
             })
             .addCase(approveTeamThunk.fulfilled, (state, action) => {
                 delete state.actionStatusById[action.payload];
+                // State will be updated by refetch dispatch
             })
             .addCase(approveTeamThunk.rejected, (state, action) => {
                 delete state.actionStatusById[action.meta.arg];
-                const team = state.items.find((t) => t.team_id === action.meta.arg);
-                if (team) team.is_approved = false;
+                // State remains unchanged (from last successful fetch)
             })
             .addCase(rejectTeamThunk.fulfilled, (state, action) => {
                 delete state.actionStatusById[action.payload];
+                // State will be updated by refetch dispatch
             })
             .addCase(rejectTeamThunk.rejected, (state, action) => {
                 delete state.actionStatusById[action.meta.arg];
-                const team = state.items.find((t) => t.team_id === action.meta.arg);
-                if (team) team.is_approved = true;
+                // State remains unchanged (from last successful fetch)
             })
     },
 });
 
+export const { upsertAdminTeam, removeAdminTeam } = adminTeamsSlice.actions;
 export default adminTeamsSlice.reducer;

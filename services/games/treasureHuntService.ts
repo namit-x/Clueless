@@ -40,6 +40,8 @@ export async function startTreasureHuntGame(gameId: string) {
 
 export async function startTreasureHuntForTeam(teamId: string) {
 
+    console.log(`[TreasureHuntService] Starting Treasure Hunt for team ${teamId}`);
+
     const [routeId] = await Promise.all([
         getTeamRouteRepo(teamId),
         activateFirstRoundRepo(teamId)
@@ -81,7 +83,7 @@ export async function submitTreasureHuntAnswer(
 
     const isCorrect = correctAnswer === answer.toLowerCase();
 
-    await insertSubmissionRepo(teamId, roundId, answer, isCorrect);
+    await insertSubmissionRepo(teamId, roundId, answer, isCorrect, "Treasure Hunt");
 
     if (isCorrect) {
 

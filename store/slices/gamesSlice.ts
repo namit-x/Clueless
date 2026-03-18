@@ -44,7 +44,21 @@ export const fetchGamesThunk = createAsyncThunk(
 const gamesSlice = createSlice({
   name: "games",
   initialState,
-  reducers: {},
+  reducers: {
+    // Direct upsert for realtime updates
+    upsertGame: (state, action) => {
+      const index = state.items.findIndex((g) => g.id === action.payload.id);
+      if (index >= 0) {
+        state.items[index] = action.payload;
+      } else {
+        state.items.push(action.payload);
+      }
+    },
+    // Direct delete for realtime updates
+    removeGame: (state, action) => {
+      state.items = state.items.filter((g) => g.id !== action.payload);
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchGamesThunk.pending, (state) => {
@@ -62,4 +76,5 @@ const gamesSlice = createSlice({
   },
 });
 
+export const { upsertGame, removeGame } = gamesSlice.actions;
 export default gamesSlice.reducer;

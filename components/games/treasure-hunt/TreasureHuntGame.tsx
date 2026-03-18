@@ -92,6 +92,10 @@ export default function TreasureHuntGame() {
 
     function handleWrongFlow() {
         setIsWrong(true);
+        // Refetch round data to sync attempt count
+        setTimeout(() => {
+            fetchCurrentRound();
+        }, 1000);
     }
 
     async function handleCorrectFlow() {
@@ -211,7 +215,7 @@ export default function TreasureHuntGame() {
                         className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
                         style={{ background: "#ff6b6b12", border: "0.5px solid #ff6b6b30", color: "#ff6b6b", backdropFilter: "blur(12px)" }}
                     >
-                        <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" stroke="#ff6b6b" strokeWidth="1" fill="none"/><path d="M4.5 4.5l4 4M8.5 4.5l-4 4" stroke="#ff6b6b" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                        <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" stroke="#ff6b6b" strokeWidth="1" fill="none" /><path d="M4.5 4.5l4 4M8.5 4.5l-4 4" stroke="#ff6b6b" strokeWidth="1.2" strokeLinecap="round" /></svg>
                         Wrong answer — try again.
                     </div>
                 )}
@@ -220,7 +224,7 @@ export default function TreasureHuntGame() {
                         className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
                         style={{ background: "#4ade8012", border: "0.5px solid #4ade8030", color: "#4ade80", backdropFilter: "blur(12px)" }}
                     >
-                        <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" stroke="#4ade80" strokeWidth="1" fill="none"/><path d="M4 6.5l2.5 2.5L9.5 5" stroke="#4ade80" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" stroke="#4ade80" strokeWidth="1" fill="none" /><path d="M4 6.5l2.5 2.5L9.5 5" stroke="#4ade80" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                         Correct — moving to next clue...
                     </div>
                 )}

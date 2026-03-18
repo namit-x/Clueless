@@ -6,18 +6,24 @@ type AdminGamesState = {
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
   actionStatusById: Record<string, "idle" | "loading">;
+  lastFetchRequestId: number; // Track request order to prevent race conditions
 };
+
+let fetchRequestCounter = 0; // Global counter for request IDs
 
 const initialState: AdminGamesState = {
   items: [],
   status: "idle",
   error: null,
   actionStatusById: {},
+  lastFetchRequestId: 0,
 };
 
 export const fetchAdminGamesThunk = createAsyncThunk(
   "adminGames/fetch",
   async (_, { rejectWithValue }) => {
+    const requestId = ++fetchRequestCounter;
+
     const res = await fetch("/api/v1/admin/games", {
       credentials: "include",
     });
@@ -29,11 +35,11 @@ export const fetchAdminGamesThunk = createAsyncThunk(
         g.status === "NOT_STARTED"
           ? "pending"
           : g.status === "LIVE"
-          ? "running"
-          : "ended",
+            ? "running"
+            : "ended",
     }));
 
-    return mapped;
+    return { mapped, requestId };
   }
 );
 
@@ -71,7 +77,21 @@ export const restartAdminGameThunk = createAsyncThunk(
 const adminGamesSlice = createSlice({
   name: "adminGames",
   initialState,
-  reducers: {},
+  reducers: {
+    // Direct upsert for realtime updates
+    upsertAdminGame: (state, action) => {
+      const index = state.items.findIndex((g) => g.id === action.payload.id);
+      if (index >= 0) {
+        state.items[index] = action.payload;
+      } else {
+        state.items.push(action.payload);
+      }
+    },
+    // Direct delete for realtime updates
+    removeAdminGame: (state, action) => {
+      state.items = state.items.filter((g) => g.id !== action.payload);
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchAdminGamesThunk.pending, (state) => {
@@ -79,8 +99,12 @@ const adminGamesSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchAdminGamesThunk.fulfilled, (state, action) => {
-        state.status = "succeeded";
-        state.items = action.payload;
+        // Only accept this response if it's from the latest request
+        if (action.payload.requestId >= state.lastFetchRequestId) {
+          state.status = "succeeded";
+          state.items = action.payload.mapped;
+          state.lastFetchRequestId = action.payload.requestId;
+        }
       })
       .addCase(fetchAdminGamesThunk.rejected, (state, action) => {
         state.status = "failed";
@@ -89,4 +113,5 @@ const adminGamesSlice = createSlice({
   },
 });
 
+export const { upsertAdminGame, removeAdminGame } = adminGamesSlice.actions;
 export default adminGamesSlice.reducer;

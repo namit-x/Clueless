@@ -10,6 +10,7 @@ import AdminLogsPanel from "@/components/admin/AdminLogs/AdminLogsPanel";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
 import { clearUser } from "@/store/slices/authSlice";
+import { useRealtimeSubscriptions } from "@/hooks/useRealtimeSubscriptions";
 
 export default function AdminDashboardPage() {
 
@@ -17,7 +18,8 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-
+  // Initialize realtime subscriptions for teams and progress
+  useRealtimeSubscriptions();
   async function handleLogout() {
     try {
       await fetch("/api/auth/logout", {

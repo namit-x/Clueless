@@ -175,6 +175,7 @@ export async function restartGameService(gameId: string) {
 export async function getCurrentRoundService(teamId: string) {
 
     const game = await getActiveGameRepo();
+    console.log(`[GameService] Fetching current round for team ${teamId} in game ${game ? game.name : "NO_ACTIVE_GAME"}`);
     const handler = currentRoundHandlers[game.name];
 
     if (!handler) {
