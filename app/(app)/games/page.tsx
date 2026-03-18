@@ -24,6 +24,7 @@ export default function GamesPage() {
   const gamesStatus = useAppSelector(selectGamesStatus);
   const games = useAppSelector(selectAllGames);
   const selectedGame = games.find((game) => game.id === selectedGameId) ?? null;
+  console.log("Selected Game:", selectedGame); // Debug log to check selected game
 
   useEffect(() => {
     // Only fetch if not already loaded

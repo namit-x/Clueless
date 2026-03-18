@@ -13,6 +13,20 @@ export default function TreasureHuntGame() {
     const [isGameEnded, setIsGameEnded] = useState(false);
 
     // Fetch current round (single source of truth)
+
+    //     async function fetchCurrentRound() {
+
+    //         const res = await fetch("/api/v1/games/current/round", {
+    //             credentials: "include",
+    //         });
+
+    //         const json = await res.json();
+    //         console.log("ROUND API: ", json);
+    //             // console.log("ROUND status:", res.status);
+    //             // console.log("ROUND ok:", res.ok);
+    //             // console.log("ROUND API:", json);
+
+    // }
     async function fetchCurrentRound() {
         try {
             setLoading(true);
@@ -23,11 +37,23 @@ export default function TreasureHuntGame() {
 
             const json = await res.json();
             console.log("ROUND API: ", json);
+            if (!res.ok || !json.success) {
+                console.log("ROUND status:", res.status);
+                console.log("ROUND ok:", res.ok);
+                console.log("ROUND API:", json);
 
-            if (!json.success) {
+                setIsGameEnded(false);
+                setIsFinished(false);
+                setIsWaiting(false);
+                return;
+            }
+
+            if (json.isEnded) {
                 setIsGameEnded(true);
                 setIsFinished(false);
                 setIsWaiting(false);
+                setCurrentRound(null);
+                setClue("");
                 return;
             }
 
@@ -41,9 +67,9 @@ export default function TreasureHuntGame() {
                 return;
             }
 
-
             setIsWaiting(false);
             setIsGameEnded(false);
+
 
             setCurrentRound({
                 id: json.roundId,
@@ -91,6 +117,7 @@ export default function TreasureHuntGame() {
     }
 
     function handleWrongFlow() {
+        setShowSuccess(false);
         setIsWrong(true);
         // Refetch round data to sync attempt count
         setTimeout(() => {
@@ -102,8 +129,8 @@ export default function TreasureHuntGame() {
         setIsWrong(false);
         setShowSuccess(true);
         setAnswer("");
-
         await fetchCurrentRound();
+        setShowSuccess(false);
     }
 
     // initial sync
@@ -175,7 +202,7 @@ export default function TreasureHuntGame() {
                 <span className="text-[10px] uppercase tracking-[0.15em]" style={{ color: "#ffffff40" }}>Clue</span>
                 <div style={{ width: 32, height: "0.5px", background: "#ffffff20" }} />
                 <p className="text-3xl leading-relaxed m-0" style={{ color: "#e8e8e8", fontFamily: "Georgia, serif", fontStyle: "italic" }}>
-                    {clue}
+                    {clue} 
                 </p>
             </div>
 
@@ -191,8 +218,9 @@ export default function TreasureHuntGame() {
                     }}
                     placeholder="Enter your answer..."
                     value={answer}
-                    onChange={(e) => { setAnswer(e.target.value); setIsWrong(false); }}
+                    onChange={(e) => { setAnswer(e.target.value); setIsWrong(false); setShowSuccess(false); }}
                     onKeyDown={(e) => { if (e.key === "Enter") submitAnswer(); }}
+                    disabled={submitting}
                 />
                 <button
                     onClick={submitAnswer}
