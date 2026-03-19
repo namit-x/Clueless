@@ -14,5 +14,5 @@ export async function submitAnswerService(
         throw new Error(`UNKNOWN_GAME_TYPE: ${roundContext.gameName}`);
     }
 
-    return handler(teamId, roundId, answer, roundContext);
+    return await handler(teamId, roundId, answer, roundContext);
 }

@@ -19,5 +19,5 @@ export async function startQuizGame(gameId: string) {
     await initializeTeamRoundProgressRepo(gameId);
 
     // Activate the game
-    return activateGameRepo(gameId);
+    return await activateGameRepo(gameId);
 }

@@ -94,7 +94,7 @@ async function assertGameActive(gameId: string): Promise<void> {
 
 export async function startDigitManipulationGame(gameId: string) {
     await initializeTeamRoundProgressRepo(gameId);
-    return activateGameRepo(gameId);
+    return await activateGameRepo(gameId);
 }
 
 export async function startDigitManipulationForTeam(teamId: string) {

@@ -158,7 +158,7 @@ export async function getCurrentRoundService(teamId: string) {
         throw new Error(`UNKNOWN_GAME_TYPE: ${game.name}`);
     }
 
-    return handler(teamId);
+    return await handler(teamId);
 }
 
 export async function startTeamGameService(teamId: string, gameId: string) {
@@ -178,7 +178,7 @@ export async function startTeamGameService(teamId: string, gameId: string) {
         throw new Error(`UNKNOWN_GAME_TYPE: ${game.name}`);
     }
 
-    return handler(teamId);
+    return await handler(teamId);
 }
 
 export async function getTeamProgressService(teamId: string) {
@@ -191,7 +191,7 @@ export async function getTeamProgressService(teamId: string) {
 
 export async function getAllGamesService() {
 
-    return getAllGamesRepo();
+    return await getAllGamesRepo();
 
 }
 

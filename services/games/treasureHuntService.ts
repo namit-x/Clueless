@@ -36,7 +36,7 @@ export async function startTreasureHuntGame(gameId: string) {
         initializeTeamRoundProgressRepo(gameId)
     ]);
 
-    return activateGameRepo(gameId);
+    return await activateGameRepo(gameId);
 }
 
 export async function startTreasureHuntForTeam(teamId: string) {

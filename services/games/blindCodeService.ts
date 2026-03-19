@@ -14,7 +14,7 @@ export async function startBlindCodeGame(gameId: string) {
 
     await initializeTeamRoundProgressRepo(gameId);
 
-    return activateGameRepo(gameId);
+    return await activateGameRepo(gameId);
 }
 
 function getBlindCodeChallenge(configuration: any) {

@@ -7,8 +7,9 @@ import { createGameController } from "@/controllers/gameController";
 export async function POST(req: NextRequest) {
     try {
         // authenticate
-        const user = verifyToken(req);
+        const user = await verifyToken(req);
 
+        // console.log("User is admin, proceeding to create game...");
         // authorize
         validateAdmin(user);
 
