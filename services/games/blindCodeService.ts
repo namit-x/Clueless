@@ -49,10 +49,20 @@ export async function startBlindCodeForTeam(teamId: string) {
 
 export async function getBlindCodeRound(teamId: string) {
 
-    const { roundId, roundNumber } = await getCurrentRoundRepo(teamId);
+    const roundProgress = await getCurrentRoundRepo(teamId);
+
+    if (!roundProgress) {
+        return {
+            status: "COMPLETED",
+            message: "No active round. Game may be completed or not yet started."
+        };
+    }
+
+    const { roundId, roundNumber } = roundProgress;
     const { configuration } = await getRoundContextRepo(roundId);
 
     return {
+        status: "ACTIVE",
         roundId,
         round: roundNumber,
         challenge: getBlindCodeChallenge(configuration)

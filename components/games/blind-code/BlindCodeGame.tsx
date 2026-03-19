@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import AttemptsHearts from "@/components/games/AttemptsHearts";
 
 export default function BlindCodeGame() {
   const router = useRouter();
@@ -33,6 +34,7 @@ export default function BlindCodeGame() {
 
       const res = await fetch("/api/v1/games/current/round", { credentials: "include" });
       const json = await res.json();
+      console.log("Fetch CUrrent Round:", json)
 
       if (!res.ok || !json.success) {
         // If we just answered correctly and there's no active round → all rounds done
@@ -51,6 +53,15 @@ export default function BlindCodeGame() {
         setIsRoundFailed(true);
         setIsWaiting(false);
         setIsGameEnded(false);
+        setCurrentRound(null);
+        return;
+      }
+
+      if (json.status === "COMPLETED") {
+        setIsFinished(true);
+        setIsWaiting(false);
+        setIsGameEnded(false);
+        setIsRoundFailed(false);
         setCurrentRound(null);
         return;
       }
@@ -242,8 +253,8 @@ export default function BlindCodeGame() {
           <span className="text-[12px] tracking-widest text-gray-300 uppercase">
             target output — print this exact string
           </span>
-          <span className="text-[10px] text-[#444]">
-            round {currentRound?.number} · {attemptsLeft} attempt{attemptsLeft !== 1 ? "s" : ""} left
+          <span className="text-[10px] text-[#444] flex items-center gap-2">
+            round {currentRound?.number} · <AttemptsHearts remaining={attemptsLeft} />
           </span>
         </div>
         <div className="bg-[#111] border border-[#1f1f1f] border-l-2 border-l-[#00ff88] rounded-r-md px-4 py-3 text-[#00ff88] text-sm tracking-wide break-all leading-relaxed">

@@ -63,6 +63,13 @@ export async function getTreasureHuntRound(teamId: string) {
         getActiveOrFailedRoundRepo(teamId)
     ]);
 
+    if (!roundProgress) {
+        return {
+            status: "COMPLETED",
+            message: "No active round. Game may be completed or not yet started."
+        };
+    }
+
     if (roundProgress.status === 'FAILED') {
         return {
             status: "FAILED",

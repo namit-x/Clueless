@@ -59,7 +59,7 @@ export async function getCurrentRoundRepo(teamId: string) {
   const result = await pool.query(query, [teamId]);
 
   if (result.rowCount === 0) {
-    throw new Error("ACTIVE_ROUND_NOT_FOUND");
+    return null;
   }
 
   return {
@@ -82,7 +82,7 @@ export async function getActiveOrFailedRoundRepo(teamId: string) {
   const result = await pool.query(query, [teamId]);
 
   if (result.rowCount === 0) {
-    throw new Error("ACTIVE_ROUND_NOT_FOUND");
+    return null;
   }
 
   return {
