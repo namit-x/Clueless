@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import AttemptsHearts from "@/components/games/AttemptsHearts";
 
 
 export default function TreasureHuntGame() {
@@ -168,7 +169,9 @@ export default function TreasureHuntGame() {
         return (
             <div className="text-2xl font-semibold">
                 ⏳ Waiting for admin to start the Treasure Hunt...
+
             </div>
+
         );
     }
 
@@ -176,6 +179,12 @@ export default function TreasureHuntGame() {
         return (
             <div className="text-2xl font-semibold" style={{ color: "#ff6b6b" }}>
                 You have exhausted all attempts. Your journey ends here.
+                <button
+                    onClick={() => router.push("/dashboard")}
+                    className="bg-[#27c93f15] border border-[#27c93f40] text-[#27c93f] text-xs rounded-md px-5 py-2 hover:bg-[#27c93f25]"
+                >
+                    [ proceed to dashboard ]
+                </button>
             </div>
         );
     }
@@ -238,6 +247,8 @@ export default function TreasureHuntGame() {
             >
                 <span className="text-[10px] uppercase tracking-widest" style={{ color: "#ffffff44" }}>Round</span>
                 <span className="text-xl font-medium font-mono text-[#e0e0e0]">{currentRound?.number}</span>
+                <div style={{ width: "0.5px", height: 16, background: "#ffffff20" }} />
+                <AttemptsHearts remaining={attemptsLeft} />
             </div>
 
             {/* Clue card */}
