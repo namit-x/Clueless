@@ -25,9 +25,9 @@ function reverse(str: string): string {
 }
 
 function applyDigitOperation(n: bigint, type: OperationType): bigint {
-    if (n === 0n) return 0n;
+    if (n === BigInt(0)) return BigInt(0);
 
-    const negative = n < 0n;
+    const negative = n < BigInt(0);
     const digits = (negative ? -n : n).toString();
 
     let result: string;
@@ -69,7 +69,7 @@ function validateOperation(op: Operation): void {
         if (op.operand === undefined || op.operand === null) {
             throw new Error(`MISSING_OPERAND: ${op.type} requires an operand`);
         }
-        if (op.type === "DIVIDE" && op.operand === 0n) {
+        if (op.type === "DIVIDE" && op.operand === BigInt(0)) {
             throw new Error("DIVISION_BY_ZERO");
         }
     }
