@@ -52,25 +52,25 @@ async function gameAction(id: string, action: string) {
 
 export const startAdminGameThunk = createAsyncThunk(
   "adminGames/start",
-  async (id: string, { dispatch }) => {
+  async (id: string) => {
     await gameAction(id, "start");
-    dispatch(fetchAdminGamesThunk());
+    // Realtime subscription delivers upsertAdminGame on DB change
   }
 );
 
 export const endAdminGameThunk = createAsyncThunk(
   "adminGames/end",
-  async (id: string, { dispatch }) => {
+  async (id: string) => {
     await gameAction(id, "end");
-    dispatch(fetchAdminGamesThunk());
+    // Realtime subscription delivers upsertAdminGame on DB change
   }
 );
 
 export const restartAdminGameThunk = createAsyncThunk(
   "adminGames/restart",
-  async (id: string, { dispatch }) => {
+  async (id: string) => {
     await gameAction(id, "restart");
-    dispatch(fetchAdminGamesThunk());
+    // Realtime subscription delivers upsertAdminGame on DB change
   }
 );
 

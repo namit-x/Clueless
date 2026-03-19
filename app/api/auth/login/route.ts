@@ -4,6 +4,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { createSessionToken } from "@/lib/auth";
 import { createSessionController } from "@/controllers/sessionController";
+import { getTeamForLoginRepo } from "@/lib/repositories/teamsRepo";
 
 const loginSchema = z.object({
   teamName: z.string().trim().min(1),
@@ -90,13 +91,9 @@ export async function POST(req: NextRequest) {
 
     /* ---------------- TEAM LOGIN ---------------- */
 
-    const { data: team, error: teamError } = await supabaseAdmin
-      .from("teams")
-      .select("team_id, team_name, owner_id")
-      .eq("team_name", normalizedTeamName)
-      .maybeSingle();
+    const team = await getTeamForLoginRepo(normalizedTeamName);
 
-    if (teamError || !team || !team.owner_id) {
+    if (!team || !team.owner_id) {
       return NextResponse.json(
         { error: "Invalid team name or password" },
         { status: 401 }

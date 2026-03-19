@@ -10,10 +10,14 @@ import { hydrateFromStorage } from "@/store/slices/authSlice";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import GamesGrid from "@/components/dashboard/GameGrid";
 import TeamBlockedScreen from "@/components/game/TeamBlockedScreen";
+import { useTeamRealtimeSubscriptions } from "@/hooks/useTeamRealtimeSubscriptions";
 
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
+
+  // Realtime: update game list when admin starts / ends a game
+  useTeamRealtimeSubscriptions();
 
   const teamBlocked = useAppSelector(selectTeamBlocked);
   const teamStatus = useAppSelector(selectTeamStatus);

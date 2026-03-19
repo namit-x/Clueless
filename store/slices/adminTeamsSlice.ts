@@ -39,7 +39,8 @@ export const approveTeamThunk = createAsyncThunk(
             method: "PATCH",
             credentials: "include",
         });
-        dispatch(fetchAdminTeamsThunk());
+        // Optimistic update: flip is_approved directly without a full refetch
+        dispatch(setTeamApproval({ teamId, is_approved: true }));
         return teamId;
     }
 );
@@ -51,7 +52,8 @@ export const rejectTeamThunk = createAsyncThunk(
             method: "PATCH",
             credentials: "include",
         });
-        dispatch(fetchAdminTeamsThunk());
+        // Optimistic update: flip is_approved directly without a full refetch
+        dispatch(setTeamApproval({ teamId, is_approved: false }));
         return teamId;
     }
 );
@@ -59,6 +61,13 @@ const adminTeamsSlice = createSlice({
     name: "adminTeams",
     initialState,
     reducers: {
+        // Flip approval status without a full refetch (used after approve/reject API call)
+        setTeamApproval: (state, action: PayloadAction<{ teamId: string; is_approved: boolean }>) => {
+            const team = state.items.find(t => t.team_id === action.payload.teamId);
+            if (team) {
+                team.is_approved = action.payload.is_approved;
+            }
+        },
         // Direct upsert for realtime updates
         upsertAdminTeam: (state, action) => {
             const index = state.items.findIndex((t) => t.team_id === action.payload.team_id);
@@ -116,5 +125,5 @@ const adminTeamsSlice = createSlice({
     },
 });
 
-export const { upsertAdminTeam, removeAdminTeam } = adminTeamsSlice.actions;
+export const { setTeamApproval, upsertAdminTeam, removeAdminTeam } = adminTeamsSlice.actions;
 export default adminTeamsSlice.reducer;

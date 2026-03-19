@@ -6,7 +6,6 @@ import { startBlindCodeGame } from "./games/blindCodeService";
 import { startQuizGame } from "./games/quizService";
 import { startDigitManipulationGame } from "./games/digitManipulationService";
 import { currentRoundHandlers, teamStartHandlers } from "./games/gameplayHandlers";
-import { getCached, setCached } from "@/lib/gameCache";
 import { createTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
 import { markTimedOutTeamGameResults } from "@/lib/repositories/teamGameResultsRepo";
 import { deleteTeamGameResultsByGameId } from "@/lib/repositories/teamGameResultsRepo";
@@ -48,27 +47,9 @@ export async function createGame(data: any) {
 
 export async function getGamesForTeam() {
     try {
-        // Check cache first
-        const cached = getCached<any[]>("active_games");
-        if (cached) {
-            return cached;
-        }
+        const data = await getAllGamesRepo();
 
-        const { data, error } = await supabaseAdmin
-            .from("games")
-            .select("id, name, description, order_index, is_active, status")
-            // .eq("is_active", true)
-            .order("order_index", { ascending: true });
-
-        if (error) {
-            console.error(
-                "[GameService][getGamesForTeam] Database query failed:",
-                error.message
-            );
-            throw new Error("Database error while fetching games");
-        }
-
-        const games = data.map((game) => ({
+        return data.map((game) => ({
             id: game.status !== "LIVE" ? "YOU_ARE_GAY" : game.id,
             name: game.name,
             description: game.description,
@@ -76,11 +57,6 @@ export async function getGamesForTeam() {
             is_active: game.is_active,
             status: game.status
         }));
-
-        // Cache the result for 10 seconds
-        setCached("active_games", games);
-
-        return games;
 
     } catch (error: any) {
 
@@ -215,9 +191,7 @@ export async function getTeamProgressService(teamId: string) {
 
 export async function getAllGamesService() {
 
-    const games = await getAllGamesRepo();
-
-    return games;
+    return getAllGamesRepo();
 
 }
 

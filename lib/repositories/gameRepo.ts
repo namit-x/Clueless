@@ -127,7 +127,8 @@ export async function getAllGamesRepo() {
       name,
       status,
       description,
-      order_index
+      order_index,
+      is_active
     FROM games
     ORDER BY order_index ASC
   `;

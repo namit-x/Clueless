@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase/client";
 import {
     upsertAdminTeam,
     removeAdminTeam,
-    fetchAdminTeamsThunk,
 } from "@/store/slices/adminTeamsSlice";
 import {
     upsertAdminGame,
@@ -37,6 +36,7 @@ export function useRealtimeSubscriptions() {
         initializedRef.current = true;
 
         try {
+            subscribeToGames();
             subscribeToTeams();
             subscribeToTeamProgress();
         } catch (error) {
@@ -51,6 +51,68 @@ export function useRealtimeSubscriptions() {
             });
         };
     }, [dispatch]);
+
+    /**
+     * Subscribe to games table
+     * Events: INSERT, UPDATE, DELETE
+     *
+     * Behavior:
+     * - INSERT/UPDATE → dispatch upsertAdminGame (game status changes appear instantly)
+     * - DELETE → dispatch removeAdminGame
+     */
+    function subscribeToGames() {
+        const channel = supabase
+            .channel("realtime:games")
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "games",
+                },
+                (payload: any) => {
+                    try {
+                        if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+                            if (payload.new) {
+                                const raw = payload.new;
+                                const game = {
+                                    id: raw.id,
+                                    name: raw.name,
+                                    order_index: raw.order_index,
+                                    status: raw.status === "NOT_STARTED" ? "pending"
+                                        : raw.status === "LIVE" ? "running"
+                                        : "ended",
+                                    started_at: raw.started_at ?? null,
+                                    paused_at: raw.paused_at ?? null,
+                                    resumed_at: raw.resumed_at ?? null,
+                                    ended_at: raw.ended_at ?? null,
+                                };
+                                dispatch(upsertAdminGame(game));
+                                console.log("[Realtime] Game updated:", payload.eventType, game.id);
+                            }
+                        } else if (payload.eventType === "DELETE") {
+                            if (payload.old) {
+                                dispatch(removeAdminGame(payload.old.id));
+                                console.log("[Realtime] Game removed:", payload.old.id);
+                            }
+                        }
+                    } catch (error) {
+                        console.error("[Realtime] Games event error:", error);
+                    }
+                }
+            )
+            .subscribe((status) => {
+                if (status === "SUBSCRIBED") {
+                    console.log("[Realtime] Subscribed to games");
+                } else if (status === "CHANNEL_ERROR") {
+                    console.error("[Realtime] Games channel error");
+                } else if (status === "CLOSED") {
+                    console.warn("[Realtime] Games channel closed");
+                }
+            });
+
+        subscriptionsRef.current.set("games", channel);
+    }
 
     /**
      * Subscribe to teams table
@@ -134,10 +196,8 @@ export function useRealtimeSubscriptions() {
                 (payload: any) => {
                     try {
                         if (payload.new) {
-                            // Trigger refetch to get consistent state
-                            // This ensures joined data (team + round info) is current
-                            dispatch(fetchAdminTeamsThunk());
-                            console.log("[Realtime] Team progress updated, refetching teams");
+                            // TeamProgressPanel subscribes directly and handles its own refresh
+                            console.log("[Realtime] Team progress updated:", payload.new.team_id);
                         }
                     } catch (error) {
                         console.error("[Realtime] Team progress event error:", error);

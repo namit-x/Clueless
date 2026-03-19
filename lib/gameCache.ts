@@ -20,10 +20,10 @@ export function getCached<T>(key: string): T | null {
     return entry.data as T;
 }
 
-export function setCached<T>(key: string, data: T): void {
+export function setCached<T>(key: string, data: T, ttl: number = CACHE_TTL): void {
     cache.set(key, {
         data,
-        expiresAt: Date.now() + CACHE_TTL
+        expiresAt: Date.now() + ttl
     });
 }
 

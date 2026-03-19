@@ -41,97 +41,43 @@ export async function createOrReplaceSessionRepo(
     params: CreateOrReplaceSessionParams
 ): Promise<CreateOrReplaceSessionResult> {
 
-    console.log("Checking existing active session...");
-    const client = await pool.connect();
-
-    try {
-        await client.query("BEGIN");
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        // I WAS HERE MOTHER FUCKERRRRRRR
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        const existing = await client.query<Pick<SessionRow, "session_id">>(
-            `
-      SELECT session_id
-      FROM public.sessions
-      WHERE owner_type = $1
-      AND owner_id = $2
-      FOR UPDATE
-      `,
-            [params.ownerType, params.ownerId]
-        );
-
-        let previousSessionId: string | undefined;
-
-        if (existing.rowCount && existing.rows[0].session_id) {
-            previousSessionId = existing.rows[0].session_id;
-
-            await client.query(
-                `
-        DELETE FROM public.sessions
-        WHERE owner_type = $1
-        AND owner_id = $2
+    const result = await pool.query<{
+        session_id: string;
+        expires_at: Date;
+        previous_session_id: string | null;
+    }>(
+        `
+        WITH previous AS (
+            SELECT session_id
+            FROM public.sessions
+            WHERE owner_type = $1 AND owner_id = $2
+        ),
+        upsert AS (
+            INSERT INTO public.sessions (owner_type, owner_id, expires_at)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (owner_type, owner_id)
+            DO UPDATE SET
+                session_id = gen_random_uuid(),
+                expires_at = EXCLUDED.expires_at
+            RETURNING session_id, expires_at
+        )
+        SELECT 
+            upsert.session_id,
+            upsert.expires_at,
+            previous.session_id AS previous_session_id
+        FROM upsert
+        LEFT JOIN previous ON true
         `,
-                [params.ownerType, params.ownerId]
-            );
-        }
+        [params.ownerType, params.ownerId, params.expiresAt]
+    );
 
-        const insertResult = await client.query<
-            Pick<SessionRow, "session_id" | "expires_at">
-        >(
-            `
-      INSERT INTO public.sessions (
-        owner_type,
-        owner_id,
-        expires_at
-      )
-      VALUES ($1,$2,$3)
-      RETURNING session_id, expires_at
-      `,
-            [params.ownerType, params.ownerId, params.expiresAt]
-        );
+    const row = result.rows[0];
 
-        await client.query("COMMIT");
-
-        const row = insertResult.rows[0];
-
-        return {
-            sessionId: row.session_id,
-            expiresAt: row.expires_at,
-            previousSessionId,
-        };
-    } catch (error) {
-        await client.query("ROLLBACK");
-        throw error;
-    } finally {
-        client.release();
-    }
+    return {
+        sessionId: row.session_id,
+        expiresAt: row.expires_at,
+        previousSessionId: row.previous_session_id ?? undefined,
+    };
 }
 
 export async function validateSessionRepo(

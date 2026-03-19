@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 
 export default function TreasureHuntGame() {
     const [answer, setAnswer] = useState("");
@@ -140,9 +141,21 @@ export default function TreasureHuntGame() {
         setShowSuccess(false);
     }
 
-    // initial sync
+    // initial sync + realtime subscription to games table
     useEffect(() => {
         fetchCurrentRound();
+
+        // When admin starts or ends the game, re-sync round state
+        const channel = supabase
+            .channel("realtime:games:treasure-hunt")
+            .on(
+                "postgres_changes",
+                { event: "UPDATE", schema: "public", table: "games" },
+                () => { fetchCurrentRound(); }
+            )
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
     }, []);
 
     // UI states

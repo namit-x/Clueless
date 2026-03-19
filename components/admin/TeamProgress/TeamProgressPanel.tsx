@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 
 type TeamProgress = {
   teamId: string;
@@ -17,24 +18,38 @@ export default function TeamProgressPanel() {
   const [teams, setTeams] = useState<TeamProgress[]>([]);
   const [selected, setSelected] = useState<TeamProgress | null>(null);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  async function load() {
+    try {
+      const res = await fetch("/api/v1/admin/teams-progress");
+      const data = await res.json();
+      if (data.success) {
+        setTeams(data.teams);
+      }
+    } catch (e) {
+      console.log("Progress API not ready");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch("/api/v1/admin/teams-progress"); // future ready
-        const data = await res.json();
-
-        if (data.success) {
-          setTeams(data.teams);
-        }
-      } catch (e) {
-        console.log("Progress API not ready");
-      } finally {
-        setLoading(false);
-      }
-    }
-
     load();
+
+    // Refresh progress whenever any team advances or fails a round
+    channelRef.current = supabase
+      .channel("realtime:team_round_progress:panel")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "team_round_progress" },
+        () => { load(); }
+      )
+      .subscribe();
+
+    return () => {
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+    };
   }, []);
 
   return (

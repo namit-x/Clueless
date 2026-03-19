@@ -62,6 +62,14 @@ export async function rejectTeamRepo(teamId: string) {
   }
 }
 
+export async function getTeamForLoginRepo(teamName: string) {
+    const result = await pool.query(
+        `SELECT team_id, team_name, owner_id FROM teams WHERE team_name = $1 LIMIT 1`,
+        [teamName]
+    );
+    return result.rows[0] ?? null;
+}
+
 export async function getApprovedTeamsRepo() {
   const query = `
     SELECT team_id

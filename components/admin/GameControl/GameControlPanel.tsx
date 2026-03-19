@@ -16,8 +16,10 @@ export default function GameControlPanel() {
   const status = useAppSelector(selectAdminGamesStatus);
 
   useEffect(() => {
-    dispatch(fetchAdminGamesThunk());
-  }, [dispatch]);
+    if (status === "idle") {
+      dispatch(fetchAdminGamesThunk());
+    }
+  }, [dispatch, status]);
 
   if (status === "idle") return <div>Loading games...</div>;
 
