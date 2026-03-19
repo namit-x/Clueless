@@ -1,9 +1,17 @@
 /**
- * Tests for the pure helper functions in digitManipulationService.
- * DB-dependent functions (getDigitManipulationRound, submitDigitManipulationAnswer)
- * are tested via mock injection in the integration section below.
+ * Tests for digitManipulationService:
+ * - Pure helpers (parseConfiguration, validateSubmissionAnswer, computeAttemptsLeft)
+ * - Rate limiter (checkRateLimit)
+ * - Answer correctness via resolver
+ * - Cache consistency
+ * - Simulated submission flow (concurrency, idempotency, rate limiting)
  */
-import { parseConfiguration, validateSubmissionAnswer, computeAttemptsLeft } from "./digitManipulationService";
+import {
+    parseConfiguration,
+    validateSubmissionAnswer,
+    computeAttemptsLeft,
+    checkRateLimit
+} from "./digitManipulationService";
 import { resolvePuzzle } from "@/lib/digitManipulation/resolver";
 import { clearPuzzleCache, getOrResolvePuzzle } from "@/lib/digitManipulation/cache";
 import { GeneratorConfig } from "@/lib/digitManipulation/generator";
@@ -75,7 +83,6 @@ assertThrows("parseConfiguration operandRange missing min", () => parseConfigura
 // validateSubmissionAnswer
 // ──────────────────────────────────────────────
 
-// valid inputs — should not throw
 for (const valid of ["12345", "-999", "0", "  42  "]) {
     try {
         validateSubmissionAnswer(valid);
@@ -104,8 +111,44 @@ assertEq("computeAttemptsLeft 3 used", computeAttemptsLeft(3), 0);
 assertEq("computeAttemptsLeft > max (clamps to 0)", computeAttemptsLeft(5), 0);
 
 // ──────────────────────────────────────────────
+// checkRateLimit
+// ──────────────────────────────────────────────
+
+// First call should succeed
+try {
+    checkRateLimit("team-rate-test-1");
+    passed++;
+} catch {
+    failed++;
+    console.error("  FAIL: checkRateLimit first call should pass");
+}
+
+// Immediate second call should be rate limited
+assertThrows("checkRateLimit rapid fire", () => checkRateLimit("team-rate-test-1"), "RATE_LIMITED");
+
+// Different team should not be limited
+try {
+    checkRateLimit("team-rate-test-2");
+    passed++;
+} catch {
+    failed++;
+    console.error("  FAIL: checkRateLimit different team should pass");
+}
+
+// After time passes, same team should work again (mock time)
+const originalNow = Date.now;
+Date.now = () => originalNow() + 3000; // jump 3 seconds
+try {
+    checkRateLimit("team-rate-test-1");
+    passed++;
+} catch {
+    failed++;
+    console.error("  FAIL: checkRateLimit should pass after cooldown");
+}
+Date.now = originalNow;
+
+// ──────────────────────────────────────────────
 // Answer correctness via resolver
-// (simulates what submitDigitManipulationAnswer does)
 // ──────────────────────────────────────────────
 
 const config: GeneratorConfig = {
@@ -119,7 +162,6 @@ const puzzle = resolvePuzzle("team-test", "round-test", config);
 const correctAnswerStr = puzzle.answer.toString();
 const wrongAnswerStr = (puzzle.answer + BigInt(1)).toString();
 
-// Simulated comparison (mirrors what submitDigitManipulationAnswer does):
 assert("correct answer comparison", BigInt(correctAnswerStr) === puzzle.answer);
 assert("wrong answer comparison", BigInt(wrongAnswerStr) !== puzzle.answer);
 
@@ -129,19 +171,32 @@ assert("wrong answer comparison", BigInt(wrongAnswerStr) !== puzzle.answer);
 
 clearPuzzleCache();
 
-// First call — cache miss, resolves fresh
 const fromCache1 = getOrResolvePuzzle("team-c", "round-c", config);
-
-// Second call — cache hit
 const fromCache2 = getOrResolvePuzzle("team-c", "round-c", config);
 
 assertEq("cache hit: same number", fromCache1.number, fromCache2.number);
 assertEq("cache hit: same answer", fromCache1.answer, fromCache2.answer);
 
-// Both cache and fresh resolver agree
 const fresh = resolvePuzzle("team-c", "round-c", config);
 assertEq("cache matches fresh resolver: number", fromCache1.number, fresh.number);
 assertEq("cache matches fresh resolver: answer", fromCache1.answer, fresh.answer);
+
+// ── Cache expiry ─────────────────────────────────────────────────────────────
+clearPuzzleCache();
+
+import { setCachedPuzzle, getCachedPuzzle } from "@/lib/digitManipulation/cache";
+
+const puzzleForExpiry = resolvePuzzle("team-exp", "round-exp", config);
+setCachedPuzzle("team-exp", "round-exp", puzzleForExpiry);
+assert("cache: before expiry", getCachedPuzzle("team-exp", "round-exp") !== null);
+
+Date.now = () => originalNow() + 6 * 60 * 1000;
+assertEq("cache: after expiry returns null", getCachedPuzzle("team-exp", "round-exp"), null);
+
+// Resolver still works after cache expiry
+const reresolved = getOrResolvePuzzle("team-exp", "round-exp", config);
+assertEq("resolver works after cache expiry", reresolved.answer, puzzleForExpiry.answer);
+Date.now = originalNow;
 
 // ──────────────────────────────────────────────
 // Simulated submission flow (mock repos)
@@ -153,6 +208,18 @@ interface MockState {
     submissions: { answer: string; isCorrect: boolean }[];
     completed: boolean;
     nextRoundActivated: boolean;
+    gameActive: boolean;
+}
+
+function newActiveState(): MockState {
+    return {
+        status: "ACTIVE",
+        attemptCount: 0,
+        submissions: [],
+        completed: false,
+        nextRoundActivated: false,
+        gameActive: true
+    };
 }
 
 async function simulateSubmit(
@@ -162,32 +229,35 @@ async function simulateSubmit(
 ): Promise<{ correct: boolean; attemptsLeft: number } | { error: string }> {
     const MAX = 3;
 
-    // validate
-    try {
-        validateSubmissionAnswer(answer);
-    } catch (e: any) {
-        return { error: e.message };
-    }
+    // validate input
+    try { validateSubmissionAnswer(answer); }
+    catch (e: any) { return { error: e.message }; }
 
-    // parse config
-    try {
-        parseConfiguration(overrideConfig);
-    } catch (e: any) {
-        return { error: e.message };
-    }
+    // validate config
+    try { parseConfiguration(overrideConfig); }
+    catch (e: any) { return { error: e.message }; }
 
-    // status guards
+    // game active guard
+    if (!state.gameActive) return { error: "GAME_NOT_ACTIVE: game is not live" };
+
+    // round status guards
+    if (state.status === "LOCKED") return { error: "ROUND_LOCKED: round is not active" };
     if (state.status === "COMPLETED") return { error: "ROUND_ALREADY_COMPLETED" };
     if (state.status === "FAILED" || state.attemptCount >= MAX) return { error: "MAX_ATTEMPTS_REACHED" };
+    if (state.status !== "ACTIVE") return { error: "ROUND_NOT_ACTIVE: unexpected status " + state.status };
 
-    // resolve answer
+    // resolve and compare
     const { answer: correctAnswer } = resolvePuzzle("team-sim", "round-sim", overrideConfig);
     const isCorrect = BigInt(answer.trim()) === correctAnswer;
 
-    // record submission
     state.submissions.push({ answer: answer.trim(), isCorrect });
 
     if (isCorrect) {
+        // Simulate atomic completeAndAdvanceRoundRepo
+        if (state.status !== "ACTIVE") {
+            // Concurrent: already completed
+            return { error: "ROUND_ALREADY_COMPLETED" };
+        }
         state.status = "COMPLETED";
         state.completed = true;
         state.nextRoundActivated = true;
@@ -204,7 +274,7 @@ async function simulateSubmit(
 
 // -- correct answer → round complete --
 {
-    const state: MockState = { status: "ACTIVE", attemptCount: 0, submissions: [], completed: false, nextRoundActivated: false };
+    const state = newActiveState();
     const { answer: correctAnswer } = resolvePuzzle("team-sim", "round-sim", config);
     const result = await simulateSubmit(correctAnswer.toString(), state) as any;
 
@@ -218,7 +288,7 @@ async function simulateSubmit(
 
 // -- wrong answer → attempt incremented --
 {
-    const state: MockState = { status: "ACTIVE", attemptCount: 0, submissions: [], completed: false, nextRoundActivated: false };
+    const state = newActiveState();
     const { answer: correctAnswer } = resolvePuzzle("team-sim", "round-sim", config);
     const wrongAnswer = (correctAnswer + BigInt(1)).toString();
     const result = await simulateSubmit(wrongAnswer, state) as any;
@@ -232,17 +302,15 @@ async function simulateSubmit(
 
 // -- attempts exhausted → reject on next submission --
 {
-    const state: MockState = { status: "ACTIVE", attemptCount: 2, submissions: [], completed: false, nextRoundActivated: false };
+    const state: MockState = { ...newActiveState(), attemptCount: 2 };
     const { answer: correctAnswer } = resolvePuzzle("team-sim", "round-sim", config);
     const wrongAnswer = (correctAnswer + BigInt(1)).toString();
 
-    // Third (final) wrong attempt
     const result1 = await simulateSubmit(wrongAnswer, state) as any;
     assert("exhausted: 3rd attempt accepted", result1.correct === false);
     assertEq("exhausted: attemptsLeft = 0", result1.attemptsLeft, 0);
     assertEq("exhausted: status FAILED", state.status, "FAILED");
 
-    // 4th attempt → rejected
     const result2 = await simulateSubmit(wrongAnswer, state) as any;
     assert("exhausted: 4th attempt rejected", "error" in result2);
     assert("exhausted: correct error code", result2.error.includes("MAX_ATTEMPTS_REACHED"));
@@ -250,7 +318,7 @@ async function simulateSubmit(
 
 // -- round already completed → reject --
 {
-    const state: MockState = { status: "COMPLETED", attemptCount: 0, submissions: [], completed: true, nextRoundActivated: true };
+    const state: MockState = { ...newActiveState(), status: "COMPLETED", completed: true, nextRoundActivated: true };
     const { answer: correctAnswer } = resolvePuzzle("team-sim", "round-sim", config);
     const result = await simulateSubmit(correctAnswer.toString(), state) as any;
 
@@ -258,9 +326,41 @@ async function simulateSubmit(
     assert("idempotent: correct error code", result.error.includes("ROUND_ALREADY_COMPLETED"));
 }
 
-// -- invalid input → error --
+// -- parallel correct submissions (concurrency simulation) --
 {
-    const state: MockState = { status: "ACTIVE", attemptCount: 0, submissions: [], completed: false, nextRoundActivated: false };
+    const state = newActiveState();
+    const { answer: correctAnswer } = resolvePuzzle("team-sim", "round-sim", config);
+    const answerStr = correctAnswer.toString();
+
+    // First submission succeeds
+    const r1 = await simulateSubmit(answerStr, state) as any;
+    assert("concurrent: first correct accepted", r1.correct === true);
+
+    // Second submission sees COMPLETED state → rejected
+    const r2 = await simulateSubmit(answerStr, state) as any;
+    assert("concurrent: second correct rejected", "error" in r2);
+    assert("concurrent: correct error", r2.error.includes("ROUND_ALREADY_COMPLETED"));
+}
+
+// -- LOCKED round → reject --
+{
+    const state: MockState = { ...newActiveState(), status: "LOCKED" };
+    const result = await simulateSubmit("12345", state) as any;
+    assert("locked: rejected", "error" in result);
+    assert("locked: correct error code", result.error.includes("ROUND_LOCKED"));
+}
+
+// -- game not active → reject --
+{
+    const state: MockState = { ...newActiveState(), gameActive: false };
+    const result = await simulateSubmit("12345", state) as any;
+    assert("game ended: rejected", "error" in result);
+    assert("game ended: correct error code", result.error.includes("GAME_NOT_ACTIVE"));
+}
+
+// -- invalid input → error, no submission recorded --
+{
+    const state = newActiveState();
 
     const r1 = await simulateSubmit("", state) as any;
     assert("invalid: empty rejected", "error" in r1 && r1.error.includes("empty"));
@@ -276,7 +376,7 @@ async function simulateSubmit(
 
 // -- invalid config → error --
 {
-    const state: MockState = { status: "ACTIVE", attemptCount: 0, submissions: [], completed: false, nextRoundActivated: false };
+    const state = newActiveState();
     const badConfig = { digitCount: 0 } as any;
     const result = await simulateSubmit("12345", state, badConfig) as any;
     assert("invalid config: rejected", "error" in result);

@@ -1,13 +1,12 @@
 import {
     activateFirstRoundRepo,
-    activateNextRoundRepo,
-    completeRoundRepo,
+    completeAndAdvanceRoundRepo,
     decreaseAttemptRepo,
     getCurrentRoundRepo,
     getRoundAttemptStatusRepo,
     initializeTeamRoundProgressRepo
 } from "@/lib/repositories/teamRoundProgressRepo";
-import { activateGameRepo } from "@/lib/repositories/gameRepo";
+import { activateGameRepo, getGameByIdRepo } from "@/lib/repositories/gameRepo";
 import { getRoundContextRepo } from "@/lib/repositories/roundsRepo";
 import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 import { getOrResolvePuzzle } from "@/lib/digitManipulation/cache";
@@ -15,6 +14,30 @@ import { GeneratorConfig } from "@/lib/digitManipulation/generator";
 import { Operation } from "@/lib/digitManipulation/types";
 
 const MAX_ATTEMPTS = 3;
+const RATE_LIMIT_MS = 2000; // 1 submission per 2 seconds per team
+
+// ─── Rate limiter (in-memory, per-team) ────────────────────────────────────
+
+const lastSubmissionTime = new Map<string, number>();
+
+export function checkRateLimit(teamId: string): void {
+    const now = Date.now();
+    const lastTime = lastSubmissionTime.get(teamId);
+
+    if (lastTime && now - lastTime < RATE_LIMIT_MS) {
+        throw new Error("RATE_LIMITED: too many submissions, wait a few seconds");
+    }
+
+    lastSubmissionTime.set(teamId, now);
+}
+
+// Cleanup stale entries every 60 seconds
+setInterval(() => {
+    const cutoff = Date.now() - RATE_LIMIT_MS * 2;
+    for (const [key, time] of lastSubmissionTime.entries()) {
+        if (time < cutoff) lastSubmissionTime.delete(key);
+    }
+}, 60000);
 
 // ─── Pure helpers (exported for testing) ───────────────────────────────────
 
@@ -58,6 +81,15 @@ export function computeAttemptsLeft(attemptCount: number): number {
     return Math.max(0, MAX_ATTEMPTS - attemptCount);
 }
 
+// ─── Game state guard ──────────────────────────────────────────────────────
+
+async function assertGameActive(gameId: string): Promise<void> {
+    const game = await getGameByIdRepo(gameId);
+    if (!game.is_active) {
+        throw new Error("GAME_NOT_ACTIVE: game is not live");
+    }
+}
+
 // ─── Game lifecycle ─────────────────────────────────────────────────────────
 
 export async function startDigitManipulationGame(gameId: string) {
@@ -67,10 +99,15 @@ export async function startDigitManipulationGame(gameId: string) {
 
 export async function startDigitManipulationForTeam(teamId: string) {
     const roundId = await activateFirstRoundRepo(teamId);
-    const { roundNumber, configuration } = await getRoundContextRepo(roundId);
+    const { roundNumber, configuration, gameId } = await getRoundContextRepo(roundId);
+
+    await assertGameActive(gameId);
+
     const config = parseConfiguration(configuration);
     const { number, operations } = getOrResolvePuzzle(teamId, roundId, config);
     const { attemptCount } = await getRoundAttemptStatusRepo(teamId, roundId);
+
+    console.log(`[DIGIT] Team ${teamId} started round ${roundNumber}`);
 
     return {
         roundId,
@@ -85,7 +122,10 @@ export async function startDigitManipulationForTeam(teamId: string) {
 
 export async function getDigitManipulationRound(teamId: string) {
     const { roundId, roundNumber } = await getCurrentRoundRepo(teamId);
-    const { configuration } = await getRoundContextRepo(roundId);
+    const { configuration, gameId } = await getRoundContextRepo(roundId);
+
+    await assertGameActive(gameId);
+
     const config = parseConfiguration(configuration);
     const { number, operations } = getOrResolvePuzzle(teamId, roundId, config);
     const { attemptCount } = await getRoundAttemptStatusRepo(teamId, roundId);
@@ -106,28 +146,43 @@ export async function submitDigitManipulationAnswer(
     roundId: string,
     answer: string,
     configuration: unknown,
-    roundNumber: number
+    roundNumber: number,
+    gameId: string
 ) {
+    // 1. Rate limit
+    checkRateLimit(teamId);
+
+    // 2. Input validation
     validateSubmissionAnswer(answer);
 
+    // 3. Config validation
     const config = parseConfiguration(configuration);
 
+    // 4. Game state guard
+    await assertGameActive(gameId);
+
+    // 5. Round state guard (DB is source of truth)
     const { status, attemptCount } = await getRoundAttemptStatusRepo(teamId, roundId);
 
+    if (status === "LOCKED") {
+        throw new Error("ROUND_LOCKED: round is not active");
+    }
     if (status === "COMPLETED") {
         throw new Error("ROUND_ALREADY_COMPLETED");
     }
-    if (status === "FAILED") {
+    if (status === "FAILED" || attemptCount >= MAX_ATTEMPTS) {
         throw new Error("MAX_ATTEMPTS_REACHED");
     }
-    if (attemptCount >= MAX_ATTEMPTS) {
-        throw new Error("MAX_ATTEMPTS_REACHED");
+    if (status !== "ACTIVE") {
+        throw new Error("ROUND_NOT_ACTIVE: unexpected status " + status);
     }
 
+    // 6. Resolve correct answer (cache → resolver, deterministic)
     const { answer: correctAnswer } = getOrResolvePuzzle(teamId, roundId, config);
 
     const isCorrect = BigInt(answer.trim()) === correctAnswer;
 
+    // 7. Record submission
     await insertSubmissionRepo(
         teamId,
         roundId,
@@ -136,12 +191,30 @@ export async function submitDigitManipulationAnswer(
         isCorrect ? "CORRECT" : `WRONG: expected ${correctAnswer}`
     );
 
+    // 8. State transition
     if (isCorrect) {
-        await completeRoundRepo(teamId, roundId);
-        await activateNextRoundRepo(teamId, roundNumber);
+        // Atomic: complete current round + activate next (concurrency-safe)
+        const advanced = await completeAndAdvanceRoundRepo(teamId, roundId, roundNumber, gameId);
+
+        if (!advanced) {
+            // Concurrent request already completed this round — idempotent
+            console.log(`[DIGIT] Team ${teamId} round ${roundNumber}: concurrent completion (no-op)`);
+            throw new Error("ROUND_ALREADY_COMPLETED");
+        }
+
+        console.log(`[DIGIT] Team ${teamId} completed round ${roundNumber} ✓`);
         return { correct: true, attemptsLeft: MAX_ATTEMPTS };
     }
 
+    // Wrong answer
     const newAttemptCount = await decreaseAttemptRepo(teamId, roundId);
-    return { correct: false, attemptsLeft: computeAttemptsLeft(newAttemptCount) };
+    const attemptsLeft = computeAttemptsLeft(newAttemptCount);
+
+    if (attemptsLeft === 0) {
+        console.log(`[DIGIT] Team ${teamId} exhausted attempts on round ${roundNumber} ✗`);
+    } else {
+        console.log(`[DIGIT] Team ${teamId} wrong answer on round ${roundNumber} (${attemptsLeft} left)`);
+    }
+
+    return { correct: false, attemptsLeft };
 }
