@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+
 
 export default function TreasureHuntGame() {
     const [answer, setAnswer] = useState("");
@@ -14,6 +16,7 @@ export default function TreasureHuntGame() {
     const [submitting, setSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [isGameEnded, setIsGameEnded] = useState(false);
+    const router = useRouter();
 
     // Fetch current round (single source of truth)
 
@@ -179,16 +182,28 @@ export default function TreasureHuntGame() {
 
     if (isFinished) {
         return (
-            <div className="text-2xl font-semibold text-green-400">
-                🎉 You completed the Treasure Hunt!
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 font-mono">
+                <span className="text-2xl font-bold text-[#27c93f]">🎉 You completed the Treasure Hunt!</span>
+                <button
+                    onClick={() => router.push("/dashboard")}
+                    className="bg-[#27c93f15] border border-[#27c93f40] text-[#27c93f] text-xs rounded-md px-5 py-2 hover:bg-[#27c93f25]"
+                >
+                    [ proceed to dashboard ]
+                </button>
             </div>
         );
     }
 
     if (isGameEnded) {
         return (
-            <div className="text-2xl font-bold text-red-600">
-                ⚠️ The Treasure Hunt has been ended by admin.
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 font-mono">
+                <span className="text-2xl font-bold text-red-600">⚠️ The Treasure Hunt has been ended by admin.</span>
+                <button
+                    onClick={() => router.push("/dashboard")}
+                    className=" border  text-xs rounded-md px-5 py-2 hover:bg-gray-900"
+                >
+                    [ proceed to dashboard ]
+                </button>
             </div>
         );
     }
@@ -238,7 +253,7 @@ export default function TreasureHuntGame() {
                 <span className="text-[10px] uppercase tracking-[0.15em]" style={{ color: "#ffffff40" }}>Clue</span>
                 <div style={{ width: 32, height: "0.5px", background: "#ffffff20" }} />
                 <p className="text-3xl leading-relaxed m-0" style={{ color: "#e8e8e8", fontFamily: "Georgia, serif", fontStyle: "italic" }}>
-                    {clue} 
+                    {clue}
                 </p>
             </div>
 
