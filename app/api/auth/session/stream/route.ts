@@ -7,6 +7,8 @@ import {
 } from "@/lib/sessionConnections";
 
 function createSseStream(sessionId: string): ReadableStream<Uint8Array> {
+    let interval: NodeJS.Timeout;
+
     return new ReadableStream({
         start(controller) {
             const encoder = new TextEncoder();
@@ -21,7 +23,7 @@ function createSseStream(sessionId: string): ReadableStream<Uint8Array> {
                         payload = `data: ${JSON.stringify(data)}\n`;
                     }
 
-                    // ✅ IMPORTANT: double newline required for SSE
+                    // ✅ Correct SSE format (ends with \n\n)
                     const chunk = encoder.encode(
                         `event: ${event}\n${payload}\n`
                     );
@@ -45,7 +47,7 @@ function createSseStream(sessionId: string): ReadableStream<Uint8Array> {
             connection.send("CONNECTED");
 
             // ✅ Heartbeat (prevents connection drop)
-            const interval = setInterval(() => {
+            interval = setInterval(() => {
                 try {
                     connection.send("PING");
                 } catch {
@@ -53,20 +55,13 @@ function createSseStream(sessionId: string): ReadableStream<Uint8Array> {
                     unregisterSessionConnection(sessionId);
                 }
             }, 15000);
-
-            // Cleanup when stream closes
-            const cleanup = () => {
-                console.log("[SSE] Cleaning up session:", sessionId);
-                clearInterval(interval);
-                unregisterSessionConnection(sessionId);
-            };
-
-            // If client disconnects
-            controller.signal?.addEventListener("abort", cleanup);
         },
 
         cancel() {
             console.log("[SSE] Cancelled session:", sessionId);
+
+            // ✅ Proper cleanup
+            clearInterval(interval);
             unregisterSessionConnection(sessionId);
         }
     });
