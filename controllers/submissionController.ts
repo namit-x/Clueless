@@ -3,8 +3,16 @@ import { submitAnswerService } from "@/services/submissionService";
 export async function submitAnswerController(
     teamId: string,
     roundId: string,
-    answer: string
+    answer: unknown
 ) {
+
+    if (answer === undefined || answer === null) {
+        throw new Error("INVALID_SUBMISSION: answer is missing");
+    }
+
+    if (typeof answer !== "string") {
+        throw new Error("INVALID_SUBMISSION: answer must be a string");
+    }
 
     try {
 
