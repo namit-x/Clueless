@@ -34,7 +34,7 @@ export default function GamesGrid({ games }: Props) {
     <div className="grid gap-4 md:grid-cols-2">
       {games.map((game) => (
         <GameCard
-          key={game.order_index}
+          key={game.id}
           name={game.name}
           state={game.state}
           // timeTaken={game.time_taken_seconds}
