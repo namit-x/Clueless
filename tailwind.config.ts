@@ -16,6 +16,8 @@ export default {
       fontFamily: {
         display: ["Orbitron", "sans-serif"],
         body: ["Inter", "sans-serif"],
+        mono: ["Geist Mono", "monospace"],
+        puzzle: ["Chakra Petch", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -50,6 +52,14 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
         },
         neon: {
           cyan: "hsl(var(--neon-cyan))",
@@ -87,7 +97,7 @@ export default {
           to: { height: "0", opacity: "0" },
         },
         "fade-up": {
-          "0%": { opacity: "0", transform: "translateY(30px)" },
+          "0%": { opacity: "0", transform: "translateY(20px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "glow-pulse": {
@@ -102,14 +112,35 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "slide-up": {
+          from: { opacity: "0", transform: "translateY(12px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "card-in": {
+          from: { opacity: "0", transform: "translateY(10px) scale(0.98)" },
+          to: { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "shake": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-4px)" },
+          "20%, 40%, 60%, 80%": { transform: "translateX(4px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-up": "fade-up 0.6s ease-out forwards",
-        "glow-pulse": "glow-pulse 2s ease-in-out infinite",
+        "fade-up": "fade-up 0.5s cubic-bezier(0.16,1,0.3,1) forwards",
+        "glow-pulse": "glow-pulse 2.5s ease-in-out infinite",
         "float": "float 3s ease-in-out infinite",
         "shimmer": "shimmer 3s ease-in-out infinite",
+        "fade-in": "fade-in 0.4s cubic-bezier(0.16,1,0.3,1)",
+        "slide-up": "slide-up 0.4s cubic-bezier(0.16,1,0.3,1) both",
+        "card-in": "card-in 0.35s cubic-bezier(0.16,1,0.3,1) both",
+        "shake": "shake 0.45s ease-in-out",
       },
     },
   },

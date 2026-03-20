@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -14,7 +15,7 @@ import DigitManipulationGame from "@/components/games/digit-manipulation/DigitMa
 import BlindCodeGame from "@/components/games/blind-code/BlindCodeGame";
 import TeamBlockedScreen from "@/components/game/TeamBlockedScreen";
 
-export default function GamesPage() {
+function GamesPageInner() {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const selectedGameId = searchParams.get("gameId");
@@ -52,5 +53,15 @@ export default function GamesPage() {
       {selectedGame ? gameComponents[selectedGame.name] ?? <div>No game active</div> : <div>No game active</div>}
 
     </GameLayout>
+  );
+
+
+
+}
+export default function GamesPage() {
+  return (
+    <Suspense fallback={null}>
+      <GamesPageInner />
+    </Suspense>
   );
 }

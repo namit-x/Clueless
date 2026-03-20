@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Chakra+Petch:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -44,6 +44,11 @@ html {
     --neon-purple: 260 80% 60%;
     --neon-blue: 220 90% 55%;
     --neon-green: 95 100% 56%;
+    --success: 160 84% 39%;
+    --success-foreground: 210 40% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 220 20% 4%;
+
     --glass: 220 20% 10%;
     --glass-border: 220 15% 20%;
 
@@ -81,16 +86,22 @@ html {
     font-family: 'Inter', sans-serif;
   }
 
+  /* Standardized motion timing */
+  .motion-fast    { transition-duration: 150ms; }
+  .motion-normal  { transition-duration: 250ms; }
+  .motion-slow    { transition-duration: 400ms; }
+  .motion-ease    { transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+
   .neon-glow {
-    box-shadow: 0 0 15px hsl(var(--neon-cyan) / 0.3),
-                0 0 30px hsl(var(--neon-cyan) / 0.15),
-                0 0 60px hsl(var(--neon-cyan) / 0.05);
+    box-shadow: 0 0 12px hsl(var(--neon-cyan) / 0.25),
+                0 0 24px hsl(var(--neon-cyan) / 0.12),
+                0 0 48px hsl(var(--neon-cyan) / 0.04);
   }
 
   .neon-glow-strong {
-    box-shadow: 0 0 20px hsl(var(--neon-cyan) / 0.5),
-                0 0 40px hsl(var(--neon-cyan) / 0.25),
-                0 0 80px hsl(var(--neon-cyan) / 0.1);
+    box-shadow: 0 0 16px hsl(var(--neon-cyan) / 0.4),
+                0 0 32px hsl(var(--neon-cyan) / 0.2),
+                0 0 64px hsl(var(--neon-cyan) / 0.08);
   }
 
   .neon-glow-purple {
@@ -107,6 +118,22 @@ html {
   .neon-text-purple {
     text-shadow: 0 0 10px hsl(var(--neon-purple) / 0.5),
                  0 0 20px hsl(var(--neon-purple) / 0.3);
+  }
+
+  .neon-glow-green {
+    box-shadow: 0 0 15px hsl(var(--neon-green) / 0.3),
+                0 0 30px hsl(var(--neon-green) / 0.15);
+  }
+
+  .neon-glow-subtle {
+    box-shadow: 0 0 8px hsl(var(--neon-cyan) / 0.12),
+                0 0 16px hsl(var(--neon-cyan) / 0.06);
+  }
+
+  /* Gameplay focus vignette — dims edges to draw eye to center */
+  .focus-vignette {
+    box-shadow: inset 0 0 120px 40px hsl(var(--background) / 0.5);
+    pointer-events: none;
   }
 
   .glass {
@@ -131,6 +158,25 @@ html {
     background-image: linear-gradient(hsl(var(--border) / 0.3) 1px, transparent 1px),
                        linear-gradient(90deg, hsl(var(--border) / 0.3) 1px, transparent 1px);
     background-size: 60px 60px;
+  }
+
+  /* Atmosphere intensity levels — layered ambient glows */
+  .atmosphere-high {
+    background:
+      radial-gradient(ellipse at 20% 50%, hsl(var(--neon-cyan) / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, hsl(var(--neon-purple) / 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, hsl(var(--neon-blue) / 0.04) 0%, transparent 50%);
+  }
+
+  .atmosphere-medium {
+    background:
+      radial-gradient(ellipse at 20% 40%, hsl(var(--neon-cyan) / 0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 30%, hsl(var(--neon-purple) / 0.035) 0%, transparent 50%);
+  }
+
+  .atmosphere-low {
+    background:
+      radial-gradient(ellipse at 30% 50%, hsl(var(--neon-cyan) / 0.03) 0%, transparent 50%);
   }
 }
 
@@ -160,13 +206,13 @@ html {
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--neon-cyan));
   border-radius: 9999px;
-  border: 3px solid hsl(var(--background)); /* creates padding effect */
-  box-shadow: 0 0 12px hsl(var(--neon-cyan) / 0.7);
+  border: 3px solid hsl(var(--background));
+  box-shadow: 0 0 8px hsl(var(--neon-cyan) / 0.4);
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--neon-cyan));
-  box-shadow: 0 0 18px hsl(var(--neon-cyan) / 0.9);
+  box-shadow: 0 0 12px hsl(var(--neon-cyan) / 0.6);
 }
 
 /* Firefox */

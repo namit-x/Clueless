@@ -83,26 +83,26 @@ const MemberInputCard = ({
             >
                 <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium ${member.isLeader
-                        ? 'bg-amber-100 text-amber-700'
-                        : isActive ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-700'
+                        ? 'bg-warning/20 text-warning'
+                        : isActive ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
                         }`}>
                         {index + 1}
                     </div>
                     <div>
-                        <h3 className="font-medium text-gray-200">
+                        <h3 className="font-medium text-foreground">
                             {member.isLeader ? 'Team Lead' : `Member ${index + 1}`}
                             {member.isLeader && (
-                                <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                                <span className="ml-2 text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full">
                                     Lead
                                 </span>
                             )}
                         </h3>
                         {member.name && (
-                            <p className="text-sm text-gray-500">{member.name}</p>
+                            <p className="text-sm text-muted-foreground">{member.name}</p>
                         )}
                     </div>
                 </div>
-                <div className="text-gray-400">
+                <div className="text-muted-foreground">
                     {isActive ? '▼' : '▶'}
                 </div>
             </div>
@@ -115,14 +115,14 @@ const MemberInputCard = ({
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="border-t border-gray-200"
+                        className="border-t border-border"
                     >
                         <div className="p-6 space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Name Field */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                                        Full Name <span className="text-red-400">*</span>
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">
+                                        Full Name <span className="text-destructive">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -135,14 +135,14 @@ const MemberInputCard = ({
                                         placeholder="Namit Rana"
                                     />
                                     {errors[`member-${index}-name`] && (
-                                        <p className="mt-1 text-xs text-red-500">{errors[`member-${index}-name`]}</p>
+                                        <p className="mt-1 text-xs text-destructive">{errors[`member-${index}-name`]}</p>
                                     )}
                                 </div>
 
                                 {/* Mobile Field */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                                        Mobile <span className="text-red-400">*</span>
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">
+                                        Mobile <span className="text-destructive">*</span>
                                     </label>
                                     <input
                                         type="tel"
@@ -156,14 +156,14 @@ const MemberInputCard = ({
                                         placeholder="9876543210"
                                     />
                                     {errors[`member-${index}-mobile`] && (
-                                        <p className="mt-1 text-xs text-red-500">{errors[`member-${index}-mobile`]}</p>
+                                        <p className="mt-1 text-xs text-destructive">{errors[`member-${index}-mobile`]}</p>
                                     )}
                                 </div>
 
                                 {/* Email Field */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                                        Email <span className="text-red-400">*</span>
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">
+                                        Email <span className="text-destructive">*</span>
                                     </label>
                                     <input
                                         type="email"
@@ -176,14 +176,14 @@ const MemberInputCard = ({
                                         placeholder="john@college.edu"
                                     />
                                     {errors[`member-${index}-email`] && (
-                                        <p className="mt-1 text-xs text-red-500">{errors[`member-${index}-email`]}</p>
+                                        <p className="mt-1 text-xs text-destructive">{errors[`member-${index}-email`]}</p>
                                     )}
                                 </div>
 
                                 {/* Branch Field */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">
-                                        Branch <span className="text-red-400">*</span>
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">
+                                        Branch <span className="text-destructive">*</span>
                                     </label>
                                     <select
                                         value={member.branch}
@@ -199,7 +199,7 @@ const MemberInputCard = ({
                                         ))}
                                     </select>
                                     {errors[`member-${index}-branch`] && (
-                                        <p className="mt-1 text-xs text-red-500">{errors[`member-${index}-branch`]}</p>
+                                        <p className="mt-1 text-xs text-destructive">{errors[`member-${index}-branch`]}</p>
                                     )}
                                 </div>
                             </div>
@@ -207,16 +207,16 @@ const MemberInputCard = ({
                             {/* Progress indicator for this member */}
                             <div className="pt-2">
                                 <div className="flex items-center gap-2">
-                                    <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                    <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
                                         <motion.div
                                             initial={{ width: 0 }}
                                             animate={{
                                                 width: `${[member.name, member.mobile, member.email, member.branch].filter(Boolean).length * 25}%`
                                             }}
-                                            className="h-full bg-blue-400 rounded-full"
+                                            className="h-full bg-primary rounded-full"
                                         />
                                     </div>
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-xs text-muted-foreground">
                                         {[member.name, member.mobile, member.email, member.branch].filter(Boolean).length}/4
                                     </span>
                                 </div>
@@ -490,13 +490,13 @@ export default function TeamRegistrationPage() {
     };
 
     return (
-        <div className="min-h-screen gradient-bg grid-pattern py-16 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen py-16 px-4 sm:px-6 lg:px-8">
             {/* Back Button */}
             <button
                 onClick={() => router.back()}
-                className="absolute top-6 left-6 text-xl hover:scale-110 transition-transform"
+                className="absolute top-6 left-6 z-20 text-xl hover:scale-105 active:scale-95 transition-transform duration-200"
             >
-                <FontAwesomeIcon className="p-3 rounded-full bg-muted hover:bg-primary hover:text-white transition-all shadow-md" icon={faAngleLeft} />
+                <FontAwesomeIcon className="p-3 rounded-full bg-muted hover:bg-primary hover:text-white transition-all duration-200 shadow-md" icon={faAngleLeft} />
             </button>
 
             <div className="max-w-3xl mx-auto">
@@ -556,8 +556,8 @@ export default function TeamRegistrationPage() {
                                         <h2 className="text-2xl font-display text-foreground tracking-wider">Team Details</h2>
 {/* Team Name */}
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-400 mb-2">
-                                                Team Name <span className="text-red-400">*</span>
+                                            <label className="block text-sm font-medium text-muted-foreground mb-2">
+                                                Team Name <span className="text-destructive">*</span>
                                             </label>
 
                                             <div className="relative">
@@ -573,9 +573,9 @@ export default function TeamRegistrationPage() {
                                                         }
                                                     }}
                                                     className={`w-full px-4 py-2 border ${errors.teamName || teamNameError
-                                                        ? "border-red-500 focus:ring-red-400/30"
+                                                        ? "border-destructive focus:ring-destructive/30"
                                                         : teamNameCheckSuccess
-                                                            ? "border-green-500 focus:ring-green-400/30"
+                                                            ? "border-success focus:ring-success/30"
                                                             : "border-border focus:ring-primary/30 focus:border-primary"
                                                         } bg-background/60 backdrop-blur-md rounded-lg transition-all outline-none text-foreground pr-10`}
                                                     placeholder="Enter your team name"
@@ -587,13 +587,13 @@ export default function TeamRegistrationPage() {
                                                 {teamData.teamName.length >= 3 && (
                                                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                                         {isCheckingTeamName ? (
-                                                            <div className="w-5 h-5 border-2 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+                                                            <div className="w-5 h-5 border-2 border-muted border-t-primary rounded-full animate-spin"></div>
                                                         ) : teamNameCheckSuccess ? (
-                                                            <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                             </svg>
                                                         ) : teamNameError ? (
-                                                            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <svg className="w-5 h-5 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                             </svg>
                                                         ) : null}
@@ -603,17 +603,17 @@ export default function TeamRegistrationPage() {
 
                                             {/* Error/Success message */}
                                             {teamNameError && (
-                                                <p className="mt-1 text-sm text-red-500">
+                                                <p className="mt-1 text-sm text-destructive">
                                                     {teamNameError}
                                                 </p>
                                             )}
                                             {teamNameCheckSuccess && !teamNameError && teamData.teamName.length >= 3 && (
-                                                <p className="mt-1 text-sm text-green-500">
+                                                <p className="mt-1 text-sm text-success">
                                                     Team name is available!
                                                 </p>
                                             )}
                                             {teamData.teamName.length > 0 && teamData.teamName.length < 3 && (
-                                                <p className="mt-1 text-sm text-yellow-500">
+                                                <p className="mt-1 text-sm text-warning">
                                                     Team name must be at least 3 characters
                                                 </p>
                                             )}
@@ -621,8 +621,8 @@ export default function TeamRegistrationPage() {
 
 {/* New Password Field */}
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-400 mb-2">
-                                                Password <span className="text-red-400">*</span>
+                                            <label className="block text-sm font-medium text-muted-foreground mb-2">
+                                                Password <span className="text-destructive">*</span>
                                             </label>
                                             <PasswordInput
                                                 value={teamData.password}
@@ -638,17 +638,17 @@ export default function TeamRegistrationPage() {
                                                     }
                                                 }}
                                                 className={`w-full px-4 py-2 border ${errors.password
-                                                    ? "border-red-500 focus:ring-red-400/30"
+                                                    ? "border-destructive focus:ring-destructive/30"
                                                     : "border-border focus:ring-primary/30 focus:border-primary"
                                                     } bg-background/60 backdrop-blur-md rounded-lg transition-all outline-none text-foreground`}
                                                 placeholder="Enter team password"
                                             />
                                             {errors.password && (
-                                                <p className="mt-1 text-sm text-red-500">
+                                                <p className="mt-1 text-sm text-destructive">
                                                     {errors.password}
                                                 </p>
                                             )}
-                                            <p className="mt-1 text-xs text-gray-500">
+                                            <p className="mt-1 text-xs text-muted-foreground">
                                                 Password must be at least 6 characters
                                             </p>
                                         </div>
@@ -656,8 +656,8 @@ export default function TeamRegistrationPage() {
 
 {/* Team Size */}
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-400 mb-2">
-                                                Team Size <span className="text-red-400">*</span>
+                                            <label className="block text-sm font-medium text-muted-foreground mb-2">
+                                                Team Size <span className="text-destructive">*</span>
                                             </label>
                                             <div className="flex gap-4">
                                                 {TEAM_SIZES.map(size => (
@@ -675,7 +675,7 @@ export default function TeamRegistrationPage() {
                                                 ))}
                                             </div>
                                             {errors.teamSize && (
-                                                <p className="mt-1 text-sm text-red-500">{errors.teamSize}</p>
+                                                <p className="mt-1 text-sm text-destructive">{errors.teamSize}</p>
                                             )}
                                         </div>
 
@@ -698,10 +698,10 @@ export default function TeamRegistrationPage() {
                                 {currentStep === 2 && (
                                  <div className="space-y-5 sm:space-y-6">
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                        <h2 className="text-lg sm:text-xl font-semibold text-foreground">
+                                        <h2 className="font-display text-lg sm:text-xl font-semibold text-foreground tracking-wider">
                                             Team Members
                                         </h2>
-                                        <p className="text-xs sm:text-sm text-gray-500">
+                                        <p className="text-xs sm:text-sm text-muted-foreground">
                                             {teamData.members.filter(m => m.name && m.email && m.mobile && m.branch).length} of {teamData.teamSize} completed
                                         </p>
                                     </div>
@@ -721,8 +721,8 @@ export default function TeamRegistrationPage() {
                                     </div>
                                     
                                     {formError && (
-                                        <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
-                                            <p className="text-xs sm:text-sm text-red-600 break-words">
+                                        <div className="p-3 sm:p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+                                            <p className="text-xs sm:text-sm text-destructive break-words">
                                                 {formError}
                                             </p>
                                         </div>
@@ -731,7 +731,7 @@ export default function TeamRegistrationPage() {
                                     <div className="flex flex-col sm:flex-row justify-between gap-3 pt-3 sm:pt-4">
                                         <button
                                             onClick={handlePrevStep}
-                                            className="w-full sm:w-auto px-5 sm:px-6 py-2 text-sm sm:text-base border border-gray-300 rounded-lg border-border text-muted-foreground hover:border-primary hover:text-primary"
+                                            className="w-full sm:w-auto px-5 sm:px-6 py-2 text-sm sm:text-base border border-border rounded-lg text-muted-foreground hover:border-primary hover:text-primary transition-colors"
                                         >
                                             Back
                                         </button>
@@ -739,7 +739,7 @@ export default function TeamRegistrationPage() {
                                         <button
                                             onClick={handleSubmit}
                                             disabled={isLoading}
-                                            className={`w-full sm:w-auto px-5 sm:px-6 py-2 text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors ${
+                                            className={`w-full sm:w-auto px-5 sm:px-6 py-2 text-sm sm:text-base bg-primary text-primary-foreground rounded-lg neon-glow hover:neon-glow-strong transition-all ${
                                                 isLoading ? 'opacity-50 cursor-not-allowed' : ''
                                             }`}
                                         >
@@ -757,33 +757,33 @@ export default function TeamRegistrationPage() {
                                 className="space-y-6"
                             >
                                 <div className="text-center">
-                                    <div className="inline-flex items-center justify-center w-12 h-12 bg-emerald-900/40 rounded-full mb-4">
-                                        <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div className="inline-flex items-center justify-center w-12 h-12 bg-success/20 rounded-full mb-4">
+                                        <svg className="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                         </svg>
                                     </div>
-                                    <h2 className="text-2xl font-semibold text-gray-100 mb-2">Registration Successful!</h2>
-                                    <p className="text-gray-400">Your team has been registered</p>
+                                    <h2 className="font-display text-2xl font-semibold text-foreground mb-2">Registration Successful!</h2>
+                                    <p className="text-muted-foreground">Your team has been registered</p>
                                 </div>
 
                                 {/* Team Summary */}
-                                <div className="bg-gray-950 border border-gray-800 rounded-lg p-4 sm:p-6 space-y-4 sm:space-y-5">
+                                <div className="glass border border-border rounded-lg p-4 sm:p-6 space-y-4 sm:space-y-5">
                                     <div>
-                                        <h3 className="font-medium text-gray-100 mb-2 sm:mb-3 text-sm sm:text-base">
+                                        <h3 className="font-medium text-foreground mb-2 sm:mb-3 text-sm sm:text-base">
                                             Team Information
                                         </h3>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                                             <div>
-                                                <p className="text-gray-400 text-xs sm:text-sm">Team Name</p>
-                                                <p className="inline-block break-words font-bold text-base sm:text-lg bg-blue-900/40 text-amber-200 px-3 py-1 rounded-xl">
+                                                <p className="text-muted-foreground text-xs sm:text-sm">Team Name</p>
+                                                <p className="inline-block break-words font-bold text-base sm:text-lg bg-primary/20 text-primary px-3 py-1 rounded-xl">
                                                     {submittedTeam.teamName}
                                                 </p>
                                             </div>
 
                                             <div>
-                                                <p className="text-gray-400 text-xs sm:text-sm">Team Size</p>
-                                                <p className="font-medium text-gray-200 text-sm sm:text-base">
+                                                <p className="text-muted-foreground text-xs sm:text-sm">Team Size</p>
+                                                <p className="font-medium text-foreground/80 text-sm sm:text-base">
                                                     {submittedTeam.teamSize} members
                                                 </p>
                                             </div>
@@ -791,7 +791,7 @@ export default function TeamRegistrationPage() {
                                     </div>
 
                                     <div>
-                                        <h3 className="font-medium text-gray-100 mb-2 sm:mb-3 text-sm sm:text-base">
+                                        <h3 className="font-medium text-foreground mb-2 sm:mb-3 text-sm sm:text-base">
                                             Team Members
                                         </h3>
 
@@ -799,38 +799,38 @@ export default function TeamRegistrationPage() {
                                             {submittedTeam.members.map((member, index) => (
                                                 <div
                                                     key={index}
-                                                    className="bg-gray-900 border border-gray-700 rounded-lg p-3 sm:p-4 text-xs sm:text-sm"
+                                                    className="bg-muted/30 border border-border rounded-lg p-3 sm:p-4 text-xs sm:text-sm"
                                                 >
                                                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                        <span className="font-bold text-sm sm:text-base break-words bg-gray-500 px-1.5 rounded-sm text-gray-950">
+                                                        <span className="font-bold text-sm sm:text-base break-words bg-primary/20 px-1.5 rounded-sm text-foreground">
                                                             {member.name}
                                                         </span>
-                                            
+
                                                         {member.isLeader && (
-                                                            <span className="text-xs bg-amber-900/40 text-amber-400 px-2 py-0.5 rounded-full">
+                                                            <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full">
                                                                 Lead
                                                             </span>
                                                         )}
                                                     </div>
-                                                    
+
                                                     <div className="flex flex-col gap-2">
                                                         <span className="break-words">
-                                                            <span className="text-gray-100">Mobile:</span>{" "}
-                                                            <span className="inline-block break-all bg-gray-700 text-gray-300 px-2 py-0.5 rounded-md">
+                                                            <span className="text-foreground">Mobile:</span>{" "}
+                                                            <span className="inline-block break-all bg-muted text-muted-foreground px-2 py-0.5 rounded-md">
                                                                 {member.mobile}
                                                             </span>
                                                         </span>
-                                                    
+
                                                         <span className="break-words">
-                                                            <span className="text-gray-100">Email:</span>{" "}
-                                                            <span className="inline-block break-all bg-gray-700 text-gray-300 px-2 py-0.5 rounded-md">
+                                                            <span className="text-foreground">Email:</span>{" "}
+                                                            <span className="inline-block break-all bg-muted text-muted-foreground px-2 py-0.5 rounded-md">
                                                                 {member.email}
                                                             </span>
                                                         </span>
-                                                    
+
                                                         <span className="break-words">
-                                                            <span className="text-gray-100">Branch:</span>{" "}
-                                                            <span className="inline-block break-words bg-gray-700 text-gray-300 px-2 py-0.5 rounded-md">
+                                                            <span className="text-foreground">Branch:</span>{" "}
+                                                            <span className="inline-block break-words bg-muted text-muted-foreground px-2 py-0.5 rounded-md">
                                                                 {member.branch}
                                                             </span>
                                                         </span>
@@ -842,7 +842,7 @@ export default function TeamRegistrationPage() {
                                 </div>
                                 <button
                                     onClick={handleReset}
-                                    className="w-full px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                    className="w-full px-6 py-2 bg-primary text-primary-foreground rounded-lg neon-glow hover:neon-glow-strong transition-all"
                                 >
                                     Register Another Team
                                 </button>

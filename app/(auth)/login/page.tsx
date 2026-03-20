@@ -80,13 +80,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background gradient-bg grid-pattern flex flex-col items-center justify-center p-6 sm:p-8">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 sm:p-8">
       {/* Back Button */}
       <button
         onClick={() => router.back()}
-        className="absolute top-6 left-6 text-xl hover:scale-110 transition-transform"
+        className="absolute top-6 left-6 z-20 text-xl hover:scale-105 active:scale-95 transition-transform duration-200"
       >
-        <FontAwesomeIcon className="absolute top-6 left-6 p-3 rounded-full bg-muted hover:bg-primary hover:text-white transition-all shadow-md" icon={faAngleLeft} />
+        <FontAwesomeIcon className="p-3 rounded-full bg-muted hover:bg-primary hover:text-white transition-all duration-200 shadow-md" icon={faAngleLeft} />
       </button>
 
       {/* Branding - above the form */}
@@ -100,10 +100,10 @@ const Login = () => {
       {/* Login Card - centered */}
       <div
         className={cn(
-          "glass rounded-2xl p-6 sm:p-8 neon-glow animate-fade-up transition-transform w-full max-w-lg",
-          shake && "animate-[shake_0.5s_ease-in-out]"
+          "glass rounded-2xl p-6 sm:p-8 neon-glow-subtle animate-fade-up transition-transform w-full max-w-lg",
+          shake && "animate-[shake_0.45s_ease-in-out]"
         )}
-        style={{ animationDelay: "0.15s" }}
+        style={{ animationDelay: "0.1s" }}
       >
         <form onSubmit={(e) => {
           e.preventDefault();

@@ -13,8 +13,8 @@ function GridOverlay() {
             className="absolute inset-0 pointer-events-none"
             style={{
                 backgroundImage: `
-                    repeating-linear-gradient(0deg, transparent, transparent 40px, #ffffff04 40px, #ffffff04 41px),
-                    repeating-linear-gradient(90deg, transparent, transparent 40px, #ffffff04 40px, #ffffff04 41px)
+                    repeating-linear-gradient(0deg, transparent, transparent 40px, hsl(var(--foreground) / 0.02) 40px, hsl(var(--foreground) / 0.02) 41px),
+                    repeating-linear-gradient(90deg, transparent, transparent 40px, hsl(var(--foreground) / 0.02) 40px, hsl(var(--foreground) / 0.02) 41px)
                 `,
             }}
         />
@@ -26,10 +26,10 @@ function GlassCard({ children, className = "" }: { children: React.ReactNode; cl
         <div
             className={`relative rounded-2xl px-10 py-12 text-center ${className}`}
             style={{
-                background: "#ffffff07",
-                border: "0.5px solid #ffffff14",
+                background: "hsl(var(--foreground) / 0.03)",
+                border: "0.5px solid hsl(var(--foreground) / 0.08)",
                 backdropFilter: "blur(20px)",
-                boxShadow: "inset 0 0.5px 0 #ffffff14",
+                boxShadow: "inset 0 0.5px 0 hsl(var(--foreground) / 0.08)",
             }}
         >
             {children}
@@ -56,7 +56,7 @@ function Typewriter({ text, speed = 30, delay = 400 }: { text: string; speed?: n
         <span>
             {displayed}
             {displayed.length < text.length && started && (
-                <span className="animate-pulse" style={{ color: "#ffffff40" }}>▎</span>
+                <span className="animate-pulse" style={{ color: "hsl(var(--foreground) / 0.25)" }}>▎</span>
             )}
         </span>
     );
@@ -82,7 +82,7 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
     );
 }
 
-function ProceedButton({ label = "proceed to dashboard", accentColor = "#ffffff", delay = 1800, onClick }: {
+function ProceedButton({ label = "proceed to dashboard", accentColor = "var(--foreground)", delay = 1800, onClick }: {
     label?: string; accentColor?: string; delay?: number; onClick: () => void;
 }) {
     const [visible, setVisible] = useState(false);
@@ -96,20 +96,20 @@ function ProceedButton({ label = "proceed to dashboard", accentColor = "#ffffff"
             onClick={onClick}
             className="relative overflow-hidden rounded-xl px-6 py-3 text-sm cursor-pointer"
             style={{
-                background: "#ffffff07",
-                border: `0.5px solid ${accentColor}30`,
-                color: accentColor,
+                background: "hsl(var(--foreground) / 0.03)",
+                border: `0.5px solid hsl(${accentColor} / 0.19)`,
+                color: `hsl(${accentColor})`,
                 backdropFilter: "blur(12px)",
                 opacity: visible ? 1 : 0,
                 transform: visible ? "translateY(0)" : "translateY(10px)",
                 transition: "opacity 0.6s ease, transform 0.6s ease, background 0.25s ease, box-shadow 0.25s ease",
             }}
             onMouseEnter={(e) => {
-                e.currentTarget.style.background = `${accentColor}12`;
-                e.currentTarget.style.boxShadow = `0 0 30px ${accentColor}15`;
+                e.currentTarget.style.background = `hsl(${accentColor} / 0.07)`;
+                e.currentTarget.style.boxShadow = `0 0 30px hsl(${accentColor} / 0.08)`;
             }}
             onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#ffffff07";
+                e.currentTarget.style.background = "hsl(var(--foreground) / 0.03)";
                 e.currentTarget.style.boxShadow = "none";
             }}
         >
@@ -118,7 +118,7 @@ function ProceedButton({ label = "proceed to dashboard", accentColor = "#ffffff"
     );
 }
 
-function FloatingOrbs({ color = "#ffffff", count = 6 }) {
+function FloatingOrbs({ color = "var(--foreground)", count = 6 }) {
     const orbs = useRef(
         Array.from({ length: count }, () => ({
             x: Math.random() * 100,
@@ -140,7 +140,7 @@ function FloatingOrbs({ color = "#ffffff", count = 6 }) {
                         top: `${o.y}%`,
                         width: o.size,
                         height: o.size,
-                        background: `radial-gradient(circle, ${color}08 0%, transparent 70%)`,
+                        background: `radial-gradient(circle, hsl(${color} / 0.03) 0%, transparent 70%)`,
                         animation: `orbFloat ${o.duration}s ${o.delay}s ease-in-out infinite alternate`,
                     }}
                 />
@@ -155,7 +155,8 @@ function FloatingOrbs({ color = "#ffffff", count = 6 }) {
     );
 }
 
-function RingPulse({ color = "#ffffff", size = 100 }: { color?: string; size?: number }) {
+function RingPulse({ color = "var(--foreground)", size = 100 }: { color?: string; size?: number }) {
+    const opacities = [0.19, 0.13, 0.08];
     return (
         <div className="relative" style={{ width: size, height: size }}>
             {[0, 0.6, 1.2].map((d, i) => (
@@ -163,7 +164,7 @@ function RingPulse({ color = "#ffffff", size = 100 }: { color?: string; size?: n
                     key={i}
                     className="absolute inset-0 rounded-full"
                     style={{
-                        border: `0.5px solid ${color}${30 - i * 8}`,
+                        border: `0.5px solid hsl(${color} / ${opacities[i]})`,
                         animation: `ringExpand 3s ${d}s ease-out infinite`,
                     }}
                 />
@@ -185,7 +186,10 @@ function Confetti() {
             Array.from({ length: 50 }, (_, i) => ({
                 id: i,
                 x: Math.random() * 100,
-                color: ["#4ade80", "#60a5fa", "#facc15", "#c084fc", "#fb923c"][Math.floor(Math.random() * 5)],
+                color: [
+                    "hsl(var(--success))", "hsl(var(--primary))", "hsl(var(--warning))",
+                    "hsl(var(--secondary))", "hsl(var(--destructive))",
+                ][Math.floor(Math.random() * 5)],
                 w: Math.random() * 5 + 3,
                 h: Math.random() * 8 + 4,
                 delay: Math.random() * 1.5,
@@ -232,9 +236,8 @@ function StateScreen({ children, bgGradients, className = "" }: {
 }) {
     return (
         <div
-            className={`flex-1 flex flex-col items-center justify-center gap-7 px-6 py-10 relative overflow-hidden ${className}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-7 px-6 py-10 relative overflow-hidden bg-background ${className}`}
             style={{
-                background: "#080c10",
                 backgroundImage: bgGradients,
             }}
         >
@@ -411,13 +414,13 @@ export default function TreasureHuntGame() {
                             style={{
                                 width: 6,
                                 height: 6,
-                                background: "#ffffff30",
+                                background: "hsl(var(--foreground) / 0.19)",
                                 animation: `dotPulse 1.2s ${i * 0.15}s ease-in-out infinite`,
                             }}
                         />
                     ))}
                 </div>
-                <span className="text-[11px] uppercase tracking-[0.2em] relative z-10" style={{ color: "#ffffff30" }}>
+                <span className="text-[11px] uppercase tracking-[0.2em] relative z-10 text-muted-foreground/30">
                     Loading round data
                 </span>
                 <style>{`
@@ -446,14 +449,14 @@ export default function TreasureHuntGame() {
         return (
             <StateScreen
                 bgGradients={`
-                    radial-gradient(ellipse 60% 50% at 40% 30%, #2a0a0a44 0%, transparent 70%),
-                    radial-gradient(ellipse 50% 60% at 60% 70%, #1a0a0a33 0%, transparent 70%)
+                    radial-gradient(ellipse 60% 50% at 40% 30%, hsl(var(--destructive) / 0.07) 0%, transparent 70%),
+                    radial-gradient(ellipse 50% 60% at 60% 70%, hsl(var(--destructive) / 0.04) 0%, transparent 70%)
                 `}
             >
-                <FloatingOrbs color="#ff6b6b" count={4} />
+                <FloatingOrbs color="var(--destructive)" count={4} />
                 <div
                     className="absolute inset-0 pointer-events-none"
-                    style={{ background: "radial-gradient(ellipse at center, transparent 50%, #ff000008 100%)" }}
+                    style={{ background: "radial-gradient(ellipse at center, transparent 50%, hsl(var(--destructive) / 0.03) 100%)" }}
                 />
 
                 <FadeIn delay={100} className="relative z-10 flex flex-col items-center gap-6">
@@ -463,37 +466,37 @@ export default function TreasureHuntGame() {
                         style={{
                             width: 80,
                             height: 80,
-                            background: "#ff6b6b08",
-                            border: "0.5px solid #ff6b6b20",
+                            background: "hsl(var(--destructive) / 0.03)",
+                            border: "0.5px solid hsl(var(--destructive) / 0.13)",
                             animation: "fadeShake 0.6s ease-out",
                         }}
                     >
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="10" stroke="#ff6b6b" strokeWidth="1" opacity="0.6" />
-                            <path d="M8 8l8 8M16 8l-8 8" stroke="#ff6b6b" strokeWidth="1.5" strokeLinecap="round" />
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-destructive">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1" opacity="0.6" />
+                            <path d="M8 8l8 8M16 8l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
                     </div>
 
                     <GlassCard className="max-w-md">
-                        <span className="text-[10px] uppercase tracking-[0.15em] block mb-3" style={{ color: "#ff6b6b50" }}>
+                        <span className="text-[10px] uppercase tracking-[0.15em] block mb-3 text-destructive/30">
                             Mission Over
                         </span>
-                        <div style={{ width: 32, height: "0.5px", background: "#ff6b6b20", margin: "0 auto 16px" }} />
-                        <h2 className="text-xl font-medium mb-3" style={{ color: "#ff6b6b", letterSpacing: "0.05em" }}>
+                        <div style={{ width: 32, height: "0.5px", background: "hsl(var(--destructive) / 0.13)", margin: "0 auto 16px" }} />
+                        <h2 className="text-xl font-medium mb-3 font-display text-destructive" style={{ letterSpacing: "0.05em" }}>
                             All attempts exhausted
                         </h2>
-                        <p className="text-sm leading-relaxed m-0" style={{ color: "#ffffff40" }}>
+                        <p className="text-sm leading-relaxed m-0 text-muted-foreground/40">
                             <Typewriter text="Your journey ends here. The trail has gone cold." speed={30} delay={500} />
                         </p>
                     </GlassCard>
 
-                    <div className="flex items-center gap-4 text-[11px]" style={{ color: "#ffffff20" }}>
-                        <span>Status: <span style={{ color: "#ff6b6b" }}>eliminated</span></span>
-                        <span style={{ width: "0.5px", height: 12, background: "#ffffff15", display: "inline-block" }} />
-                        <span>Attempts: <span style={{ color: "#ff6b6b" }}>0 remaining</span></span>
+                    <div className="flex items-center gap-4 text-[11px] text-muted-foreground/20">
+                        <span>Status: <span className="text-destructive">eliminated</span></span>
+                        <span style={{ width: "0.5px", height: 12, background: "hsl(var(--foreground) / 0.06)", display: "inline-block" }} />
+                        <span>Attempts: <span className="text-destructive">0 remaining</span></span>
                     </div>
 
-                    <ProceedButton label="Return to dashboard" accentColor="#ff6b6b" delay={1600} onClick={goToDashboard} />
+                    <ProceedButton label="Return to dashboard" accentColor="var(--destructive)" delay={1600} onClick={goToDashboard} />
                 </FadeIn>
 
                 <style>{`
@@ -516,11 +519,11 @@ export default function TreasureHuntGame() {
         return (
             <StateScreen
                 bgGradients={`
-                    radial-gradient(ellipse 60% 50% at 30% 30%, #0a2a1244 0%, transparent 70%),
-                    radial-gradient(ellipse 50% 60% at 70% 70%, #0a1a2a33 0%, transparent 70%)
+                    radial-gradient(ellipse 60% 50% at 30% 30%, hsl(var(--success) / 0.07) 0%, transparent 70%),
+                    radial-gradient(ellipse 50% 60% at 70% 70%, hsl(var(--primary) / 0.05) 0%, transparent 70%)
                 `}
             >
-                <FloatingOrbs color="#4ade80" count={6} />
+                <FloatingOrbs color="var(--success)" count={6} />
                 {showConfetti && <Confetti />}
 
                 <div
@@ -531,7 +534,7 @@ export default function TreasureHuntGame() {
                         left: "50%",
                         top: "50%",
                         transform: "translate(-50%, -50%)",
-                        background: "radial-gradient(circle, #4ade8008 0%, transparent 70%)",
+                        background: "radial-gradient(circle, hsl(var(--success) / 0.03) 0%, transparent 70%)",
                         animation: "breathe 4s ease-in-out infinite",
                     }}
                 />
@@ -542,33 +545,33 @@ export default function TreasureHuntGame() {
                         style={{
                             width: 90,
                             height: 90,
-                            background: "#4ade8008",
-                            border: "0.5px solid #4ade8020",
+                            background: "hsl(var(--success) / 0.03)",
+                            border: "0.5px solid hsl(var(--success) / 0.13)",
                         }}
                     >
                         <span className="text-4xl" style={{ animation: "popIn 0.6s 0.3s ease-out both" }}>🏆</span>
                     </div>
 
                     <GlassCard className="max-w-md">
-                        <span className="text-[10px] uppercase tracking-[0.15em] block mb-3" style={{ color: "#4ade8060" }}>
+                        <span className="text-[10px] uppercase tracking-[0.15em] block mb-3 text-success/40">
                             Hunt Complete
                         </span>
-                        <div style={{ width: 32, height: "0.5px", background: "#4ade8020", margin: "0 auto 16px" }} />
-                        <h2 className="text-xl font-medium mb-3" style={{ color: "#4ade80", letterSpacing: "0.05em" }}>
+                        <div style={{ width: 32, height: "0.5px", background: "hsl(var(--success) / 0.13)", margin: "0 auto 16px" }} />
+                        <h2 className="text-xl font-medium mb-3 font-display text-success" style={{ letterSpacing: "0.05em" }}>
                             You conquered the Treasure Hunt!
                         </h2>
-                        <p className="text-sm leading-relaxed m-0" style={{ color: "#ffffff40" }}>
+                        <p className="text-sm leading-relaxed m-0 text-muted-foreground/40">
                             <Typewriter text="Every clue decoded. Every location found. Well played." speed={30} delay={800} />
                         </p>
                     </GlassCard>
 
-                    <div className="flex items-center gap-4 text-[11px]" style={{ color: "#ffffff20" }}>
-                        <span>Status: <span style={{ color: "#4ade80" }}>victorious</span></span>
-                        <span style={{ width: "0.5px", height: 12, background: "#ffffff15", display: "inline-block" }} />
-                        <span>All rounds: <span style={{ color: "#4ade80" }}>cleared</span></span>
-                    </div>
+                    {/* <div className="flex items-center gap-4 text-[11px] text-muted-foreground/20">
+                        <span>Status: <span className="text-success">victorious</span></span>
+                        <span style={{ width: "0.5px", height: 12, background: "hsl(var(--foreground) / 0.06)", display: "inline-block" }} />
+                        <span>All rounds: <span className="text-success">cleared</span></span>
+                    </div> */}
 
-                    <ProceedButton label="Claim your glory" accentColor="#4ade80" delay={2200} onClick={goToDashboard} />
+                    <ProceedButton label="Proceed to Dashboard" accentColor="var(--success)" delay={2200} onClick={goToDashboard} />
                 </FadeIn>
 
                 <style>{`
@@ -593,13 +596,13 @@ export default function TreasureHuntGame() {
         return (
             <StateScreen
                 bgGradients={`
-                    radial-gradient(ellipse 60% 50% at 40% 30%, #0a0a0a55 0%, transparent 70%),
-                    radial-gradient(ellipse 50% 60% at 60% 70%, #0a0a1a33 0%, transparent 70%)
+                    radial-gradient(ellipse 60% 50% at 40% 30%, hsl(var(--background) / 0.33) 0%, transparent 70%),
+                    radial-gradient(ellipse 50% 60% at 60% 70%, hsl(var(--muted) / 0.2) 0%, transparent 70%)
                 `}
             >
                 <div
                     className="absolute inset-0 pointer-events-none"
-                    style={{ background: "radial-gradient(ellipse at center, transparent 60%, #00000040 100%)" }}
+                    style={{ background: "radial-gradient(ellipse at center, transparent 60%, hsl(var(--background) / 0.25) 100%)" }}
                 />
 
                 <FadeIn delay={100} className="relative z-10 flex flex-col items-center gap-6">
@@ -608,37 +611,37 @@ export default function TreasureHuntGame() {
                         style={{
                             width: 80,
                             height: 80,
-                            background: "#ffffff05",
-                            border: "0.5px solid #ffffff12",
+                            background: "hsl(var(--foreground) / 0.02)",
+                            border: "0.5px solid hsl(var(--foreground) / 0.07)",
                         }}
                     >
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                            <path d="M12 2L2 20h20L12 2z" stroke="#ffffff50" strokeWidth="1" fill="none" />
-                            <path d="M12 10v4" stroke="#ffffff50" strokeWidth="1.5" strokeLinecap="round" />
-                            <circle cx="12" cy="17" r="0.8" fill="#ffffff50" />
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-muted-foreground/50">
+                            <path d="M12 2L2 20h20L12 2z" stroke="currentColor" strokeWidth="1" fill="none" />
+                            <path d="M12 10v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            <circle cx="12" cy="17" r="0.8" fill="currentColor" />
                         </svg>
                     </div>
 
                     <GlassCard className="max-w-md">
-                        <span className="text-[10px] uppercase tracking-[0.15em] block mb-3" style={{ color: "#ffffff30" }}>
+                        <span className="text-[10px] uppercase tracking-[0.15em] block mb-3 text-muted-foreground/30">
                             Terminated
                         </span>
-                        <div style={{ width: 32, height: "0.5px", background: "#ffffff15", margin: "0 auto 16px" }} />
-                        <h2 className="text-xl font-medium mb-3" style={{ color: "#ffffff70", letterSpacing: "0.05em" }}>
+                        <div style={{ width: 32, height: "0.5px", background: "hsl(var(--foreground) / 0.06)", margin: "0 auto 16px" }} />
+                        <h2 className="text-xl font-medium mb-3 font-display text-foreground/70" style={{ letterSpacing: "0.05em" }}>
                             Hunt ended by admin
                         </h2>
-                        <p className="text-sm leading-relaxed m-0" style={{ color: "#ffffff30" }}>
+                        <p className="text-sm leading-relaxed m-0 text-muted-foreground/30">
                             <Typewriter text="The Treasure Hunt has been shut down. All active sessions are suspended." speed={28} delay={400} />
                         </p>
                     </GlassCard>
 
-                    <div className="flex items-center gap-4 text-[11px]" style={{ color: "#ffffff18" }}>
-                        <span>Signal: <span style={{ color: "#ffffff50" }}>offline</span></span>
-                        <span style={{ width: "0.5px", height: 12, background: "#ffffff10", display: "inline-block" }} />
-                        <span>Override: <span style={{ color: "#ffffff50" }}>admin</span></span>
+                    <div className="flex items-center gap-4 text-[11px] text-muted-foreground/15">
+                        <span>Signal: <span className="text-muted-foreground/50">offline</span></span>
+                        <span style={{ width: "0.5px", height: 12, background: "hsl(var(--foreground) / 0.04)", display: "inline-block" }} />
+                        <span>Override: <span className="text-muted-foreground/50">admin</span></span>
                     </div>
 
-                    <ProceedButton label="Return to dashboard" accentColor="#ffffff60" delay={1400} onClick={goToDashboard} />
+                    <ProceedButton label="Return to dashboard" accentColor="var(--foreground)" delay={1400} onClick={goToDashboard} />
                 </FadeIn>
             </StateScreen>
         );
@@ -649,13 +652,12 @@ export default function TreasureHuntGame() {
        ═══════════════════════════════════════════════════ */
     return (
         <div
-            className="flex-1 flex flex-col items-center justify-center gap-7 px-6 py-10 relative overflow-hidden"
+            className="flex-1 flex flex-col items-center justify-center gap-7 px-6 py-10 relative overflow-hidden bg-background"
             style={{
-                background: "#080c10",
                 backgroundImage: `
-                    radial-gradient(ellipse 60% 50% at 20% 30%, #0f2a1e55 0%, transparent 70%),
-                    radial-gradient(ellipse 50% 60% at 80% 70%, #1a0f2e55 0%, transparent 70%),
-                    radial-gradient(ellipse 40% 40% at 60% 20%, #0a1f2e44 0%, transparent 60%)
+                    radial-gradient(ellipse 60% 50% at 20% 30%, hsl(var(--success) / 0.08) 0%, transparent 70%),
+                    radial-gradient(ellipse 50% 60% at 80% 70%, hsl(var(--secondary) / 0.08) 0%, transparent 70%),
+                    radial-gradient(ellipse 40% 40% at 60% 20%, hsl(var(--primary) / 0.07) 0%, transparent 60%)
                 `,
             }}
         >
@@ -664,11 +666,11 @@ export default function TreasureHuntGame() {
             {/* Round pill */}
             <div
                 className="relative z-10 inline-flex items-center gap-2 rounded-full px-4 py-1.5"
-                style={{ background: "#ffffff08", border: "0.5px solid #ffffff18", backdropFilter: "blur(12px)" }}
+                style={{ background: "hsl(var(--foreground) / 0.03)", border: "0.5px solid hsl(var(--foreground) / 0.09)", backdropFilter: "blur(12px)" }}
             >
-                <span className="text-[10px] uppercase tracking-widest" style={{ color: "#ffffff44" }}>Round</span>
-                <span className="text-xl font-medium font-mono text-[#e0e0e0]">{currentRound?.number}</span>
-                <div style={{ width: "0.5px", height: 16, background: "#ffffff20" }} />
+                <span className="text-[10px] uppercase tracking-widest font-display text-muted-foreground/40">Round</span>
+                <span className="text-xl font-medium font-mono text-foreground">{currentRound?.number}</span>
+                <div style={{ width: "0.5px", height: 16, background: "hsl(var(--foreground) / 0.13)" }} />
                 <AttemptsHearts remaining={attemptsLeft} />
             </div>
 
@@ -676,15 +678,15 @@ export default function TreasureHuntGame() {
             <div
                 className="relative z-10 w-full max-w-2xl flex flex-col items-center gap-5 rounded-2xl px-10 py-12 text-center"
                 style={{
-                    background: "#ffffff07",
-                    border: "0.5px solid #ffffff14",
+                    background: "hsl(var(--foreground) / 0.03)",
+                    border: "0.5px solid hsl(var(--foreground) / 0.08)",
                     backdropFilter: "blur(20px)",
-                    boxShadow: "inset 0 0.5px 0 #ffffff14",
+                    boxShadow: "inset 0 0.5px 0 hsl(var(--foreground) / 0.08)",
                 }}
             >
-                <span className="text-[10px] uppercase tracking-[0.15em]" style={{ color: "#ffffff40" }}>Clue</span>
-                <div style={{ width: 32, height: "0.5px", background: "#ffffff20" }} />
-                <p className="text-3xl leading-relaxed m-0" style={{ color: "#e8e8e8", fontFamily: "Georgia, serif", fontStyle: "italic" }}>
+                <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/40">Clue</span>
+                <div style={{ width: 32, height: "0.5px", background: "hsl(var(--foreground) / 0.13)" }} />
+                <p className="text-3xl leading-relaxed m-0 text-foreground/90 italic">
                     {clue}
                 </p>
             </div>
@@ -692,12 +694,20 @@ export default function TreasureHuntGame() {
             {/* Answer row */}
             <div className="relative z-10 w-full max-w-2xl flex gap-3">
                 <input
-                    className="flex-1 rounded-xl px-4 py-3 text-sm outline-none"
+                    className="flex-1 rounded-xl px-4 py-3 text-sm outline-none text-foreground"
                     style={{
-                        background: "#ffffff07",
-                        border: "0.5px solid #ffffff18",
-                        color: "#e0e0e0",
+                        background: "hsl(var(--foreground) / 0.03)",
+                        border: "0.5px solid hsl(var(--foreground) / 0.09)",
                         backdropFilter: "blur(12px)",
+                        transition: "border-color 0.25s ease, box-shadow 0.25s ease",
+                    }}
+                    onFocus={(e) => {
+                        e.currentTarget.style.borderColor = "hsl(var(--primary) / 0.3)";
+                        e.currentTarget.style.boxShadow = "0 0 20px hsl(var(--primary) / 0.06)";
+                    }}
+                    onBlur={(e) => {
+                        e.currentTarget.style.borderColor = "hsl(var(--foreground) / 0.09)";
+                        e.currentTarget.style.boxShadow = "none";
                     }}
                     placeholder="Enter your answer..."
                     value={answer}
@@ -708,11 +718,22 @@ export default function TreasureHuntGame() {
                 <button
                     onClick={submitAnswer}
                     disabled={submitting || loading || !answer.trim()}
-                    className="rounded-xl px-6 py-3 text-sm text-[#e0e0e0] disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="rounded-xl px-6 py-3 text-sm text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
                     style={{
-                        background: "#ffffff10",
-                        border: "0.5px solid #ffffff20",
+                        background: "hsl(var(--foreground) / 0.06)",
+                        border: "0.5px solid hsl(var(--foreground) / 0.13)",
                         backdropFilter: "blur(12px)",
+                        transition: "all 0.2s cubic-bezier(0.16,1,0.3,1)",
+                    }}
+                    onMouseEnter={(e) => {
+                        if (!e.currentTarget.disabled) {
+                            e.currentTarget.style.background = "hsl(var(--foreground) / 0.1)";
+                            e.currentTarget.style.borderColor = "hsl(var(--foreground) / 0.2)";
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "hsl(var(--foreground) / 0.06)";
+                        e.currentTarget.style.borderColor = "hsl(var(--foreground) / 0.13)";
                     }}
                 >
                     {submitting ? "Submitting..." : "Submit"}
@@ -723,19 +744,19 @@ export default function TreasureHuntGame() {
             <div className="relative z-10 w-full max-w-2xl flex flex-col gap-2">
                 {isWrong && (
                     <div
-                        className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-                        style={{ background: "#ff6b6b12", border: "0.5px solid #ff6b6b30", color: "#ff6b6b", backdropFilter: "blur(12px)" }}
+                        className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-destructive animate-slide-up"
+                        style={{ background: "hsl(var(--destructive) / 0.07)", border: "0.5px solid hsl(var(--destructive) / 0.19)", backdropFilter: "blur(12px)" }}
                     >
-                        <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" stroke="#ff6b6b" strokeWidth="1" fill="none" /><path d="M4.5 4.5l4 4M8.5 4.5l-4 4" stroke="#ff6b6b" strokeWidth="1.2" strokeLinecap="round" /></svg>
+                        <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1" fill="none" /><path d="M4.5 4.5l4 4M8.5 4.5l-4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>
                         Wrong answer — {attemptsLeft} attempt{attemptsLeft !== 1 ? "s" : ""} remaining.
                     </div>
                 )}
                 {showSuccess && (
                     <div
-                        className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm"
-                        style={{ background: "#4ade8012", border: "0.5px solid #4ade8030", color: "#4ade80", backdropFilter: "blur(12px)" }}
+                        className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-success animate-slide-up"
+                        style={{ background: "hsl(var(--success) / 0.07)", border: "0.5px solid hsl(var(--success) / 0.19)", backdropFilter: "blur(12px)" }}
                     >
-                        <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" stroke="#4ade80" strokeWidth="1" fill="none" /><path d="M4 6.5l2.5 2.5L9.5 5" stroke="#4ade80" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1" fill="none" /><path d="M4 6.5l2.5 2.5L9.5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                         Correct — moving to next clue...
                     </div>
                 )}
@@ -758,32 +779,32 @@ function WaitingScreen() {
     return (
         <StateScreen
             bgGradients={`
-                radial-gradient(ellipse 60% 50% at 30% 40%, #1a1a0a44 0%, transparent 70%),
-                radial-gradient(ellipse 50% 60% at 70% 60%, #1a150a44 0%, transparent 70%)
+                radial-gradient(ellipse 60% 50% at 30% 40%, hsl(var(--warning) / 0.07) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 60% at 70% 60%, hsl(var(--warning) / 0.05) 0%, transparent 70%)
             `}
         >
-            <FloatingOrbs color="#facc15" count={5} />
+            <FloatingOrbs color="var(--warning)" count={5} />
 
             <FadeIn delay={100} className="relative z-10 flex flex-col items-center gap-6">
                 <div className="relative flex items-center justify-center">
-                    <RingPulse color="#facc15" size={100} />
+                    <RingPulse color="var(--warning)" size={100} />
                     <span className="absolute text-3xl" style={{ animation: "gentleBob 3s ease-in-out infinite" }}>⏳</span>
                 </div>
 
                 <GlassCard className="max-w-md">
-                    <span className="text-[10px] uppercase tracking-[0.15em] block mb-4" style={{ color: "#facc1560" }}>
+                    <span className="text-[10px] uppercase tracking-[0.15em] block mb-4 text-warning/40">
                         Standby
                     </span>
-                    <div style={{ width: 32, height: "0.5px", background: "#facc1520", margin: "0 auto 16px" }} />
-                    <p className="text-lg leading-relaxed m-0" style={{ color: "#e8e8e8", fontFamily: "Georgia, serif", fontStyle: "italic" }}>
+                    <div style={{ width: 32, height: "0.5px", background: "hsl(var(--warning) / 0.13)", margin: "0 auto 16px" }} />
+                    <p className="text-lg leading-relaxed m-0 text-foreground/90 italic">
                         <Typewriter text="Waiting for the hunt to begin..." speed={40} delay={300} />
                     </p>
                 </GlassCard>
 
-                <div className="flex items-center gap-2 text-[11px]" style={{ color: "#ffffff25" }}>
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground/20">
                     <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ background: "#facc15", animation: "blink 1.5s ease-in-out infinite" }}
+                        className="w-1.5 h-1.5 rounded-full bg-warning"
+                        style={{ animation: "blink 1.5s ease-in-out infinite" }}
                     />
                     <span className="uppercase tracking-[0.2em]">listening{dots}</span>
                 </div>

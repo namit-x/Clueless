@@ -174,14 +174,14 @@ export default function DigitManipulationGame() {
 
   function operationColor(type: string): string {
     switch (type) {
-      case "ADD": return "#00e5a0";
-      case "SUBTRACT": return "#ff4d6a";
-      case "MULTIPLY": return "#ffaa2c";
-      case "DIVIDE": return "#fb923c";
+      case "ADD": return "var(--op-add)";
+      case "SUBTRACT": return "var(--op-sub)";
+      case "MULTIPLY": return "var(--op-mul)";
+      case "DIVIDE": return "var(--op-div)";
       case "SHIFT_LEFT":
-      case "SHIFT_RIGHT": return "#818cf8";
-      case "REVERSE": return "#c084fc";
-      default: return "#64748b";
+      case "SHIFT_RIGHT": return "var(--op-shift)";
+      case "REVERSE": return "var(--op-rev)";
+      default: return "var(--op-default)";
     }
   }
 
@@ -302,16 +302,16 @@ export default function DigitManipulationGame() {
                 key={i}
                 className="dm-step"
                 style={{
-                  borderColor: `${color}30`,
-                  background: `${color}08`,
+                  borderColor: `hsl(${color} / 0.19)`,
+                  background: `hsl(${color} / 0.03)`,
                   animationDelay: `${i * 80 + 400}ms`,
                 }}
               >
-                <span className="dm-step__num" style={{ background: `${color}20`, color }}>
+                <span className="dm-step__num" style={{ background: `hsl(${color} / 0.13)`, color: `hsl(${color})` }}>
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span className="dm-step__text">{formatOperation(op)}</span>
-                <span className="dm-step__tag" style={{ color: `${color}80` }}>{op.type}</span>
+                <span className="dm-step__tag" style={{ color: `hsl(${color} / 0.5)` }}>{op.type}</span>
               </div>
             );
           })}
@@ -359,24 +359,31 @@ export default function DigitManipulationGame() {
 // ── All styles ────────────────────────────────────────────────────────────────
 
 const dmStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
   .dm-page {
-    --bg: #06080d;
-    --surface: #0d1117;
-    --surface2: #151b25;
-    --border: #1e2a3a;
-    --accent: #00e5a0;
-    --accent-dim: #00e5a022;
-    --accent-mid: #00e5a066;
-    --red: #ff4d6a;
-    --amber: #ffaa2c;
-    --text: #e2e8f0;
-    --text-dim: #64748b;
+    --bg: hsl(var(--background));
+    --surface: hsl(var(--card));
+    --surface2: hsl(var(--muted));
+    --dm-border: hsl(var(--border));
+    --accent: hsl(var(--primary));
+    --accent-dim: hsl(var(--primary) / 0.13);
+    --accent-mid: hsl(var(--primary) / 0.4);
+    --red: hsl(var(--destructive));
+    --amber: hsl(var(--warning));
+    --text: hsl(var(--foreground));
+    --text-dim: hsl(var(--muted-foreground));
+
+    /* Operation color tokens (raw HSL for opacity use) */
+    --op-add: var(--success);
+    --op-sub: var(--destructive);
+    --op-mul: var(--warning);
+    --op-div: 24 90% 53%;
+    --op-shift: 235 80% 75%;
+    --op-rev: var(--secondary);
+    --op-default: var(--muted-foreground);
 
     position: relative;
     min-height: 100%;
-    background: var(--bg);
+    background: transparent;
     color: var(--text);
     font-family: 'IBM Plex Mono', monospace;
     padding: 24px 20px 32px;
@@ -399,8 +406,8 @@ const dmStyles = `
   .dm-bg__grid {
     position: absolute; inset: 0;
     background-image:
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      linear-gradient(var(--dm-border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--dm-border) 1px, transparent 1px);
     background-size: 60px 60px;
     opacity: 0.12;
   }
@@ -413,7 +420,7 @@ const dmStyles = `
   }
   .dm-bg__glow--2 {
     width: 300px; height: 300px; bottom: -80px; left: -40px;
-    background: #6366f1;
+    background: hsl(var(--secondary));
   }
 
   /* ── Loader ── */
@@ -439,10 +446,10 @@ const dmStyles = `
     font-size: 28px; z-index: 1;
     animation: dm-fadeUp 0.5s ease both;
   }
-  .dm-status-icon--waiting { background: #ffaa2c15; border: 1px solid #ffaa2c30; }
-  .dm-status-icon--failed { background: #ff4d6a15; border: 1px solid #ff4d6a30; color: var(--red); }
-  .dm-status-icon--success { background: #00e5a015; border: 1px solid #00e5a030; color: var(--accent); }
-  .dm-status-icon--ended { background: #ff4d6a15; border: 1px solid #ff4d6a30; color: var(--red); }
+  .dm-status-icon--waiting { background: hsl(var(--warning) / 0.08); border: 1px solid hsl(var(--warning) / 0.19); }
+  .dm-status-icon--failed { background: hsl(var(--destructive) / 0.08); border: 1px solid hsl(var(--destructive) / 0.19); color: var(--red); }
+  .dm-status-icon--success { background: hsl(var(--primary) / 0.08); border: 1px solid hsl(var(--primary) / 0.19); color: var(--accent); }
+  .dm-status-icon--ended { background: hsl(var(--destructive) / 0.08); border: 1px solid hsl(var(--destructive) / 0.19); color: var(--red); }
 
   .dm-status-text {
     font-size: 13px; color: var(--text-dim); z-index: 1;
@@ -456,13 +463,14 @@ const dmStyles = `
   .dm-nav-btn {
     z-index: 1; margin-top: 8px;
     padding: 10px 24px; border-radius: 8px;
-    background: var(--surface2); border: 1px solid var(--border);
+    background: var(--surface2); border: 1px solid var(--dm-border);
     color: var(--text-dim); font-family: 'IBM Plex Mono', monospace;
     font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
-    cursor: pointer; transition: all 0.2s;
+    cursor: pointer; transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
     animation: dm-fadeUp 0.5s ease 0.2s both;
   }
-  .dm-nav-btn:hover { border-color: var(--accent-mid); color: var(--text); background: var(--surface); }
+  .dm-nav-btn:hover { border-color: var(--accent-mid); color: var(--text); background: var(--surface); transform: translateY(-1px); }
+  .dm-nav-btn:active { transform: scale(0.97); }
   .dm-nav-btn--success { border-color: var(--accent-mid); }
   .dm-nav-btn--success:hover { border-color: var(--accent); color: var(--accent); }
 
@@ -475,7 +483,7 @@ const dmStyles = `
   .dm-header__right { display: flex; align-items: center; gap: 14px; }
 
   .dm-title {
-    font-family: 'Chakra Petch', sans-serif;
+    font-family: 'Orbitron', sans-serif;
     font-size: 24px; font-weight: 700;
     letter-spacing: 3px; text-transform: uppercase; color: var(--accent);
   }
@@ -493,7 +501,7 @@ const dmStyles = `
     letter-spacing: inherit; text-transform: inherit;
   }
   .dm-title--glitch::before {
-    color: #0ff; animation: dm-glitch1 3s infinite linear alternate;
+    color: hsl(var(--primary)); animation: dm-glitch1 3s infinite linear alternate;
   }
   .dm-title--glitch::after {
     color: var(--red); animation: dm-glitch2 2.5s infinite linear alternate;
@@ -513,8 +521,8 @@ const dmStyles = `
 
   .dm-round-badge {
     padding: 4px 12px; border-radius: 6px;
-    background: var(--surface2); border: 1px solid var(--border);
-    font-family: 'Chakra Petch', sans-serif;
+    background: var(--surface2); border: 1px solid var(--dm-border);
+    font-family: 'Orbitron', sans-serif;
     font-size: 12px; font-weight: 700;
     letter-spacing: 2px; color: var(--accent);
   }
@@ -534,7 +542,7 @@ const dmStyles = `
     display: inline-flex; align-items: center; justify-content: center;
     width: 44px; height: 56px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--dm-border);
     border-radius: 8px;
     font-family: 'Chakra Petch', sans-serif;
     font-size: 24px; font-weight: 700; color: var(--text);
@@ -557,12 +565,12 @@ const dmStyles = `
   .dm-step {
     display: flex; align-items: center; gap: 14px;
     padding: 12px 16px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--dm-border);
     border-radius: 10px;
-    transition: all 0.25s;
+    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease;
     animation: dm-fadeUp 0.5s ease both;
   }
-  .dm-step:hover { transform: translateX(4px); }
+  .dm-step:hover { transform: translateX(4px); box-shadow: -4px 0 12px -4px var(--accent-dim); }
   .dm-step__num {
     flex-shrink: 0;
     width: 32px; height: 32px;
@@ -583,7 +591,7 @@ const dmStyles = `
   .dm-answer-section { position: relative; z-index: 1; }
   .dm-input-row {
     display: flex; gap: 8px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--dm-border);
     border-radius: 10px;
     background: var(--surface);
     padding: 5px;
@@ -618,11 +626,12 @@ const dmStyles = `
     font-weight: 700; font-size: 13px;
     letter-spacing: 2px; text-transform: uppercase;
     border: none; border-radius: 7px; cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
     display: flex; align-items: center; justify-content: center;
     min-width: 100px;
   }
-  .dm-submit:hover:not(:disabled) { filter: brightness(1.15); transform: translateY(-1px); }
+  .dm-submit:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 0 16px var(--accent-dim); }
+  .dm-submit:active:not(:disabled) { transform: scale(0.97); }
   .dm-submit:disabled { opacity: 0.3; cursor: not-allowed; }
 
   .dm-submit__spinner {

@@ -50,15 +50,37 @@ export default function DashboardPage() {
   }, [dispatch, router, teamStatus, gamesStatus]);
 
   if (teamStatus === "loading" || gamesStatus === "loading") {
-    return <div>Loading dashboard...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="relative flex flex-col items-center gap-5">
+          <div className="relative w-14 h-14">
+            <div className="absolute inset-0 rounded-full border-2 border-white/[0.06]" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" style={{ animationDuration: "1s" }} />
+            <div
+              className="absolute inset-2 rounded-full border-2 border-transparent border-b-secondary animate-spin"
+              style={{ animationDirection: "reverse", animationDuration: "0.7s" }}
+            />
+          </div>
+          <p className="text-sm tracking-[0.2em] uppercase text-white/30 animate-pulse">
+            Loading dashboard
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (teamBlocked) return <TeamBlockedScreen />;
 
   return (
-    <div className="p-6 bg-gray-950 min-h-screen">
-      <DashboardHeader teamName={user?.name ?? ""} />
-      <GamesGrid games={games} />
+    <div className="min-h-screen relative">
+      {/* Content */}
+      <div className="w-full px-6 lg:px-10 xl:px-16 2xl:px-24 py-8 sm:py-10 animate-fade-in">
+        <DashboardHeader teamName={user?.name ?? ""} />
+
+        <div className="mt-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>
+          <GamesGrid games={games} />
+        </div>
+      </div>
     </div>
   );
 }
