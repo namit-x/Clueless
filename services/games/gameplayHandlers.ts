@@ -27,7 +27,8 @@ export const submissionHandlers: Record<
             roundId,
             answer,
             roundContext.configuration,
-            roundContext.roundNumber
+            roundContext.roundNumber,
+            roundContext.gameId
         ),
     "Digit Manipulation": (teamId, roundId, answer, roundContext) =>
         submitDigitManipulationAnswer(

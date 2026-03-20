@@ -210,28 +210,8 @@ export async function completeAndAdvanceRoundRepo(
   }
 }
 
-export async function activateNextRoundRepo(teamId: string, currentRoundNumber: number) {
+export async function activateNextRoundRepo(teamId: string, roundNumber: number, gameId: string) {
 
-  // First, get the game_id from team's current completed round to ensure we stay in the same game
-  const gameQuery = `
-    SELECT DISTINCT r.game_id
-    FROM team_round_progress trp
-    JOIN rounds r ON r.id = trp.round_id
-    WHERE trp.team_id = $1
-    AND trp.status = 'COMPLETED'
-    ORDER BY r.game_id
-    LIMIT 1
-  `;
-
-  const gameResult = await pool.query(gameQuery, [teamId]);
-
-  if (gameResult.rowCount === 0) {
-    throw new Error("GAME_CONTEXT_NOT_FOUND");
-  }
-
-  const gameId = gameResult.rows[0].game_id;
-
-  // Now activate the next round for this specific game
   const updateQuery = `
     UPDATE team_round_progress
     SET status = 'ACTIVE',
@@ -246,5 +226,5 @@ export async function activateNextRoundRepo(teamId: string, currentRoundNumber: 
     )
   `;
 
-  await pool.query(updateQuery, [teamId, gameId, currentRoundNumber + 1]);
+  await pool.query(updateQuery, [teamId, gameId, roundNumber + 1]);
 }

@@ -1,9 +1,9 @@
 import {
     activateFirstRoundRepo,
-    activateNextRoundRepo,
-    completeRoundRepo,
+    completeAndAdvanceRoundRepo,
     decreaseAttemptRepo,
     getCurrentRoundRepo,
+    getRoundAttemptStatusRepo,
     initializeTeamRoundProgressRepo
 } from "@/lib/repositories/teamRoundProgressRepo";
 import { activateGameRepo } from "@/lib/repositories/gameRepo";
@@ -60,12 +60,14 @@ export async function getBlindCodeRound(teamId: string) {
 
     const { roundId, roundNumber } = roundProgress;
     const { configuration } = await getRoundContextRepo(roundId);
+    const { attemptCount } = await getRoundAttemptStatusRepo(teamId, roundId);
 
     return {
         status: "ACTIVE",
         roundId,
         round: roundNumber,
-        challenge: getBlindCodeChallenge(configuration)
+        challenge: getBlindCodeChallenge(configuration),
+        attemptsLeft: Math.max(0, 3 - attemptCount)
     };
 }
 
@@ -93,7 +95,8 @@ export async function submitBlindCodeAnswer(
     roundId: string,
     answer: string,          // this now contains Java code
     configuration: any,
-    roundNumber: number
+    roundNumber: number,
+    gameId: string
 ) {
 
     const expectedOutput = getBlindCodeAnswer(configuration).trim();
@@ -120,13 +123,13 @@ export async function submitBlindCodeAnswer(
 
     if (isCorrect) {
 
-        await completeRoundRepo(teamId, roundId);
-        await activateNextRoundRepo(teamId, roundNumber);
+        const advanced = await completeAndAdvanceRoundRepo(teamId, roundId, roundNumber, gameId);
+        if (!advanced) throw new Error("ROUND_ALREADY_COMPLETED");
 
         return { correct: true };
     }
 
-    await decreaseAttemptRepo(teamId, roundId);
+    const newAttemptCount = await decreaseAttemptRepo(teamId, roundId);
 
-    return { correct: false };
+    return { correct: false, attemptsLeft: Math.max(0, 3 - newAttemptCount) };
 }

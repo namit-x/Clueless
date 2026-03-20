@@ -55,29 +55,54 @@ export async function getTeamGameResult(teamId: string, gameId: string) {
 }
 
 export async function completeTeamGameResult(teamId: string, gameId: string) {
-    const query = `
-        UPDATE team_game_results
-        SET
-            completed_at = NOW(),
-            completion_time = NOW() - started_at,
-            status = 'COMPLETED'
-        WHERE team_id = $1
-          AND game_id = $2
-        RETURNING
-            id,
-            team_id,
-            game_id,
-            started_at,
-            completed_at,
-            completion_time,
-            penalty_seconds,
-            status,
-            created_at;
-    `;
+    const client = await pool.connect();
 
-    const result = await pool.query(query, [teamId, gameId]);
+    try {
+        await client.query("BEGIN");
 
-    return result.rows[0] ?? null;
+        // Mark game as completed
+        const resultQuery = `
+            UPDATE team_game_results
+            SET
+                completed_at = NOW(),
+                completion_time = NOW() - started_at,
+                status = 'COMPLETED'
+            WHERE team_id = $1
+              AND game_id = $2
+            RETURNING
+                id,
+                team_id,
+                game_id,
+                started_at,
+                completed_at,
+                completion_time,
+                penalty_seconds,
+                status,
+                created_at;
+        `;
+
+        const result = await client.query(resultQuery, [teamId, gameId]);
+
+        // Reset team_round_progress for this game to allow replay or fresh start
+        const resetQuery = `
+            DELETE FROM team_round_progress
+            WHERE team_id = $1
+              AND round_id IN (
+                SELECT id FROM rounds WHERE game_id = $2
+              )
+        `;
+
+        await client.query(resetQuery, [teamId, gameId]);
+
+        await client.query("COMMIT");
+
+        return result.rows[0] ?? null;
+    } catch (e) {
+        await client.query("ROLLBACK");
+        throw e;
+    } finally {
+        client.release();
+    }
 }
 
 export async function markTimedOutTeamGameResults(gameId: string, penaltySeconds: number) {
