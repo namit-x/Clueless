@@ -7,7 +7,6 @@ type Game = {
   id: string;
   name: string;
   state: "NOT_STARTED" | "ACTIVE";
-  order_index: number;
 //   time_taken_seconds?: number
 //   reward_word_earned?: boolean
 }
