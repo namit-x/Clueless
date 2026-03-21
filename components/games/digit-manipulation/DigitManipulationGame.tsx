@@ -395,7 +395,8 @@ const dmStyles = `
     --op-default: var(--muted-foreground);
 
     position: relative;
-    min-height: 100%;
+    height: 100%;
+    max-height: 100vh;
     background: transparent;
     color: var(--text);
     font-family: 'IBM Plex Mono', monospace;
@@ -573,7 +574,7 @@ const dmStyles = `
   }
 
   /* ── Operations ── */
-  .dm-ops-section { position: relative; z-index: 1; flex: 1; overflow-y: auto; }
+  .dm-ops-section { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto; }
   .dm-ops-list { display: flex; flex-direction: column; gap: 8px; }
   .dm-step {
     display: flex; align-items: center; gap: 14px;
