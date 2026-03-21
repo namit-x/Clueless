@@ -35,7 +35,10 @@ export default function DigitManipulationGame() {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/v1/games/current/round", { credentials: "include" });
+      const res = await fetch("/api/v1/games/current/round", { 
+        credentials: "include",
+        // body: JSON.stringify({  }),
+      });
       const json = await res.json();
       console.log("Digit Manipulation - Fetch Round:", json);
 

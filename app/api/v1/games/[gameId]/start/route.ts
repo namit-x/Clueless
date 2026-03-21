@@ -35,3 +35,6 @@ export async function POST(
         );
     }
 }
+
+
+// I'M SEEING WHERE IS THE FUNCTION through WHICH THE USER IS STARTING THE GAME.

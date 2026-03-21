@@ -81,6 +81,15 @@ export function computeAttemptsLeft(attemptCount: number): number {
     return Math.max(0, MAX_ATTEMPTS - attemptCount);
 }
 
+// ─── Serialization ───────────────────────────────────────────────────────────
+
+function serializeOperations(operations: Operation[]) {
+    return operations.map(op => ({
+        type: op.type,
+        ...(op.operand !== undefined && { operand: op.operand.toString() })
+    }));
+}
+
 // ─── Game state guard ──────────────────────────────────────────────────────
 
 async function assertGameActive(gameId: string): Promise<void> {
@@ -107,13 +116,11 @@ export async function startDigitManipulationForTeam(teamId: string) {
     const { number, operations } = getOrResolvePuzzle(teamId, roundId, config);
     const { attemptCount } = await getRoundAttemptStatusRepo(teamId, roundId);
 
-    console.log(`[DIGIT] Team ${teamId} started round ${roundNumber}`);
-
     return {
         roundId,
         roundNumber,
         number: number.toString(),
-        operations: operations as Operation[],
+        operations: serializeOperations(operations),
         attemptsLeft: computeAttemptsLeft(attemptCount)
     };
 }
@@ -140,7 +147,7 @@ export async function getDigitManipulationRound(teamId: string) {
         roundId,
         roundNumber,
         number: number.toString(),
-        operations: operations as Operation[],
+        operations: serializeOperations(operations),
         attemptsLeft: computeAttemptsLeft(attemptCount)
     };
 }

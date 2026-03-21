@@ -7,6 +7,7 @@ import { startQuizGame } from "./games/quizService";
 import { startDigitManipulationGame } from "./games/digitManipulationService";
 import { currentRoundHandlers, teamStartHandlers } from "./games/gameplayHandlers";
 import { createTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
+import { initializeTeamRoundProgressForTeamRepo } from "@/lib/repositories/teamRoundProgressRepo";
 import { markTimedOutTeamGameResults } from "@/lib/repositories/teamGameResultsRepo";
 import { deleteTeamGameResultsByGameId } from "@/lib/repositories/teamGameResultsRepo";
 
@@ -151,7 +152,7 @@ export async function restartGameService(gameId: string) {
 export async function getCurrentRoundService(teamId: string) {
 
     const game = await getActiveGameRepo();
-    console.log(`[GameService] Fetching current round for team ${teamId} in game ${game ? game.name : "NO_ACTIVE_GAME"}`);
+    // console.log(`[GameService] Fetching current round for team ${teamId} in game ${game ? game.name : "NO_ACTIVE_GAME"}`);
     const handler = currentRoundHandlers[game.name];
 
     if (!handler) {
@@ -171,6 +172,9 @@ export async function startTeamGameService(teamId: string, gameId: string) {
 
     // START TIMER FOR TEAM
     await createTeamGameResult(teamId, gameId);
+
+    // Ensure team has round progress rows (idempotent — safe for late approvals and retries)
+    await initializeTeamRoundProgressForTeamRepo(teamId, gameId);
 
     const handler = teamStartHandlers[game.name];
 

@@ -18,11 +18,37 @@ export async function initializeTeamRoundProgressRepo(gameId: string) {
     `;
 
   await pool.query(query, [gameId]);
+  const result = await pool.query(query, [gameId]);
+  console.log("INIT ROWS INSERTED:", result.rowCount);
+}
+
+export async function initializeTeamRoundProgressForTeamRepo(teamId: string, gameId: string) {
+
+  const roundsResult = await pool.query(
+    `SELECT id FROM rounds WHERE game_id = $1`,
+    [gameId]
+  );
+
+  if (roundsResult.rowCount === 0) {
+    throw new Error("NO_ROUNDS_CONFIGURED");
+  }
+
+  const query = `
+    INSERT INTO team_round_progress (team_id, round_id, status, attempt_count)
+    SELECT $1, r.id, 'LOCKED', 0
+    FROM rounds r
+    WHERE r.game_id = $2
+    ON CONFLICT (team_id, round_id) DO NOTHING
+  `;
+
+  await pool.query(query, [teamId, gameId]);
 }
 
 export async function activateFirstRoundRepo(teamId: string) {
+  console.log(`Activating first round for team ${teamId}`);
 
-  const query = `
+  // Try to activate round 1 (LOCKED → ACTIVE)
+  const activateQuery = `
     UPDATE team_round_progress trp
     SET status = 'ACTIVE',
         started_at = NOW()
@@ -36,13 +62,32 @@ export async function activateFirstRoundRepo(teamId: string) {
     RETURNING trp.round_id;
   `;
 
-  const result = await pool.query(query, [teamId]);
+  const result = await pool.query(activateQuery, [teamId]);
+  console.log("ACTIVATE ROUND 1 RESULT:", result.rowCount);
 
-  if (result.rowCount === 0) {
+  if (result.rowCount && result.rowCount > 0) {
+    return result.rows[0].round_id;
+  }
+
+  // Round 1 may already be ACTIVE (idempotent retry) — return it
+  const fallbackQuery = `
+    SELECT trp.round_id
+    FROM team_round_progress trp
+    JOIN rounds r ON trp.round_id = r.id
+    JOIN games g ON g.id = r.game_id
+    WHERE trp.team_id = $1
+      AND r.round_number = 1
+      AND g.is_active = true
+      AND trp.status = 'ACTIVE'
+  `;
+
+  const fallback = await pool.query(fallbackQuery, [teamId]);
+
+  if (fallback.rowCount === 0) {
     throw new Error("ROUND_ACTIVATION_FAILED");
   }
 
-  return result.rows[0].round_id;
+  return fallback.rows[0].round_id;
 }
 
 export async function getCurrentRoundRepo(teamId: string) {
