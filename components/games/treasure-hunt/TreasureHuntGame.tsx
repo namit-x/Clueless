@@ -289,8 +289,19 @@ export default function TreasureHuntGame() {
 
             if (json.status === "FAILED") {
                 setIsRoundFailed(true);
+                setIsFinished(false);
                 setIsWaiting(false);
                 setIsGameEnded(false);
+                setCurrentRound(null);
+                setClue("");
+                return;
+            }
+
+            if (json.status === "COMPLETED") {
+                setIsFinished(true);
+                setIsWaiting(false);
+                setIsGameEnded(false);
+                setIsRoundFailed(false);
                 setCurrentRound(null);
                 setClue("");
                 return;
@@ -307,6 +318,7 @@ export default function TreasureHuntGame() {
             }
 
             setIsWaiting(false);
+            setIsFinished(false);
             setIsGameEnded(false);
             setIsRoundFailed(false);
             setAttemptsLeft(json.attemptsLeft ?? 3);
@@ -487,21 +499,21 @@ export default function TreasureHuntGame() {
 
                     <GlassCard className="max-w-md">
                         <span className="text-[10px] uppercase tracking-[0.15em] block mb-3 text-destructive/30">
-                            Mission Over
+                            Hunt Over
                         </span>
                         <div style={{ width: 32, height: "0.5px", background: "hsl(var(--destructive) / 0.13)", margin: "0 auto 16px" }} />
                         <h2 className="text-xl font-medium mb-3 font-display text-destructive" style={{ letterSpacing: "0.05em" }}>
                             All attempts exhausted
                         </h2>
                         <p className="text-sm leading-relaxed m-0 text-muted-foreground/40">
-                            <Typewriter text="Your journey ends here. The trail has gone cold." speed={30} delay={500} />
+                            <Typewriter text="Your hunt ends here." speed={30} delay={500} />
                         </p>
                     </GlassCard>
 
                     <div className="flex items-center gap-4 text-[11px] text-muted-foreground/20">
-                        <span>Status: <span className="text-destructive">eliminated</span></span>
+                        {/* <span>Status: <span className="text-destructive">eliminated</span></span>
                         <span style={{ width: "0.5px", height: 12, background: "hsl(var(--foreground) / 0.06)", display: "inline-block" }} />
-                        <span>Attempts: <span className="text-destructive">0 remaining</span></span>
+                        <span>Attempts: <span className="text-destructive">0 remaining</span></span> */}
                     </div>
 
                     <ProceedButton label="Return to dashboard" accentColor="var(--destructive)" delay={1600} onClick={goToDashboard} />
