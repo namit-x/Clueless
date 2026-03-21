@@ -387,9 +387,17 @@ export default function TreasureHuntGame() {
             .on(
                 "postgres_changes",
                 { event: "UPDATE", schema: "public", table: "games" },
-                () => {
-                    fetchCurrentRound();
-                }
+                () => { fetchCurrentRound(); }
+            )
+            .on(
+                "postgres_changes",
+                { event: "UPDATE", schema: "public", table: "teams" },
+                () => { fetchCurrentRound(); }
+            )
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "team_round_progress" },
+                () => { fetchCurrentRound(); }
             )
             .subscribe();
 

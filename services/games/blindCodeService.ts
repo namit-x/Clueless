@@ -1,14 +1,13 @@
 import {
     activateFirstRoundRepo,
-    completeAndAdvanceRoundRepo,
-    decreaseAttemptRepo,
     getCurrentRoundRepo,
     getRoundAttemptStatusRepo,
-    initializeTeamRoundProgressRepo
+    initializeTeamRoundProgressRepo,
+    submitAndAdvanceRoundRepo,
+    submitAndDecrementAttemptRepo
 } from "@/lib/repositories/teamRoundProgressRepo";
 import { activateGameRepo } from "@/lib/repositories/gameRepo";
 import { getRoundContextRepo } from "@/lib/repositories/roundsRepo";
-import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 
 export async function startBlindCodeGame(gameId: string) {
 
@@ -99,6 +98,12 @@ export async function submitBlindCodeAnswer(
     gameId: string
 ) {
 
+    // Pre-check: reject if round is not active
+    const progress = await getRoundAttemptStatusRepo(teamId, roundId);
+    if (progress.status !== 'ACTIVE' || progress.attemptCount >= 3) {
+        throw new Error("MAX_ATTEMPTS_REACHED");
+    }
+
     const expectedOutput = getBlindCodeAnswer(configuration).trim();
 
     const judgeResult = await executeJudge0(answer);
@@ -113,23 +118,25 @@ export async function submitBlindCodeAnswer(
         judgeResult.compile_output ||
         "NO_OUTPUT";
 
-    await insertSubmissionRepo(
-        teamId,
-        roundId,
-        answer,
-        isCorrect,
-        evaluation
-    );
-
     if (isCorrect) {
-
-        const advanced = await completeAndAdvanceRoundRepo(teamId, roundId, roundNumber, gameId);
+        // Atomic: insert submission + complete round + activate next
+        const { advanced } = await submitAndAdvanceRoundRepo(
+            teamId, roundId, roundNumber, gameId,
+            answer, true, evaluation
+        );
         if (!advanced) throw new Error("ROUND_ALREADY_COMPLETED");
 
         return { correct: true };
     }
 
-    const newAttemptCount = await decreaseAttemptRepo(teamId, roundId);
+    // Atomic: insert wrong submission + decrement attempts
+    const result = await submitAndDecrementAttemptRepo(
+        teamId, roundId, answer, evaluation
+    );
 
-    return { correct: false, attemptsLeft: Math.max(0, 3 - newAttemptCount) };
+    if (!result) {
+        throw new Error("MAX_ATTEMPTS_REACHED");
+    }
+
+    return { correct: false, attemptsLeft: Math.max(0, 3 - result.attemptCount) };
 }

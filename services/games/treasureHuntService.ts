@@ -2,15 +2,14 @@ import { getApprovedTeamsRepo } from "@/lib/repositories/teamsRepo";
 import { getAllRoutesRepo, getTeamRouteRepo, insertTeamRoutesRepo } from "@/lib/repositories/teamRoutesRepo";
 import {
     activateFirstRoundRepo,
-    completeAndAdvanceRoundRepo,
-    decreaseAttemptRepo,
     getActiveOrFailedRoundRepo,
     getRoundAttemptStatusRepo,
-    initializeTeamRoundProgressRepo
+    initializeTeamRoundProgressRepo,
+    submitAndAdvanceRoundRepo,
+    submitAndDecrementAttemptRepo
 } from "@/lib/repositories/teamRoundProgressRepo";
 import { activateGameRepo } from "@/lib/repositories/gameRepo";
 import { getClueAndAnswerForRoundRepo, getClueForRoundRepo, getRoundClueRepo } from "@/lib/repositories/routeLocationsRepo";
-import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 import { completeTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
 
 export async function startTreasureHuntGame(gameId: string) {
@@ -105,7 +104,6 @@ export async function submitTreasureHuntAnswer(
     };
 
     // Pre-check: reject immediately if round is already failed or attempts exhausted.
-    // This runs before answer evaluation and any DB writes.
     const progress = await getRoundAttemptStatusRepo(teamId, roundId);
     if (progress.status !== 'ACTIVE' || progress.attemptCount >= 3) {
         return FAILED_RESPONSE;
@@ -116,14 +114,12 @@ export async function submitTreasureHuntAnswer(
 
     const isCorrect = correctAnswer.toLowerCase() === answer.trim().toLowerCase();
 
-    await insertSubmissionRepo(teamId, roundId, answer, isCorrect, "Treasure Hunt");
-
     if (isCorrect) {
-
-        // completeAndAdvanceRoundRepo guards AND status = 'ACTIVE'.
-        // If a concurrent wrong answer set status to FAILED between our pre-check
-        // and here, advanced will be false — reject rather than silently advancing.
-        const advanced = await completeAndAdvanceRoundRepo(teamId, roundId, roundNumber, gameId);
+        // Atomic: insert submission + complete round + activate next — all in one transaction
+        const { advanced } = await submitAndAdvanceRoundRepo(
+            teamId, roundId, roundNumber, gameId,
+            answer, true, "Treasure Hunt"
+        );
 
         if (!advanced) {
             return FAILED_RESPONSE;
@@ -137,22 +133,22 @@ export async function submitTreasureHuntAnswer(
         return { status: "CORRECT" };
     }
 
-    let attemptCount: number;
-    try {
-        attemptCount = await decreaseAttemptRepo(teamId, roundId);
-    } catch (e: any) {
-        // Race: another concurrent request exhausted attempts between pre-check and here
-        if (e.message === "MAX_ATTEMPTS_REACHED") return FAILED_RESPONSE;
-        throw e;
+    // Atomic: insert wrong submission + decrement attempts in one transaction
+    const result = await submitAndDecrementAttemptRepo(
+        teamId, roundId, answer, "Treasure Hunt"
+    );
+
+    if (!result) {
+        return FAILED_RESPONSE;
     }
 
-    if (attemptCount >= 3) {
+    if (result.attemptCount >= 3) {
         return FAILED_RESPONSE;
     }
 
     return {
         status: "INCORRECT",
-        attemptsUsed: attemptCount,
-        attemptsLeft: 3 - attemptCount
+        attemptsUsed: result.attemptCount,
+        attemptsLeft: 3 - result.attemptCount
     };
 }

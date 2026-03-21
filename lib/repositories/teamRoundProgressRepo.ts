@@ -17,9 +17,7 @@ export async function initializeTeamRoundProgressRepo(gameId: string) {
         ON CONFLICT (team_id, round_id) DO NOTHING
     `;
 
-  await pool.query(query, [gameId]);
   const result = await pool.query(query, [gameId]);
-  console.log("INIT ROWS INSERTED:", result.rowCount);
 }
 
 export async function initializeTeamRoundProgressForTeamRepo(teamId: string, gameId: string) {
@@ -45,7 +43,6 @@ export async function initializeTeamRoundProgressForTeamRepo(teamId: string, gam
 }
 
 export async function activateFirstRoundRepo(teamId: string) {
-  console.log(`Activating first round for team ${teamId}`);
 
   // Try to activate round 1 (LOCKED → ACTIVE)
   const activateQuery = `
@@ -63,7 +60,6 @@ export async function activateFirstRoundRepo(teamId: string) {
   `;
 
   const result = await pool.query(activateQuery, [teamId]);
-  console.log("ACTIVATE ROUND 1 RESULT:", result.rowCount);
 
   if (result.rowCount && result.rowCount > 0) {
     return result.rows[0].round_id;
@@ -272,4 +268,129 @@ export async function activateNextRoundRepo(teamId: string, roundNumber: number,
   `;
 
   await pool.query(updateQuery, [teamId, gameId, roundNumber + 1]);
+}
+
+/**
+ * Atomically: insert submission + complete round + advance to next round.
+ * All in one transaction so submission and progress are always consistent.
+ * Returns { advanced: boolean } — false means a concurrent request already completed this round.
+ */
+export async function submitAndAdvanceRoundRepo(
+  teamId: string,
+  roundId: string,
+  roundNumber: number,
+  gameId: string,
+  answer: string,
+  isCorrect: boolean,
+  evaluationResult: string
+): Promise<{ advanced: boolean }> {
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // 1. Record the submission
+    await client.query(
+      `INSERT INTO submissions
+         (team_id, round_id, submitted_answer, is_correct, evaluation_result, evaluated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [teamId, roundId, answer, isCorrect, evaluationResult]
+    );
+
+    // 2. Complete current round (status guard prevents double-completion)
+    const completeResult = await client.query(
+      `UPDATE team_round_progress
+       SET status = 'COMPLETED', completed_at = NOW()
+       WHERE team_id = $1
+         AND round_id = $2
+         AND status = 'ACTIVE'`,
+      [teamId, roundId]
+    );
+
+    if (completeResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return { advanced: false };
+    }
+
+    // 3. Activate next round (no-op for last round)
+    await client.query(
+      `UPDATE team_round_progress
+       SET status = 'ACTIVE', started_at = NOW()
+       WHERE team_id = $1
+         AND round_id = (
+           SELECT id FROM rounds
+           WHERE game_id = $2
+             AND round_number = $3
+           LIMIT 1
+         )`,
+      [teamId, gameId, roundNumber + 1]
+    );
+
+    await client.query("COMMIT");
+    return { advanced: true };
+
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Atomically: insert wrong submission + decrement attempts in one transaction.
+ * The UPDATE uses WHERE status='ACTIVE' AND attempt_count < 3 to prevent
+ * races with concurrent submissions.
+ * Returns { attemptCount } or null if the round was no longer active/attempts exhausted.
+ */
+export async function submitAndDecrementAttemptRepo(
+  teamId: string,
+  roundId: string,
+  answer: string,
+  evaluationResult: string
+): Promise<{ attemptCount: number } | null> {
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // 1. Record the submission
+    await client.query(
+      `INSERT INTO submissions
+         (team_id, round_id, submitted_answer, is_correct, evaluation_result, evaluated_at)
+       VALUES ($1, $2, $3, false, $4, NOW())`,
+      [teamId, roundId, answer, evaluationResult]
+    );
+
+    // 2. Atomically increment attempt_count, auto-fail at 3
+    const result = await client.query(
+      `UPDATE team_round_progress
+       SET
+         attempt_count = attempt_count + 1,
+         status = CASE WHEN attempt_count + 1 >= 3 THEN 'FAILED' ELSE status END,
+         failed_at = CASE WHEN attempt_count + 1 >= 3 THEN NOW() ELSE failed_at END
+       WHERE team_id = $1
+         AND round_id = $2
+         AND status = 'ACTIVE'
+         AND attempt_count < 3
+       RETURNING attempt_count`,
+      [teamId, roundId]
+    );
+
+    if (result.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    await client.query("COMMIT");
+    return { attemptCount: result.rows[0].attempt_count };
+
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
 }

@@ -1,14 +1,13 @@
 import {
     activateFirstRoundRepo,
-    completeAndAdvanceRoundRepo,
-    decreaseAttemptRepo,
     getCurrentRoundRepo,
     getRoundAttemptStatusRepo,
-    initializeTeamRoundProgressRepo
+    initializeTeamRoundProgressRepo,
+    submitAndAdvanceRoundRepo,
+    submitAndDecrementAttemptRepo
 } from "@/lib/repositories/teamRoundProgressRepo";
 import { activateGameRepo, getGameByIdRepo } from "@/lib/repositories/gameRepo";
 import { getRoundContextRepo } from "@/lib/repositories/roundsRepo";
-import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 import { getOrResolvePuzzle } from "@/lib/digitManipulation/cache";
 import { GeneratorConfig } from "@/lib/digitManipulation/generator";
 import { Operation } from "@/lib/digitManipulation/types";
@@ -162,10 +161,7 @@ export async function submitDigitManipulationAnswer(
     roundNumber: number,
     gameId: string
 ) {
-    // 1. Rate limit
-    checkRateLimit(teamId);
-
-    // 2. Input validation
+    // 1. Input validation
     validateSubmissionAnswer(answer);
 
     // 3. Config validation
@@ -194,23 +190,16 @@ export async function submitDigitManipulationAnswer(
     const { answer: correctAnswer } = getOrResolvePuzzle(teamId, roundId, config);
 
     const isCorrect = BigInt(answer.trim()) === correctAnswer;
+    const evaluation = isCorrect ? "CORRECT" : `WRONG: expected ${correctAnswer}`;
 
-    // 7. Record submission
-    await insertSubmissionRepo(
-        teamId,
-        roundId,
-        answer.trim(),
-        isCorrect,
-        isCorrect ? "CORRECT" : `WRONG: expected ${correctAnswer}`
-    );
-
-    // 8. State transition
+    // 7+8. Atomic: record submission + state transition in one transaction
     if (isCorrect) {
-        // Atomic: complete current round + activate next (concurrency-safe)
-        const advanced = await completeAndAdvanceRoundRepo(teamId, roundId, roundNumber, gameId);
+        const { advanced } = await submitAndAdvanceRoundRepo(
+            teamId, roundId, roundNumber, gameId,
+            answer.trim(), true, evaluation
+        );
 
         if (!advanced) {
-            // Concurrent request already completed this round — idempotent
             console.log(`[DIGIT] Team ${teamId} round ${roundNumber}: concurrent completion (no-op)`);
             throw new Error("ROUND_ALREADY_COMPLETED");
         }
@@ -219,9 +208,16 @@ export async function submitDigitManipulationAnswer(
         return { correct: true, attemptsLeft: MAX_ATTEMPTS };
     }
 
-    // Wrong answer
-    const newAttemptCount = await decreaseAttemptRepo(teamId, roundId);
-    const attemptsLeft = computeAttemptsLeft(newAttemptCount);
+    // Wrong answer — atomic: insert submission + decrement attempts
+    const result = await submitAndDecrementAttemptRepo(
+        teamId, roundId, answer.trim(), evaluation
+    );
+
+    if (!result) {
+        throw new Error("MAX_ATTEMPTS_REACHED");
+    }
+
+    const attemptsLeft = computeAttemptsLeft(result.attemptCount);
 
     if (attemptsLeft === 0) {
         console.log(`[DIGIT] Team ${teamId} exhausted attempts on round ${roundNumber} ✗`);

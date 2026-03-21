@@ -8,7 +8,7 @@ export async function getAllTeamsProgressService() {
             return [];
         }
 
-        // Group and structure data for frontend consumption
+        // Group rounds under each team for frontend consumption
         const teamsMap = new Map<string, any>();
 
         for (const row of rawData) {
@@ -18,6 +18,13 @@ export async function getAllTeamsProgressService() {
                 teamsMap.set(teamId, {
                     teamId: row.team_id,
                     teamName: row.team_name,
+                    rounds: []
+                });
+            }
+
+            // Only add round data if the join produced a round row
+            if (row.round_number != null) {
+                teamsMap.get(teamId).rounds.push({
                     roundNumber: row.round_number,
                     status: row.status,
                     attempts: row.attempt_count,
