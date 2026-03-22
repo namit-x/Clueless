@@ -276,10 +276,18 @@ export default function TreasureHuntGame() {
                 credentials: "include",
             });
 
+            if (!res.ok) {
+                setIsGameEnded(true);
+                setIsFinished(false);
+                setIsWaiting(false);
+                setIsRoundFailed(false);
+                return;
+            }
+
             const json = await res.json();
             console.log("ROUND API: ", json);
 
-            if (!res.ok || !json.success) {
+            if (!json.success) {
                 setIsGameEnded(true);
                 setIsFinished(false);
                 setIsWaiting(false);
