@@ -8,6 +8,7 @@ import Timeline from "@/components/Timeline";
 import RulesSection from "@/components/RulesSection";
 import FAQSection from "@/components/FAQSection";
 import CTASection from "@/components/CTASection";
+import ScrollToTopButton from "@/components/ScrollToTopButton";
 
 export default function Home() {
   return (
@@ -15,12 +16,13 @@ export default function Home() {
       <HeroSection />
       <HowItWorks />
       <GamesSection />
-      <Leaderboard /> 
+      <Leaderboard />
       <PrizesSection />
       <Timeline />
       <RulesSection />
       <FAQSection />
       <CTASection />
+      <ScrollToTopButton />
     </>
   );
 }
