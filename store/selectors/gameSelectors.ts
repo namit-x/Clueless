@@ -11,6 +11,7 @@ export const selectLiveGame = (state: RootState) =>
 type DashboardGame = {
   id: string;
   name: string;
+  order_index: number;
   state: "NOT_STARTED" | "ACTIVE";
 };
 
@@ -20,6 +21,7 @@ export const selectDashboardGames = createSelector(
     games.map((g) => ({
       id: g.id ?? `locked-${g.name}`,
       name: g.name,
+      order_index: g.order_index,
       state: g.is_active ? "ACTIVE" : "NOT_STARTED" as DashboardGame["state"],
     }))
 );

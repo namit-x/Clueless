@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 type Game = {
   id: string;
   name: string;
+  order_index: number;
   state: "NOT_STARTED" | "ACTIVE";
 };
 
@@ -55,7 +56,7 @@ export default function GamesGrid({ games }: Props) {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {games.map((game, idx) => (
           <div
-            key={game.id}
+            key={game.order_index}
             className="animate-card-in"
             style={{ animationDelay: `${idx * 60}ms` }}
           >
