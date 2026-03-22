@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState,useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
+import { on } from "events";
 
 type Operation = {
   type: string;
@@ -30,6 +31,17 @@ export default function DigitManipulationGame() {
 
   // Submission result
   const [result, setResult] = useState<"correct" | "incorrect" | null>(null);
+
+    // Fail Sound Effect
+    const failSoundRef = useRef<HTMLAudioElement | null>(null);
+    useEffect(() => {
+      failSoundRef.current = new Audio("/sounds/faaaa.mp3");
+    }, []);
+    function playFail() {
+      failSoundRef.current?.pause();
+      failSoundRef.current!.currentTime = 0;
+      failSoundRef.current?.play();
+    }
 
   async function fetchCurrentRound(afterCorrect = false) {
     try {
@@ -139,6 +151,7 @@ export default function DigitManipulationGame() {
         setResult("incorrect");
         if (json.attemptsLeft !== undefined) setAttemptsLeft(json.attemptsLeft);
         if (json.status === "FAILED") setIsRoundFailed(true);
+        playFail();
       }
     } catch (err) {
       console.error("Submit error", err);

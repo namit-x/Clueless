@@ -28,6 +28,17 @@ export default function BlindCodeGame() {
   const [result, setResult] = useState<"correct" | "incorrect" | null>(null);
   const [output, setOutput] = useState<string | null>(null);
 
+  // Fail Sound Effect
+  const failSoundRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    failSoundRef.current = new Audio("/sounds/faaaa.mp3");
+  }, []);
+  function playFail() {
+    failSoundRef.current?.pause();
+    failSoundRef.current!.currentTime = 0;
+    failSoundRef.current?.play();
+  }
+
   async function fetchCurrentRound(afterCorrect = false) {
     try {
       setLoading(true);
@@ -128,6 +139,7 @@ export default function BlindCodeGame() {
         if (json.output) setOutput(json.output);
         if (json.attemptsLeft !== undefined) setAttemptsLeft(json.attemptsLeft);
         if (json.attemptsLeft === 0) setIsRoundFailed(true);
+        playFail();
       }
     } catch (err) {
       console.error("Submit error", err);

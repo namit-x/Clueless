@@ -267,6 +267,18 @@ export default function TreasureHuntGame() {
     const [showConfetti, setShowConfetti] = useState(false);
     const router = useRouter();
 
+
+    // Fail Sound Effect
+    const failSoundRef = useRef<HTMLAudioElement | null>(null);
+    useEffect(() => {
+        failSoundRef.current = new Audio("/sounds/faaaa.mp3");
+    }, []);
+    function playFail() {
+        failSoundRef.current?.pause();
+        failSoundRef.current!.currentTime = 0;
+        failSoundRef.current?.play();
+    }
+
     // ─── Fetch current round ───────────────────────────
     async function fetchCurrentRound() {
         try {
@@ -380,6 +392,7 @@ export default function TreasureHuntGame() {
     function handleWrongFlow(remaining: number) {
         setShowSuccess(false);
         setIsWrong(true);
+        playFail();
         setAttemptsLeft(remaining);
     }
 
