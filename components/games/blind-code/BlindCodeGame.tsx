@@ -32,17 +32,24 @@ export default function BlindCodeGame() {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/v1/games/current/round", { credentials: "include" });
-      const json = await res.json();
-      console.log("Fetch CUrrent Round:", json)
+      const res = await fetch("/api/v1/games/current/round", {
+        credentials: "include",
+      });
 
-      if (!res.ok || !json.success) {
-        // If we just answered correctly and there's no active round → all rounds done
-        if (afterCorrect) {
-          setIsFinished(true);
-        } else {
-          setIsGameEnded(true);
-        }
+      if (!res.ok) {
+        if (afterCorrect) setIsFinished(true);
+        else setIsGameEnded(true);
+        setIsWaiting(false);
+        setIsRoundFailed(false);
+        return;
+      }
+
+      const json = await res.json();
+      console.log("ROUND API: ", json);
+
+      if (!json.success) {
+        if (afterCorrect) setIsFinished(true);
+        else setIsGameEnded(true);
         setIsWaiting(false);
         setIsRoundFailed(false);
         return;
@@ -107,26 +114,10 @@ export default function BlindCodeGame() {
       const json = await res.json();
       console.log("SUBMIT:", json);
 
-      // NOTE for backend: submitBlindCodeAnswer should return:
-      //   status: "CORRECT" | "INCORRECT" | "FAILED" | "COMPLETED"
-      //   attemptsLeft: number
-      //   output: string  (actual stdout from Judge0)
-      // Currently returns: { success: true, correct: true | false }
-
-      const isCorrect =
-        json.status === "CORRECT" ||
-        json.status === "COMPLETED" ||
-        json.correct === true;
-
-      if (isCorrect) {
+      if (json.correct) {
         setResult("correct");
         setCode("");
         setLineCount(10);
-
-        if (json.status === "COMPLETED") {
-          setIsFinished(true);
-          return;
-        }
 
         // Re-fetch to load the next round (pass true so a failed fetch = completed)
         await fetchCurrentRound(true);
@@ -136,7 +127,7 @@ export default function BlindCodeGame() {
 
         if (json.output) setOutput(json.output);
         if (json.attemptsLeft !== undefined) setAttemptsLeft(json.attemptsLeft);
-        if (json.status === "FAILED") setIsRoundFailed(true);
+        if (json.attemptsLeft === 0) setIsRoundFailed(true);
       }
     } catch (err) {
       console.error("Submit error", err);
@@ -179,6 +170,14 @@ export default function BlindCodeGame() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+
+    // Ctrl + Enter --> Run & Submit
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleSubmit();
+    }
+
+    // Tab --> Insert spaces (4)
     if (e.key === "Tab") {
       e.preventDefault();
       const ta = textareaRef.current!;
@@ -345,9 +344,16 @@ export default function BlindCodeGame() {
           <button
             onClick={handleSubmit}
             disabled={!code.trim() || submitting}
-            className="bg-success/10 border border-success/25 text-success text-xs rounded-md px-4 py-1.5 transition-all duration-200 hover:bg-success/15 hover:border-success/35 active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="relative group bg-success/10 border border-success/25 text-success text-xs rounded-md px-4 py-1.5 transition-all duration-200 hover:bg-success/15 hover:border-success/35 active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             {submitting ? "[ running... ]" : "[ run & submit ]"}
+
+            {/* tooltip */}
+            {!submitting && (
+              <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-black/90 px-2 py-1 text-[10px] text-white opacity-0 transition group-hover:opacity-100">
+                Ctrl + Enter
+              </span>
+            )}
           </button>
         </div>
       </div>
