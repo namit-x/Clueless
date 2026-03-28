@@ -29,6 +29,7 @@ export const fetchTeamDashboardThunk = createAsyncThunk(
     }
 
     const json = await res.json();
+    console.log("[fetchTeamDashboardThunk] API response:", json);
 
     if (!json?.team) {
       return rejectWithValue("unauthorized");

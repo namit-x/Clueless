@@ -126,7 +126,14 @@ export async function submitBlindCodeAnswer(
         );
         if (!advanced) throw new Error("ROUND_ALREADY_COMPLETED");
 
-        return { correct: true };
+        return {
+            correct: true,
+            attemptsLeft: 0,
+            data: {
+                output: judgeResult.stdout ?? null,
+                error: judgeResult.stderr ?? judgeResult.compile_output ?? null
+            }
+        };
     }
 
     // Atomic: insert wrong submission + decrement attempts
@@ -138,5 +145,12 @@ export async function submitBlindCodeAnswer(
         throw new Error("MAX_ATTEMPTS_REACHED");
     }
 
-    return { correct: false, attemptsLeft: Math.max(0, 3 - result.attemptCount) };
+    return {
+        correct: false,
+        attemptsLeft: Math.max(0, 3 - result.attemptCount),
+        data: {
+            output: judgeResult.stdout ?? null,
+            error: judgeResult.stderr ?? judgeResult.compile_output ?? null
+        }
+    };
 }
