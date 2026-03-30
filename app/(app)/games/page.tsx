@@ -39,7 +39,7 @@ function GamesPageInner() {
 
   const gameComponents: Record<string, JSX.Element> = {
     "Treasure Hunt": <TreasureHuntGame />,
-    "Quiz": <QuizGame />,
+    "Quiz V2": <QuizGame />,
     "Digit Manipulation": <DigitManipulationGame />,
     "Blind Code": <BlindCodeGame />,
   };
