@@ -38,8 +38,8 @@ const Navbar = () => {
         }`}
     >
       <div className="section-container flex items-center justify-between h-16 sm:h-18">
-        <a href="/" className="font-display text-sm sm:text-base font-bold text-primary tracking-wider neon-text">
-          AI × IoT Code Arena 2026
+        <a href="/" className="font-display text-xl sm:text-2xl font-bold text-primary tracking-wider neon-text">
+          ClueLess
         </a>
 
         {/* Desktop */}

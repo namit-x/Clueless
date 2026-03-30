@@ -2,7 +2,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import ScrollReveal from "./ScrollReveal";
 
 const rules = [
-  { q: "Team Size Rules", a: "Each team must consist of 2–4 members. Solo participation is not allowed. All members must be from the same college." },
+  { q: "Team Size Rules", a: "Each team must consist of 4 members. Solo participation is not allowed. All members must be from the same college." },
   { q: "Submission Rules", a: "Answers must be submitted within the given time frame. Late submissions will not be accepted. Each round has its own submission portal." },
   { q: "Ranking Criteria", a: "Teams are ranked based on accuracy and response time. In case of a tie, the faster submission wins." },
   { q: "Disqualification Policy", a: "Any form of cheating, plagiarism, or use of unauthorized tools will result in immediate disqualification." },
