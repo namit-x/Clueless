@@ -40,6 +40,31 @@ export default function BlindCodeGame() {
     failSoundRef.current?.play();
   }
 
+  // Typing Sound Effects
+  const keySoundsRef = useRef<HTMLAudioElement[]>([]);
+  const keyIndexRef = useRef(0);
+  const spaceSoundsRef = useRef<HTMLAudioElement[]>([]);
+  const spaceIndexRef = useRef(0);
+  useEffect(() => {
+    keySoundsRef.current = Array.from({ length: 6 }, () => new Audio("/sounds/kay_press.mp3"));
+    spaceSoundsRef.current = Array.from({ length: 3 }, () => new Audio("/sounds/space_bar.mp3"));
+  }, []);
+  function playTypingSound(key: string) {
+    if (key === " ") {
+      const pool = spaceSoundsRef.current;
+      const sound = pool[spaceIndexRef.current % pool.length];
+      sound.currentTime = 0;
+      sound.play();
+      spaceIndexRef.current++;
+    } else {
+      const pool = keySoundsRef.current;
+      const sound = pool[keyIndexRef.current % pool.length];
+      sound.currentTime = 0;
+      sound.play();
+      keyIndexRef.current++;
+    }
+  }
+
   async function fetchCurrentRound(afterCorrect = false) {
     try {
       setLoading(true);
@@ -201,6 +226,11 @@ export default function BlindCodeGame() {
       setCode(newVal);
       setTimeout(() => { ta.selectionStart = ta.selectionEnd = s + 4; }, 0);
     }
+
+    // Play typing sound for printable keys, Enter, Backspace, Tab, Space, Arrow keys
+    if (e.key.length === 1 || ["Enter", "Backspace", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+      playTypingSound(e.key);
+    }
   };
 
   // ── UI states ──────────────────────────────────────────────────────────────
@@ -319,7 +349,7 @@ export default function BlindCodeGame() {
             spellCheck={false}
             disabled={submitting}
             placeholder={`// write your Java code here\npublic class Main {\n    public static void main(String[] args) {\n        // your code\n    }\n}`}
-            className="flex-1 bg-transparent text-foreground text-[13px] leading-[21px] p-4 outline-none resize-none placeholder:text-muted-foreground/20 caret-success disabled:opacity-50"
+            className="flex-1 bg-transparent text-transparent text-[13px] leading-[21px] p-4 outline-none resize-none placeholder:text-muted-foreground/20 caret-success disabled:opacity-50 selection:bg-transparent"
           />
         </div>
       </div>
