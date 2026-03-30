@@ -53,7 +53,7 @@ export default function GamesGrid({ games }: Props) {
       </div>
 
       {/* Grid */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-8 grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto">
         {games.map((game, idx) => (
           <div
             key={game.order_index}

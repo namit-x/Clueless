@@ -10,7 +10,7 @@ export default function GameCard({ name, state, onPlay }: Props) {
   return (
     <div
       className={`
-        group relative rounded-2xl p-5 transition-all duration-300 ease-out overflow-hidden
+        group relative rounded-2xl p-8 transition-all duration-300 ease-out overflow-hidden h-52
         ${
           state === "ACTIVE"
             ? "bg-gradient-to-br from-white/[0.05] to-primary/[0.03] border border-primary/20 neon-glow-subtle hover:neon-glow hover:border-primary/30"
@@ -43,7 +43,7 @@ export default function GameCard({ name, state, onPlay }: Props) {
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.06]">
                 <span className="w-2 h-2 rounded-full bg-white/20" />
                 <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/30">
-                  Waiting
+                  Inactive
                 </span>
               </span>
             )}
@@ -51,7 +51,7 @@ export default function GameCard({ name, state, onPlay }: Props) {
 
           {/* Game name */}
           <h2
-            className={`font-display text-lg font-semibold tracking-tight transition-colors duration-300 ${
+            className={`font-display text-xl font-semibold tracking-tight transition-colors duration-300 ${
               state === "ACTIVE"
                 ? "text-white/90 group-hover:text-white"
                 : "text-white/35"
@@ -61,11 +61,11 @@ export default function GameCard({ name, state, onPlay }: Props) {
           </h2>
 
           {/* Subtitle */}
-          {state === "NOT_STARTED" && (
+          {/* {state === "NOT_STARTED" && (
             <p className="mt-1.5 text-sm text-white/20">
               Game not started yet
             </p>
-          )}
+          )} */}
         </div>
 
         {/* Play button */}
