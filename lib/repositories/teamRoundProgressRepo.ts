@@ -394,3 +394,166 @@ export async function submitAndDecrementAttemptRepo(
     client.release();
   }
 }
+
+// ─── Quiz V2: metadata + configurable attempt limit ─────────────────────────
+
+/**
+ * Bulk-set metadata on team_round_progress rows (used during Quiz V2 team start
+ * to assign per-team ASCII numbers to each round).
+ * Only sets metadata where it is currently NULL (idempotent on retry).
+ */
+export async function bulkSetMetadataRepo(
+  updates: Array<{ teamId: string; roundId: string; metadata: object }>
+) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    for (const u of updates) {
+      await client.query(
+        `UPDATE team_round_progress
+         SET metadata = $3
+         WHERE team_id = $1 AND round_id = $2 AND metadata IS NULL`,
+        [u.teamId, u.roundId, JSON.stringify(u.metadata)]
+      );
+    }
+    await client.query("COMMIT");
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getRoundMetadataRepo(teamId: string, roundId: string) {
+  const result = await pool.query(
+    `SELECT metadata FROM team_round_progress WHERE team_id = $1 AND round_id = $2`,
+    [teamId, roundId]
+  );
+  return result.rows[0]?.metadata ?? null;
+}
+
+export async function updateMetadataRevealedRepo(teamId: string, roundId: string) {
+  await pool.query(
+    `UPDATE team_round_progress
+     SET metadata = jsonb_set(COALESCE(metadata, '{}'), '{revealed}', 'true')
+     WHERE team_id = $1 AND round_id = $2`,
+    [teamId, roundId]
+  );
+}
+
+/**
+ * Get all revealed ASCII numbers for a team in a game (rounds where the team
+ * answered correctly and metadata.revealed = true).
+ */
+export async function getRevealedNumbersRepo(teamId: string, gameId: string) {
+  const result = await pool.query(
+    `SELECT trp.metadata, r.round_number
+     FROM team_round_progress trp
+     JOIN rounds r ON trp.round_id = r.id
+     WHERE trp.team_id = $1
+       AND r.game_id = $2
+       AND trp.status = 'COMPLETED'
+       AND trp.metadata IS NOT NULL
+       AND (trp.metadata->>'revealed')::boolean = true
+     ORDER BY r.round_number`,
+    [teamId, gameId]
+  );
+  return result.rows.map((r: any) => ({
+    roundNumber: r.round_number as number,
+    asciiNumber: r.metadata.ascii_number as number,
+  }));
+}
+
+/**
+ * Check whether every round for a team in a game is COMPLETED or FAILED.
+ */
+export async function areAllRoundsDoneRepo(teamId: string, gameId: string): Promise<boolean> {
+  const result = await pool.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE trp.status IN ('COMPLETED', 'FAILED')) AS done,
+       COUNT(*) AS total
+     FROM team_round_progress trp
+     JOIN rounds r ON trp.round_id = r.id
+     WHERE trp.team_id = $1 AND r.game_id = $2`,
+    [teamId, gameId]
+  );
+  const { done, total } = result.rows[0];
+  return parseInt(done) === parseInt(total) && parseInt(total) > 0;
+}
+
+/**
+ * Atomically: insert wrong submission + decrement attempts (configurable max)
+ * + advance to next round if attempts exhausted.
+ *
+ * Used by games where failed rounds still unlock the next round (e.g. Quiz V2).
+ */
+export async function submitDecrementAndAdvanceRepo(
+  teamId: string,
+  roundId: string,
+  answer: string,
+  evaluationResult: string,
+  maxAttempts: number,
+  roundNumber: number,
+  gameId: string
+): Promise<{ attemptCount: number; failed: boolean } | null> {
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // 1. Record wrong submission
+    await client.query(
+      `INSERT INTO submissions
+         (team_id, round_id, submitted_answer, is_correct, evaluation_result, evaluated_at)
+       VALUES ($1, $2, $3, false, $4, NOW())`,
+      [teamId, roundId, answer, evaluationResult]
+    );
+
+    // 2. Increment attempts, auto-fail at maxAttempts
+    const result = await client.query(
+      `UPDATE team_round_progress
+       SET
+         attempt_count = attempt_count + 1,
+         status = CASE WHEN attempt_count + 1 >= $3 THEN 'FAILED' ELSE status END,
+         failed_at = CASE WHEN attempt_count + 1 >= $3 THEN NOW() ELSE failed_at END
+       WHERE team_id = $1
+         AND round_id = $2
+         AND status = 'ACTIVE'
+         AND attempt_count < $3
+       RETURNING attempt_count`,
+      [teamId, roundId, maxAttempts]
+    );
+
+    if (result.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    const attemptCount = result.rows[0].attempt_count;
+    const failed = attemptCount >= maxAttempts;
+
+    // 3. If failed, still advance to next round (no-op for the last round)
+    if (failed) {
+      await client.query(
+        `UPDATE team_round_progress
+         SET status = 'ACTIVE', started_at = NOW()
+         WHERE team_id = $1
+           AND round_id = (
+             SELECT id FROM rounds
+             WHERE game_id = $2 AND round_number = $3
+             LIMIT 1
+           )`,
+        [teamId, gameId, roundNumber + 1]
+      );
+    }
+
+    await client.query("COMMIT");
+    return { attemptCount, failed };
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
+}

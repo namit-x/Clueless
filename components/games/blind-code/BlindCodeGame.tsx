@@ -27,6 +27,7 @@ export default function BlindCodeGame() {
   // Submission result
   const [result, setResult] = useState<"correct" | "incorrect" | null>(null);
   const [output, setOutput] = useState<string | null>(null);
+  const [executionError, setExecutionError] = useState<string | null>(null);
 
   // Fail Sound Effect
   const failSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -114,6 +115,7 @@ export default function BlindCodeGame() {
       setSubmitting(true);
       setResult(null);
       setOutput(null);
+      setExecutionError(null);
 
       const res = await fetch(`/api/v1/rounds/${currentRound.id}/submissions`, {
         method: "POST",
@@ -136,7 +138,8 @@ export default function BlindCodeGame() {
       } else {
         setResult("incorrect");
 
-        if (json.output) setOutput(json.output);
+        if (json.data?.output) setOutput(json.data.output);
+        if (json.data?.error) setExecutionError(json.data.error);
         if (json.attemptsLeft !== undefined) setAttemptsLeft(json.attemptsLeft);
         if (json.attemptsLeft === 0) setIsRoundFailed(true);
         playFail();
@@ -321,11 +324,21 @@ export default function BlindCodeGame() {
         </div>
       </div>
 
-      {/* Output panel — shown when code output is returned */}
-      {output && (
-        <div className="border-t border-border/60 px-6 py-3 shrink-0">
-          <div className="text-[10px] text-muted-foreground/50 uppercase tracking-widest mb-1">your output</div>
-          <div className="text-[12px] text-muted-foreground break-all leading-relaxed">{output}</div>
+      {/* Output panel — shown when code output or error is returned */}
+      {(output || executionError) && (
+        <div className="border-t border-border/60 px-6 py-3 shrink-0 flex flex-col gap-2">
+          {output && (
+            <div>
+              <div className="text-[10px] text-muted-foreground/50 uppercase tracking-widest mb-1">your output</div>
+              <div className="text-[12px] text-muted-foreground break-all leading-relaxed">{output}</div>
+            </div>
+          )}
+          {executionError && (
+            <div>
+              <div className="text-[10px] text-destructive/50 uppercase tracking-widest mb-1">error</div>
+              <div className="text-[12px] text-destructive/80 break-all leading-relaxed">{executionError}</div>
+            </div>
+          )}
         </div>
       )}
 

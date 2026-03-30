@@ -17,6 +17,19 @@ export async function getRoundNumberRepo(roundId: string) {
     return result.rows[0].round_number;
 }
 
+export async function getRoundsForGameRepo(gameId: string) {
+
+    const result = await pool.query(
+        `SELECT id, round_number
+         FROM rounds
+         WHERE game_id = $1
+         ORDER BY round_number`,
+        [gameId]
+    );
+
+    return result.rows;
+}
+
 export async function getRoundContextRepo(roundId: string) {
 
     const query = `

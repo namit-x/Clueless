@@ -5,6 +5,7 @@ import { startTreasureHuntGame } from "./games/treasureHuntService";
 import { startBlindCodeGame } from "./games/blindCodeService";
 import { startQuizGame } from "./games/quizService";
 import { startDigitManipulationGame } from "./games/digitManipulationService";
+import { startQuizV2Game } from "./games/quizV2Service";
 import { currentRoundHandlers, teamStartHandlers } from "./games/gameplayHandlers";
 import { createTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
 import { initializeTeamRoundProgressForTeamRepo } from "@/lib/repositories/teamRoundProgressRepo";
@@ -28,6 +29,7 @@ const gameHandlers: Record<string, (gameId: string) => Promise<any>> = {
     "Blind Code": startBlindCodeGame,
     "Quiz": startQuizGame,
     "Digit Manipulation": startDigitManipulationGame,
+    "Quiz V2": startQuizV2Game,
 };
 
 export async function createGame(data: any) {
