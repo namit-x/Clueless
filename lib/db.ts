@@ -1,21 +1,45 @@
 import { Pool } from "pg";
 
+const requiredEnv = [
+    "PG_USER",
+    "PG_HOST",
+    "PG_DATABASE",
+    "PG_PASSWORD",
+];
+
+for (const key of requiredEnv) {
+    if (!process.env[key]) {
+        throw new Error(`Missing environment variable: ${key}`);
+    }
+}
+
+// Debug (remove after confirming)
+console.log("DB CONFIG:", {
+    user: process.env.PG_USER,
+    host: process.env.PG_HOST,
+    database: process.env.PG_DATABASE,
+});
+
 export const pool = new Pool({
-    user: "postgres.mawalvwezsqulvzmxdck",
-    host: "aws-1-ap-southeast-2.pooler.supabase.com",
-    database: "postgres",
-    password: "Clueless!@_JAIN",
-    port: 5432,
+    user: process.env.PG_USER,
+    host: process.env.PG_HOST,
+    database: process.env.PG_DATABASE,
+    password: process.env.PG_PASSWORD,
+    port: Number(process.env.PG_PORT) || 5432,
     ssl: {
         rejectUnauthorized: false,
     },
-    // Optimize pool for serverless environment
-    max: 5,                    // Small pool for single-process Vercel
-    idleTimeoutMillis: 30000,  // Close idle connections after 30s
-    connectionTimeoutMillis: 5000, // Fail fast on connection issues
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
 });
 
-// Pre-warm the pool connection on module load for faster cold starts
-pool.query("SELECT 1").catch(err => {
-    console.error("[DB] Pool initialization warning:", err.message);
-});
+// TEMP: test DB connection
+(async () => {
+    try {
+        const res = await pool.query("SELECT NOW()");
+        console.log("DB Connected:", res.rows[0]);
+    } catch (err) {
+        console.error("DB ERROR:", err);
+    }
+})();
