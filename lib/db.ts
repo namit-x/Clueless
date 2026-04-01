@@ -13,12 +13,6 @@ for (const key of requiredEnv) {
     }
 }
 
-// Debug (remove after confirming)
-console.log("DB CONFIG:", {
-    user: process.env.PG_USER,
-    host: process.env.PG_HOST,
-    database: process.env.PG_DATABASE,
-});
 
 export const pool = new Pool({
     user: process.env.PG_USER,

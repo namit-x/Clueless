@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
+import { FEATURES } from "@/lib/features";
 
 const navLinks = [
   { label: "About", href: "/#how-it-works" },
@@ -55,7 +56,7 @@ const Navbar = () => {
           ))}
 
           {hydrated ? (
-            user ? (
+            user && FEATURES.DASHBOARD ? (
               <a
                 href={dashboardHref}
                 className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-sm neon-glow hover:neon-glow-strong transition-all duration-300"
@@ -64,10 +65,10 @@ const Navbar = () => {
               </a>
             ) : (
               <a
-                href="/login"
+                href={FEATURES.LOGIN ? "/login" : "/register"}
                 className="px-5 py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-sm neon-glow hover:neon-glow-strong transition-all duration-300"
               >
-                Login
+                {FEATURES.LOGIN ? "Login" : "Register"}
               </a>
             )
           ) : (
@@ -101,7 +102,7 @@ const Navbar = () => {
             ))}
 
             {hydrated ? (
-              user ? (
+              user && FEATURES.DASHBOARD ? (
                 <a
                   href={dashboardHref}
                   className="mt-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-center neon-glow"
@@ -111,11 +112,11 @@ const Navbar = () => {
                 </a>
               ) : (
                 <a
-                  href="/login"
+                  href={FEATURES.LOGIN ? "/login" : "/register"}
                   className="mt-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-center neon-glow"
                   onClick={() => setMobileOpen(false)}
                 >
-                  Login
+                  {FEATURES.LOGIN ? "Login" : "Register"}
                 </a>
               )
             ) : (

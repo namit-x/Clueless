@@ -1,3 +1,5 @@
+import { FEATURES } from "@/lib/features";
+
 const Footer = () => (
   <footer className="border-t border-border bg-card/50">
     <div className="section-container py-16">
@@ -11,7 +13,9 @@ const Footer = () => (
           <h4 className="font-display text-sm font-bold mb-4 tracking-wider">Quick Links</h4>
           <div className="flex flex-col gap-2 text-sm text-muted-foreground">
             <a href="/register" className="hover:text-primary transition-colors">Register</a>
-            <a href="/login" className="hover:text-primary transition-colors">Login</a>
+            {FEATURES.LOGIN && (
+              <a href="/login" className="hover:text-primary transition-colors">Login</a>
+            )}
             <a href="/#rules" className="hover:text-primary transition-colors">Rules</a>
             <a href="#" className="hover:text-primary transition-colors">Contact</a>
           </div>

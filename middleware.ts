@@ -1,14 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { FEATURES } from "@/lib/features";
 
 // -------------------------------------------------------------------
-// Session cookie name (matches lib/cookies.ts and middleware/verifyToken.ts)
+// Session cookie name
 // -------------------------------------------------------------------
 const SESSION_COOKIE = "session";
 
 // -------------------------------------------------------------------
-// JWT verification helper — uses jose (edge-compatible) with the same
-// HS256 secret used in lib/auth.ts for signing.
+// Feature-flag route blocking maps
+// -------------------------------------------------------------------
+
+/** Page routes that are blocked when the corresponding feature is disabled. */
+const BLOCKED_PAGE_ROUTES: { pattern: RegExp; feature: keyof typeof FEATURES }[] = [
+    { pattern: /^\/login$/, feature: "LOGIN" },
+    { pattern: /^\/dashboard(\/|$)/, feature: "DASHBOARD" },
+    { pattern: /^\/games(\/|$)/, feature: "GAMES" },
+    { pattern: /^\/admin(\/|$)/, feature: "ADMIN" },
+];
+
+/** API routes that are blocked when the corresponding feature is disabled. */
+const BLOCKED_API_ROUTES: { pattern: RegExp; feature: keyof typeof FEATURES }[] = [
+    { pattern: /^\/api\/auth\/login(\/|$)/, feature: "LOGIN" },
+    { pattern: /^\/api\/auth\/logout(\/|$)/, feature: "LOGOUT" },
+    { pattern: /^\/api\/auth\/session(\/|$)/, feature: "LOGIN" },
+    { pattern: /^\/api\/game(\/|$)/, feature: "GAMES" },
+    { pattern: /^\/api\/v1\/games(\/|$)/, feature: "GAMES" },
+    { pattern: /^\/api\/v1\/rounds(\/|$)/, feature: "GAMES" },
+    { pattern: /^\/api\/v1\/teams(\/|$)/, feature: "DASHBOARD" },
+    { pattern: /^\/api\/team\/dashboard(\/|$)/, feature: "DASHBOARD" },
+    { pattern: /^\/api\/admin(\/|$)/, feature: "ADMIN" },
+    { pattern: /^\/api\/v1\/admin(\/|$)/, feature: "ADMIN" },
+    { pattern: /^\/api\/dashboard(\/|$)/, feature: "DASHBOARD" },
+];
+
+// -------------------------------------------------------------------
+// JWT verification helper
 // -------------------------------------------------------------------
 type TokenPayload = {
     role?: string;
@@ -26,7 +53,6 @@ async function verifySessionToken(
         const { payload } = await jwtVerify(token, secret, {
             algorithms: ["HS256"],
         });
-        // Require a sessionId to consider the token valid (same check as verifyToken.ts)
         if (!payload.sessionId) return null;
         return payload as TokenPayload;
     } catch {
@@ -41,55 +67,84 @@ export async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
     // ---------------------------------------------------------------
-    // 1. Read & verify the session cookie (shared across all checks)
+    // 1. Feature-flag: block disabled API routes with 403 JSON
+    // ---------------------------------------------------------------
+    if (pathname.startsWith("/api/")) {
+        for (const rule of BLOCKED_API_ROUTES) {
+            if (rule.pattern.test(pathname) && !FEATURES[rule.feature]) {
+                return NextResponse.json(
+                    { error: "This feature is not available yet." },
+                    { status: 403 }
+                );
+            }
+        }
+        // API routes that aren't blocked pass through (no auth check here;
+        // individual route handlers do their own auth).
+        return NextResponse.next();
+    }
+
+    // ---------------------------------------------------------------
+    // 2. Feature-flag: block disabled page routes → redirect to /
+    // ---------------------------------------------------------------
+    for (const rule of BLOCKED_PAGE_ROUTES) {
+        if (rule.pattern.test(pathname) && !FEATURES[rule.feature]) {
+            return NextResponse.redirect(new URL("/", req.url));
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // 3. Read & verify the session cookie
     // ---------------------------------------------------------------
     const token = req.cookies.get(SESSION_COOKIE)?.value;
     const payload = token ? await verifySessionToken(token) : null;
 
     // ---------------------------------------------------------------
-    // 2. Auth pages (/login, /register) — redirect away if already
-    //    authenticated so users don't see login forms again.
+    // 4. Auth pages (/login, /register) — redirect if already logged in,
+    //    but only when the destination feature is actually enabled.
     // ---------------------------------------------------------------
     if (pathname === "/login" || pathname === "/register") {
         if (payload) {
             const dest =
                 payload.role === "admin" ? "/admin/dashboard" : "/dashboard";
-            return NextResponse.redirect(new URL(dest, req.url));
+            const destFeature: keyof typeof FEATURES =
+                payload.role === "admin" ? "ADMIN" : "DASHBOARD";
+
+            // Only redirect to dashboard if that feature is live;
+            // otherwise let them stay on the auth page.
+            if (FEATURES[destFeature]) {
+                return NextResponse.redirect(new URL(dest, req.url));
+            }
         }
-        // Not authenticated — let them through to the auth page
         return NextResponse.next();
     }
 
     // ---------------------------------------------------------------
-    // 3. Admin pages (/admin/*) — must be an authenticated admin
+    // 5. Admin pages (/admin/*) — must be an authenticated admin
     // ---------------------------------------------------------------
     if (pathname.startsWith("/admin")) {
         if (!payload || payload.role !== "admin") {
-            return NextResponse.redirect(new URL("/login", req.url));
+            const loginDest = FEATURES.LOGIN ? "/login" : "/";
+            return NextResponse.redirect(new URL(loginDest, req.url));
         }
         return NextResponse.next();
     }
 
     // ---------------------------------------------------------------
-    // 4. Team pages (/dashboard, /games) — must be an authenticated team
+    // 6. Team pages (/dashboard, /games) — must be an authenticated team
     // ---------------------------------------------------------------
     if (pathname === "/dashboard" || pathname.startsWith("/games")) {
         if (!payload || payload.role !== "team") {
-            return NextResponse.redirect(new URL("/login", req.url));
+            const loginDest = FEATURES.LOGIN ? "/login" : "/";
+            return NextResponse.redirect(new URL(loginDest, req.url));
         }
         return NextResponse.next();
     }
 
-    // ---------------------------------------------------------------
-    // 5. Everything else matched by the config — allow through
-    // ---------------------------------------------------------------
     return NextResponse.next();
 }
 
 // -------------------------------------------------------------------
-// Matcher — only run middleware on pages that need auth checks.
-// Static files (_next, favicon, images, sounds) and API routes are
-// excluded so they always pass through without overhead.
+// Matcher — run middleware on auth-checked pages AND all API routes
 // -------------------------------------------------------------------
 export const config = {
     matcher: [
@@ -98,5 +153,6 @@ export const config = {
         "/admin/:path*",
         "/dashboard",
         "/games/:path*",
+        "/api/:path*",
     ],
 };
