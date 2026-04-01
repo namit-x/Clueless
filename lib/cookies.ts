@@ -5,7 +5,7 @@ export function deleteSessionCookie(response: NextResponse) {
         name: "session",
         value: "",
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         path: "/",
         expires: new Date(0), // forces deletion
