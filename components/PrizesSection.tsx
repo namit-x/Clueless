@@ -1,7 +1,7 @@
 import ScrollReveal from "./ScrollReveal";
 
 const prizes = [
-  { icon: "🥇", place: "First Prize", reward: "₹4000", glow: true },
+  { icon: "🥇", place: "First Prize", reward: "₹4000", glow: false },
   { icon: "🥈", place: "Second Prize", reward: "₹3000", glow: false },
   { icon: "🥉", place: "Third Prize", reward: "₹2000", glow: false },
 ];

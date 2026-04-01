@@ -1,8 +1,8 @@
 import ScrollReveal from "./ScrollReveal";
 
 const games = [
-  { icon: "🗺️", title: "Treasure Hunt"},
-  { icon: "🔢", title: "Digit Manipulation" },
+  { icon: "🗺️", title: "Find the Clue"},
+  { icon: "🔢", title: "Calculate the Clue" },
   { icon: "💻", title: "Jumbled ASCII"},
   { icon: "🔮", title: "Blind Code"},
 ];

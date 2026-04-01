@@ -2,9 +2,9 @@ import ScrollReveal from "./ScrollReveal";
 
 const events = [
   { title: "Registration Opens", date: "April 01", icon: "📝" },
-  { title: "Event Day", date: "April 09", icon: "🚀" },
-  { title: "Final Round", date: "April 09", icon: "⚡" },
-  { title: "Winner Announcement", date: "April 09", icon: "🏆" },
+  { title: "Registration Closes", date: "April 05", icon: "🔒" },
+  { title: "Event Day", date: "April 09", icon: "⚡" },
+  { title: "Prize Distribution", date: "April 09", icon: "🏆" },
 ];
 
 const Timeline = () => (

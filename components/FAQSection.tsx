@@ -6,8 +6,8 @@ const faqs = [
   // { q: "Can we use mobile devices?", a: "No. Only laptops or desktops are allowed during the event. One device per team." },
   // { q: "What happens if we refresh the page?", a: "Your progress is auto-saved. Refreshing the page will not affect your submissions or timer." },
   { q: "How is ranking calculated?", a: "Ranking is based on accuracy first, then response time. The fastest correct answer wins in case of a tie." },
-  { q: "Is internet provided?", a: "Yes but Jain WiFi. So rely on it on your own risk." },
-  { q: "Are we supposed to bring Extention Cords?", a: "Yes, Our college is Gareeb" },
+  { q: "Is internet provided?", a: "Yes but Jain WiFi, so rely on it at your own risk." },
+  { q: "Are we supposed to bring Extention Cords?", a: "Yes, Our college is Gareeb." },
 ];
   
   const FAQSection = () => (

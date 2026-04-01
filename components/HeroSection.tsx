@@ -15,7 +15,7 @@ const HeroSection = () => {
 
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
         <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-wider mb-6 animate-fade-up">
-          <span className="block text-base sm:text-lg md:text-xl lg:text-2xl font-medium tracking-normal my-3">
+          {/* <span className="block text-base sm:text-lg md:text-xl lg:text-2xl font-medium tracking-normal my-3">
             <span className="font-display font-extrabold text-2xl sm:text-4xl" style={{ color: "#8fff00" }}>Zigbee</span>
             <span className="text-muted-foreground"> and </span>
             <span className="font-display font-extrabold text-2xl sm:text-4xl" style={{ color: "#E9E4D4" }}>
@@ -26,7 +26,7 @@ const HeroSection = () => {
             <span className="text-muted-foreground"> Club </span>
             <br />
             <span className="font-bold text-2xl sm:text-4xl" style={{ fontFamily: '"Times New Roman", Times, serif' }}>Presents</span>
-          </span>
+          </span> */}
           <br />
           {/* <span className="text-primary neon-text">AI × IoT</span> */}
           {/* <br /> */}

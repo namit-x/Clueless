@@ -15,7 +15,7 @@ export default function Home() {
     <>
       <HeroSection />
       {/* <HowItWorks /> */}
-      <GamesSection />
+      {/* <GamesSection /> */}
       {/* <Leaderboard /> */}
       <PrizesSection />
       <Timeline />

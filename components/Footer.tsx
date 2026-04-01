@@ -6,7 +6,7 @@ const Footer = () => (
       <div className="grid md:grid-cols-3 gap-10">
         <div>
           <h3 className="font-display text-lg font-bold text-primary mb-3 tracking-wider">AI & IoT Club</h3>
-          <p className="text-muted-foreground text-sm">Innovating Intelligence.</p>
+          <p className="text-muted-foreground text-sm">We are all Clueless.</p>
         </div>
 
         <div>
