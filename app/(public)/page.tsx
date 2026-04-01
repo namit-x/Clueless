@@ -14,9 +14,9 @@ export default function Home() {
   return (
     <>
       <HeroSection />
-      <HowItWorks />
+      {/* <HowItWorks /> */}
       <GamesSection />
-      <Leaderboard />
+      {/* <Leaderboard /> */}
       <PrizesSection />
       <Timeline />
       <RulesSection />

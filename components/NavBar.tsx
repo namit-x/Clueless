@@ -6,7 +6,7 @@ import { useAppSelector } from "@/store/hooks";
 import { FEATURES } from "@/lib/features";
 
 const navLinks = [
-  { label: "About", href: "/#how-it-works" },
+  // { label: "About", href: "/#how-it-works" },
   { label: "Games", href: "/#games" },
   { label: "Prizes", href: "/#prizes" },
   { label: "Rules", href: "/#rules" },

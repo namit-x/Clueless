@@ -36,7 +36,7 @@ const HeroSection = () => {
         </h1>
 
         <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: "0.2s" }}>
-          Four Rounds. Four Words. One Final Sentence. Fastest Mind Wins.
+          Four Members.  Four Rounds. Fastest Mind Wins.
         </p>
 
         <div className="flex flex-wrap justify-center gap-4 mb-12 animate-fade-up" style={{ animationDelay: "0.4s" }}>

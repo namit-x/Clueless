@@ -17,16 +17,16 @@ const Footer = () => (
               <a href="/login" className="hover:text-primary transition-colors">Login</a>
             )}
             <a href="/#rules" className="hover:text-primary transition-colors">Rules</a>
-            <a href="#" className="hover:text-primary transition-colors">Contact</a>
+            {/* <a href="#" className="hover:text-primary transition-colors">Contact</a> */}
           </div>
         </div>
 
         <div>
           <h4 className="font-display text-sm font-bold mb-4 tracking-wider">Contact</h4>
           <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-            <span>email@college.edu</span>
-            <span>@aiot_club</span>
-            <span>XYZ College of Engineering</span>
+            <span>wtfaiot@gmail.com</span>
+            {/* <span>@aiot_club</span> */}
+            <span>Jain University FET, Bengaluru</span>
           </div>
         </div>
       </div>

@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchTeamDashboardThunk } from "@/store/slices/teamSlice";
 import { fetchGamesThunk } from "@/store/slices/gamesSlice";
 import { selectTeamBlocked, selectTeamStatus, selectDashboardGames, selectGamesStatus } from "@/store/selectors/gameSelectors";
-import { hydrateFromStorage } from "@/store/slices/authSlice";
+import { hydrateFromStorage, clearUser } from "@/store/slices/authSlice";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import GamesGrid from "@/components/dashboard/GameGrid";
 import TeamBlockedScreen from "@/components/game/TeamBlockedScreen";
@@ -33,6 +33,7 @@ export default function DashboardPage() {
     if (teamStatus === "idle") {
       dispatch(fetchTeamDashboardThunk()).then((result) => {
         if (result.payload === "unauthorized") {
+          dispatch(clearUser());
           alert("Your session expired. Please login again.");
           router.replace("/login");
         }
@@ -42,6 +43,7 @@ export default function DashboardPage() {
     if (gamesStatus === "idle") {
       dispatch(fetchGamesThunk()).then((result) => {
         if (result.payload === "unauthorized") {
+          dispatch(clearUser());
           alert("Your session expired. Please login again.");
           router.replace("/login");
         }

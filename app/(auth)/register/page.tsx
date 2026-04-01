@@ -21,7 +21,7 @@ export interface TeamMember {
 
 export interface TeamData {
     teamName: string;
-    teamSize: number | null;
+    teamSize: number;
     password: string;
     members: TeamMember[];
 }
@@ -47,7 +47,7 @@ const BRANCHES = [
   'Software Engineering',
 ];
 
-const TEAM_SIZES = [2, 3, 4];
+const TEAM_SIZE = 4;
 
 // Creative card component for team member input
 const MemberInputCard = ({
@@ -233,7 +233,7 @@ export default function TeamRegistrationPage() {
     const router = useRouter();
     const [teamData, setTeamData] = useState<TeamData>({
         teamName: '',
-        teamSize: null,
+        teamSize: TEAM_SIZE,
         password: '',
         members: []
     });
@@ -247,6 +247,12 @@ export default function TeamRegistrationPage() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
+
+    // Initialize 4 members on mount
+    useEffect(() => {
+        initializeMembers(TEAM_SIZE);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Debounce team name to avoid too many API calls
     const debouncedTeamName = useDebounce(teamData.teamName, 300);
@@ -334,12 +340,6 @@ export default function TeamRegistrationPage() {
         }
     };
 
-    // Handle team size change
-    const handleTeamSizeChange = (size: number) => {
-        setTeamData(prev => ({ ...prev, teamSize: size }));
-        initializeMembers(size);
-    };
-
     // Handle member field changes
     const handleMemberChange = (memberIndex: number, field: keyof TeamMember, value: string) => {
         setTeamData(prev => ({
@@ -378,9 +378,6 @@ export default function TeamRegistrationPage() {
                 newErrors.password = 'Password must be at least 6 characters';
             }
 
-            if (!teamData.teamSize) {
-                newErrors.teamSize = 'Please select team size';
-            }
         }
 
         if (step === 2) {
@@ -476,7 +473,7 @@ export default function TeamRegistrationPage() {
     const handleReset = () => {
         setTeamData({
             teamName: '',
-            teamSize: null,
+            teamSize: TEAM_SIZE,
             password: '',
             members: []
         });
@@ -487,6 +484,7 @@ export default function TeamRegistrationPage() {
         setFormError(null);
         setTeamNameError("");
         setTeamNameCheckSuccess(false);
+        initializeMembers(TEAM_SIZE);
     };
 
     return (
@@ -657,33 +655,18 @@ export default function TeamRegistrationPage() {
 {/* Team Size */}
                                         <div>
                                             <label className="block text-sm font-medium text-muted-foreground mb-2">
-                                                Team Size <span className="text-destructive">*</span>
+                                                Team Size
                                             </label>
-                                            <div className="flex gap-4">
-                                                {TEAM_SIZES.map(size => (
-                                                    <button
-                                                        key={size}
-                                                        onClick={() => handleTeamSizeChange(size)}
-                                                        className={`px-6 py-2 rounded-lg border transition-all ${teamData.teamSize === size
-                                                            ? 'bg-primary text-primary-foreground border-primary neon-glow'
-                                                            : 'bg-background/60 text-foreground border-border hover:border-primary/50'
-                                                            }`}
-                                                        type="button"
-                                                    >
-                                                        {size}
-                                                    </button>
-                                                ))}
+                                            <div className="px-6 py-2 rounded-lg border border-primary bg-primary/10 text-primary font-semibold inline-block">
+                                                4 Members
                                             </div>
-                                            {errors.teamSize && (
-                                                <p className="mt-1 text-sm text-destructive">{errors.teamSize}</p>
-                                            )}
                                         </div>
 
                                         <div className="flex justify-end pt-4">
                                             <button
                                                 onClick={handleNextStep}
-                                                disabled={!!teamNameError || isCheckingTeamName || !teamData.teamName || !teamData.password || !teamData.teamSize}
-                                                className={`px-6 py-2 bg-primary rounded-lg text-primary-foreground neon-glow hover:neon-glow-strong transition-all ${(!!teamNameError || isCheckingTeamName || !teamData.teamName || !teamData.password || !teamData.teamSize)
+                                                disabled={!!teamNameError || isCheckingTeamName || !teamData.teamName || !teamData.password}
+                                                className={`px-6 py-2 bg-primary rounded-lg text-primary-foreground neon-glow hover:neon-glow-strong transition-all ${(!!teamNameError || isCheckingTeamName || !teamData.teamName || !teamData.password)
                                                     ? 'opacity-50 cursor-not-allowed'
                                                     : ''
                                                     }`}
@@ -841,10 +824,10 @@ export default function TeamRegistrationPage() {
                                     </div>
                                 </div>
                                 <button
-                                    onClick={handleReset}
+                                    onClick={() => router.push("/")}
                                     className="w-full px-6 py-2 bg-primary text-primary-foreground rounded-lg neon-glow hover:neon-glow-strong transition-all"
                                 >
-                                    Register Another Team
+                                    Back to Home
                                 </button>
                             </motion.div>
                         )}
