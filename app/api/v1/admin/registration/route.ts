@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/middleware/verifyToken";
 import { validateAdmin } from "@/middleware/validateAdmin";
-import { isRegistrationEnabled, setSetting } from "@/lib/repositories/settingsRepo";
+import { isRegistrationEnabled, isEnvRegistrationBlocked, setSetting } from "@/lib/repositories/settingsRepo";
 
 /** GET  — return current registration status */
 export async function GET(req: NextRequest) {
@@ -10,7 +10,11 @@ export async function GET(req: NextRequest) {
         validateAdmin(user);
 
         const enabled = await isRegistrationEnabled();
-        return NextResponse.json({ registration_enabled: enabled });
+        const envBlocked = isEnvRegistrationBlocked();
+        return NextResponse.json({
+            registration_enabled: enabled,
+            env_override: envBlocked,
+        });
     } catch (err: any) {
         const status = err.message === "Unauthorized" ? 401 : 403;
         return NextResponse.json({ error: err.message }, { status });

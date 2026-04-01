@@ -17,7 +17,25 @@ export async function setSetting(key: string, value: string): Promise<void> {
     );
 }
 
+/**
+ * Dual-check registration gate:
+ * 1. REGISTRATION_ENABLED env var (hard kill switch — instant override)
+ * 2. DB admin flag in app_settings (soft control — admin toggle)
+ *
+ * Both must be true for registrations to be open.
+ */
 export async function isRegistrationEnabled(): Promise<boolean> {
+    // Hard kill switch — env var takes priority
+    if (process.env.REGISTRATION_ENABLED === "false") {
+        return false;
+    }
+
+    // Soft control — admin DB toggle
     const value = await getSetting("registration_enabled");
     return value !== "false"; // default to true if row missing
+}
+
+/** Returns whether the env kill switch is blocking registrations. */
+export function isEnvRegistrationBlocked(): boolean {
+    return process.env.REGISTRATION_ENABLED === "false";
 }

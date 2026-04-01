@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
-import { isRegistrationEnabled } from "@/lib/repositories/settingsRepo";
+import { isRegistrationEnabled, isEnvRegistrationBlocked } from "@/lib/repositories/settingsRepo";
 
 /** Public endpoint — no auth required. Returns whether registration is open. */
 export async function GET() {
     try {
         const enabled = await isRegistrationEnabled();
         return NextResponse.json(
-            { registration_enabled: enabled },
+            {
+                registration_enabled: enabled,
+                // Let the frontend know if an env override is active (no sensitive details exposed)
+                env_override: isEnvRegistrationBlocked(),
+            },
             {
                 headers: {
                     "Cache-Control": "no-store, max-age=0",
@@ -15,6 +19,6 @@ export async function GET() {
         );
     } catch {
         // If the settings table doesn't exist yet, default to enabled
-        return NextResponse.json({ registration_enabled: true });
+        return NextResponse.json({ registration_enabled: true, env_override: false });
     }
 }

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 
 export default function RegistrationToggle() {
     const [enabled, setEnabled] = useState<boolean | null>(null);
+    const [envOverride, setEnvOverride] = useState(false);
     const [isToggling, setIsToggling] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -13,7 +14,10 @@ export default function RegistrationToggle() {
                 credentials: "include",
             });
             const data = await res.json();
-            if (res.ok) setEnabled(data.registration_enabled);
+            if (res.ok) {
+                setEnabled(data.registration_enabled);
+                setEnvOverride(data.env_override ?? false);
+            }
         } catch {
             setError("Failed to load registration status");
         }
@@ -79,12 +83,12 @@ export default function RegistrationToggle() {
 
                 <button
                     onClick={handleToggle}
-                    disabled={isToggling}
+                    disabled={isToggling || envOverride}
                     className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
                         enabled
                             ? "bg-green-500 focus:ring-green-500"
                             : "bg-gray-600 focus:ring-gray-500"
-                    } ${isToggling ? "opacity-50 cursor-not-allowed" : ""}`}
+                    } ${isToggling || envOverride ? "opacity-50 cursor-not-allowed" : ""}`}
                     aria-label="Toggle registration"
                 >
                     <span
@@ -94,6 +98,12 @@ export default function RegistrationToggle() {
                     />
                 </button>
             </div>
+
+            {envOverride && (
+                <p className="mt-3 text-sm text-amber-400">
+                    Registrations are blocked by an environment-level kill switch (REGISTRATION_ENABLED=false). This toggle has no effect until the env variable is changed.
+                </p>
+            )}
 
             {error && (
                 <p className="mt-3 text-sm text-red-400">{error}</p>
