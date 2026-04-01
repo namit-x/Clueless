@@ -248,6 +248,16 @@ export default function TeamRegistrationPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
 
+    // Registration gate
+    const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        fetch("/api/registration-status")
+            .then((res) => res.json())
+            .then((data) => setRegistrationOpen(data.registration_enabled ?? true))
+            .catch(() => setRegistrationOpen(true));
+    }, []);
+
     // Debounce team name to avoid too many API calls
     const debouncedTeamName = useDebounce(teamData.teamName, 300);
 
@@ -454,6 +464,12 @@ export default function TeamRegistrationPage() {
             console.log("Response Message:", data.message);
             console.log("Full Response:", data);
 
+            // If registration was closed while filling the form
+            if (res.status === 403) {
+                setRegistrationOpen(false);
+                throw new Error(data.error || "Registrations are currently closed.");
+            }
+
             // If backend returned error status
             if (!res.ok) {
                 throw new Error(data.message || "Request failed");
@@ -510,9 +526,33 @@ export default function TeamRegistrationPage() {
                     </p>
                 </div>
 
+                {/* Registration Closed Banner */}
+                {registrationOpen === false && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-8 p-6 glass-strong rounded-2xl border border-warning/40 text-center"
+                    >
+                        <div className="inline-flex items-center justify-center w-12 h-12 bg-warning/20 rounded-full mb-3">
+                            <svg className="w-6 h-6 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h2 className="text-xl font-display font-semibold text-foreground mb-1">Registrations are currently closed</h2>
+                        <p className="text-muted-foreground text-sm">Check back later or contact the organizers for more information.</p>
+                    </motion.div>
+                )}
+
+                {/* Loading state */}
+                {registrationOpen === null && (
+                    <div className="flex justify-center mb-8">
+                        <div className="w-8 h-8 border-2 border-muted border-t-primary rounded-full animate-spin" />
+                    </div>
+                )}
+
                 {/* Progress Steps - Minimal */}
                 <div className="flex items-center mb-8 px-4">
-                    
+
                   {/* Step 1 */}
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm
                     bg-primary text-primary-foreground neon-glow">
@@ -540,7 +580,7 @@ export default function TeamRegistrationPage() {
                 </div>
 
                 {/* Main Form */}
-                <div className="glass-strong rounded-2xl border border-border p-8 md:p-10">
+                <div className={`glass-strong rounded-2xl border border-border p-8 md:p-10 ${registrationOpen === false ? 'opacity-50 pointer-events-none select-none' : ''}`}>
                     <AnimatePresence mode="wait">
                         {!submittedTeam ? (
                             <motion.div

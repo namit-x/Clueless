@@ -6,6 +6,7 @@ import GameControlPanel from "@/components/admin/GameControl/GameControlPanel";
 import TeamControlPanel from "@/components/admin/TeamControl/TeamControlPanel";
 import TeamProgressPanel from "@/components/admin/TeamProgress/TeamProgressPanel";
 import AdminLogsPanel from "@/components/admin/AdminLogs/AdminLogsPanel";
+import SettingsPanel from "@/components/admin/Settings/SettingsPanel";
 
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
@@ -66,6 +67,7 @@ export default function AdminDashboardPage() {
           {activeSection === "teams" && <TeamControlPanel />}
           {activeSection === "progress" && <TeamProgressPanel />}
           {activeSection === "logs" && <AdminLogsPanel />}
+          {activeSection === "settings" && <SettingsPanel />}
 
         </div>
 

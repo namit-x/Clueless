@@ -22,6 +22,7 @@ export default function AdminSidebar({
     { id: "teams", label: "Team Control" },
     { id: "progress", label: "Team Progress" },
     { id: "logs", label: "Activity Logs" },
+    { id: "settings", label: "Settings" },
   ];
 
   async function handleLogout() {

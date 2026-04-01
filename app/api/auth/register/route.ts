@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { teamSignupSchema } from "@/validators/team";
+import { isRegistrationEnabled } from "@/lib/repositories/settingsRepo";
 
 export async function POST(req: Request) {
   try {
+    // Check if registration is open before processing
+    const regOpen = await isRegistrationEnabled();
+    if (!regOpen) {
+      return NextResponse.json(
+        { error: "Registrations are currently closed." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const parsed = teamSignupSchema.safeParse(body);
 
