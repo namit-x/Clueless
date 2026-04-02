@@ -14,17 +14,17 @@ const RulesSection = () => (
     <div className="section-container relative z-10 max-w-2xl">
       <ScrollReveal>
         <h2 className="section-title text-primary neon-text">Rules</h2>
-        <p className="text-center text-muted-foreground mb-12">Know the ground rules before you compete.</p>
+        <p className="text-center text-muted-foreground mb-8 sm:mb-12">Know the ground rules before you compete.</p>
       </ScrollReveal>
 
       <ScrollReveal delay={200}>
         <Accordion type="single" collapsible className="space-y-3">
           {rules.map((r, i) => (
-            <AccordionItem key={i} value={`rule-${i}`} className="glass rounded-xl border border-border/50 px-6 overflow-hidden">
-              <AccordionTrigger className="font-display text-sm font-bold tracking-wide hover:text-primary transition-colors py-5">
+            <AccordionItem key={i} value={`rule-${i}`} className="glass rounded-xl border border-border/50 px-4 sm:px-6 overflow-hidden">
+              <AccordionTrigger className="font-display text-sm font-bold tracking-wide hover:text-primary transition-colors py-4 sm:py-5">
                 {r.q}
               </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground text-sm pb-5">
+              <AccordionContent className="text-muted-foreground text-sm pb-4 sm:pb-5">
                 {r.a}
               </AccordionContent>
             </AccordionItem>

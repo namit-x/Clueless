@@ -182,7 +182,7 @@ html {
 
 @layer components {
   .section-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-7xl mx-auto px-5 sm:px-6 lg:px-8;
   }
 
   .section-title {
@@ -190,7 +190,7 @@ html {
   }
 
   .section-padding {
-    @apply py-20 sm:py-28 lg:py-32;
+    @apply py-14 sm:py-28 lg:py-32;
   }
 }
 
