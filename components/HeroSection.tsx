@@ -1,6 +1,43 @@
 'use client'
-import React from "react";
+import React, { useRef, useState } from "react";
 import CountDown from "@/components/CountDown";
+
+const LetterTilt = ({ char }: { char: string }) => {
+  const ref = useRef<HTMLSpanElement>(null);
+  const lastRot = useRef(0);
+  const [rot, setRot] = useState(0);
+
+  const onMove = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const { left, width } = ref.current.getBoundingClientRect();
+    // -1 to 1 across the letter width → max ±22 deg
+    const r = ((e.clientX - left) / width - 0.5) * 2 * 22;
+    setRot(r);
+    lastRot.current = r;
+  };
+
+  const onLeave = () => {
+    // spring to opposite side, then settle
+    setRot(-lastRot.current * 0.55);
+    setTimeout(() => setRot(0), 220);
+  };
+
+  return (
+    <span
+      ref={ref}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      style={{
+        display: "inline-block",
+        transform: `rotate(${rot}deg) translateY(${-Math.abs(rot) * 0.18}px)`,
+        transition: "transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        transformOrigin: "bottom center",
+      }}
+    >
+      {char}
+    </span>
+  );
+};
 
 const HeroSection = ({ animate }: { animate?: boolean }) => {
 
@@ -20,21 +57,13 @@ const HeroSection = ({ animate }: { animate?: boolean }) => {
 
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
         <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-wider mb-6 animate-fade-up">
-          {/* <span className="block text-base sm:text-lg md:text-xl lg:text-2xl font-medium tracking-normal my-3" style={bounceStyle("0s")}>
-            <span className="font-display font-extrabold text-2xl sm:text-4xl" style={{ color: "#8fff00" }}>Zigbee</span>
-            <span className="text-muted-foreground"> and </span>
-            <span className="font-display font-extrabold text-2xl sm:text-4xl" style={{ color: "#E9E4D4" }}>
-              Neur
-              <span style={{ color: "#8DF339" }}>O</span>
-              n
-            </span>
-            <span className="text-muted-foreground"> Club </span>
-            <br />
-            <span className="font-bold text-2xl sm:text-4xl" style={{ fontFamily: '"Times New Roman", Times, serif' }}>Presents</span>
-          </span> */}
-          {/* <br /> */}
-          <span className="text-5xl sm:text-7xl text-primary neon-text" style={{ display: "inline-block", ...bounceStyle("0.08s") }}>
-            ClueLess
+          <span
+            className="text-4xl sm:text-5xl md:text-7xl text-primary neon-text"
+            style={{ display: "inline-block", ...bounceStyle("0.08s") }}
+          >
+            {"ClueLess".split("").map((char, i) => (
+              <LetterTilt key={i} char={char} />
+            ))}
           </span>
         </h1>
 
