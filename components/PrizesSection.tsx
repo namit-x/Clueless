@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import ScrollReveal from "./ScrollReveal";
+import ScrollReveal from "./ScrollReveal"; 
 
 function TiltCard({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);

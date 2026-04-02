@@ -1,6 +1,7 @@
 'use client'
 import React, { useRef, useState } from "react";
 import CountDown from "@/components/CountDown";
+import HeroGhost from "@/components/HeroGhost";
 
 const LetterTilt = ({ char }: { char: string }) => {
   const ref = useRef<HTMLSpanElement>(null);
@@ -57,16 +58,18 @@ const HeroSection = ({ animate }: { animate?: boolean }) => {
 
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
         <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-wider mb-6 animate-fade-up">
-          <span
-            className="text-4xl sm:text-5xl md:text-7xl text-primary neon-text"
-            style={{ display: "inline-block", ...bounceStyle("0.08s") }}
-          >
-            {"ClueLess".split("").map((char, i) => (
-              <LetterTilt key={i} char={char} />
-            ))}
+          <span className="inline-flex items-start gap-0 sm:gap-1 md:gap-2">
+            <span
+              className="text-4xl sm:text-5xl md:text-7xl text-primary neon-text"
+              style={{ display: "inline-block", ...bounceStyle("0.08s") }}
+            >
+              {"ClueLess".split("").map((char, i) => (
+                <LetterTilt key={i} char={char} />
+              ))}
+            </span>
+            {/* <HeroGhost className="-ml-1 sm:ml-0 md:ml-1 -translate-y-2 sm:-translate-y-3" /> */}
           </span>
         </h1>
-
         <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: "0.2s", ...bounceStyle("0.16s") }}>
           Four Rounds. Four Words. Fastest Mind Wins.
         </p>
@@ -86,6 +89,11 @@ const HeroSection = ({ animate }: { animate?: boolean }) => {
           </a>
         </div>
         <CountDown />
+        <br />
+        <br />
+        <div className="flex justify-center items-center">
+          <HeroGhost className="-translate-y-2 sm:-translate-y-3" />
+        </div>
       </div>
 
       <style>{`
