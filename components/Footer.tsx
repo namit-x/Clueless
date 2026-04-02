@@ -24,7 +24,7 @@ const Footer = () => (
         <div>
           <h4 className="font-display text-sm font-bold mb-4 tracking-wider">Contact</h4>
           <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-            <span>wtfaiot@gmail.com</span>
+            <a href="mailto:wtfaiot@gmail.com" className="hover:text-primary transition-colors">wtfaiot@gmail.com</a>
             {/* <span>@aiot_club</span> */}
             <span>Jain University FET, Bengaluru</span>
           </div>
