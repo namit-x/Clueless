@@ -1,7 +1,12 @@
 'use client'
+import React from "react";
 import CountDown from "@/components/CountDown";
 
-const HeroSection = () => {
+const HeroSection = ({ animate }: { animate?: boolean }) => {
+
+  const bounceStyle = (delay: string): React.CSSProperties => animate
+    ? { animation: `heroBounce 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97) ${delay} both` }
+    : {};
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -15,7 +20,7 @@ const HeroSection = () => {
 
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
         <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-wider mb-6 animate-fade-up">
-          <span className="block text-base sm:text-lg md:text-xl lg:text-2xl font-medium tracking-normal my-3">
+          {/* <span className="block text-base sm:text-lg md:text-xl lg:text-2xl font-medium tracking-normal my-3" style={bounceStyle("0s")}>
             <span className="font-display font-extrabold text-2xl sm:text-4xl" style={{ color: "#8fff00" }}>Zigbee</span>
             <span className="text-muted-foreground"> and </span>
             <span className="font-display font-extrabold text-2xl sm:text-4xl" style={{ color: "#E9E4D4" }}>
@@ -26,20 +31,18 @@ const HeroSection = () => {
             <span className="text-muted-foreground"> Club </span>
             <br />
             <span className="font-bold text-2xl sm:text-4xl" style={{ fontFamily: '"Times New Roman", Times, serif' }}>Presents</span>
-          </span>
-          <br />
-          {/* <span className="text-primary neon-text">AI × IoT</span> */}
+          </span> */}
           {/* <br /> */}
-          <span className="text-5xl sm:text-7xl text-primary neon-text">
+          <span className="text-5xl sm:text-7xl text-primary neon-text" style={{ display: "inline-block", ...bounceStyle("0.08s") }}>
             ClueLess
           </span>
         </h1>
 
-        <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: "0.2s" }}>
-          Four Rounds. Four Words. One Final Sentence. Fastest Mind Wins.
+        <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: "0.2s", ...bounceStyle("0.16s") }}>
+          Four Rounds. Four Words. Fastest Mind Wins.
         </p>
 
-        <div className="flex flex-wrap justify-center gap-4 mb-12 animate-fade-up" style={{ animationDelay: "0.4s" }}>
+        <div className="flex flex-wrap justify-center gap-4 mb-12 animate-fade-up" style={{ animationDelay: "0.4s", ...bounceStyle("0.24s") }}>
           <a
             href="/register"
             className="px-8 py-3.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm tracking-wider neon-glow-strong hover:scale-105 transition-transform duration-200"
@@ -55,6 +58,16 @@ const HeroSection = () => {
         </div>
         <CountDown />
       </div>
+
+      <style>{`
+        @keyframes heroBounce {
+          0%   { transform: scale(1); }
+          25%  { transform: scale(0.82); }
+          55%  { transform: scale(1.12); }
+          75%  { transform: scale(0.96); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
     </section>
   );
 };
