@@ -247,6 +247,7 @@ export default function TeamRegistrationPage() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
+    const shouldCenterDesktopStepOne = currentStep === 1 && !submittedTeam;
 
     // Initialize 4 members on mount
     useEffect(() => {
@@ -488,7 +489,11 @@ export default function TeamRegistrationPage() {
     };
 
     return (
-        <div className="min-h-screen py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+        <div
+            className={`min-h-screen px-4 py-8 sm:px-6 sm:py-12 lg:px-8 ${
+                shouldCenterDesktopStepOne ? "lg:flex lg:items-center" : ""
+            }`}
+        >
             {/* Back Button */}
             <button
                 onClick={() => router.back()}
@@ -497,7 +502,11 @@ export default function TeamRegistrationPage() {
                 <FontAwesomeIcon className="p-3 rounded-full bg-muted hover:bg-primary hover:text-white transition-all duration-200 shadow-md" icon={faAngleLeft} />
             </button>
 
-            <div className="max-w-3xl mx-auto">
+            <div
+                className={`mx-auto w-full max-w-3xl ${
+                    shouldCenterDesktopStepOne ? "lg:flex lg:min-h-[calc(100vh-6rem)] lg:flex-col lg:justify-center" : ""
+                }`}
+            >
                 {/* Header */}
                 <div className="text-center mb-5">
                     <h1 className="section-title font-display neon-text">
