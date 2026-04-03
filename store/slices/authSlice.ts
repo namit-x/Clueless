@@ -4,6 +4,7 @@ type User = {
   id: string;
   name: string;
   role: "team" | "admin";
+  sessionId?: string;
 };
 
 type AuthState = {

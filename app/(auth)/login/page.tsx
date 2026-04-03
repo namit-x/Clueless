@@ -60,11 +60,22 @@ const Login = () => {
         setLoginError(data.error || data.message || "Login failed. Please try again.");
         return;
       }
+      // Extract sessionId from JWT payload
+      let sessionId: string | undefined;
+      if (data.token) {
+        try {
+          const payload = JSON.parse(atob(data.token.split('.')[1]));
+          sessionId = payload.sessionId;
+        } catch {
+          console.error("Failed to decode session token");
+        }
+      }
+
       if (role === "admin") {
-        dispatch(setUser(data.user));
+        dispatch(setUser({ ...data.user, sessionId }));
         router.push('/admin/dashboard');
       } else {
-        dispatch(setUser(data.user));
+        dispatch(setUser({ ...data.user, sessionId }));
         router.push('/dashboard');
       }
 

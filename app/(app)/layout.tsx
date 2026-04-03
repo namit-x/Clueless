@@ -1,13 +1,13 @@
 "use client";
 
-import { useSessionSSE } from "@/hooks/useSessionSSE";
+import { useSessionRealtime } from "@/hooks/useSessionRealtime";
 
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  useSessionSSE();
+  useSessionRealtime();
 
   return (
     <div className="min-h-screen bg-background atmosphere-medium relative">

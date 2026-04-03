@@ -173,7 +173,6 @@
 │   ├── 📄 auth.ts
 │   ├── 📄 cookies.ts
 │   ├── 📄 db.ts
-│   ├── 📄 sessionConnections.ts
 │   └── 📄 utils.ts
 ├── 📁 middleware
 │   ├── 📄 validateAdmin.ts

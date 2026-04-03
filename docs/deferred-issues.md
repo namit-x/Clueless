@@ -217,24 +217,9 @@ const response = await fetch(
 
 ---
 
-### Issue #9: Session Stream No Server Heartbeat
+### Issue #9: ~~Session Stream No Server Heartbeat~~ (RESOLVED)
 
-**File:** [app/api/auth/session/stream/route.ts](../app/api/auth/session/stream/route.ts)
-
-**Current:**
-- Opens SSE connection
-- Sends "CONNECTED" on open
-- Sends "PING" from client (but implementation not found)
-- No server-side keepalive
-
-**Status:** Very low priority
-- Unlikely to encounter connection drops in local development
-- Realtime integration will address heartbeat mechanisms
-
-**Future Plan:**
-- Implement server-side ping interval (every 30s)
-- Add client-side reconnection logic for dropped connections
-- Part of realtime infrastructure refactor
+**Status:** Resolved — SSE removed. Session invalidation now handled by Supabase Realtime subscription with periodic polling fallback in `useSessionRealtime.ts`.
 
 ---
 
