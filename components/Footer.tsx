@@ -17,7 +17,7 @@ const Footer = () => (
               <a href="/login" className="hover:text-primary transition-colors">Login</a>
             )}
             <a href="/#rules" className="hover:text-primary transition-colors">Rules</a>
-            {/* <a href="#" className="hover:text-primary transition-colors">Contact</a> */}
+            <a href="/#faq" className="hover:text-primary transition-colors">FAQ</a>
           </div>
         </div>
 
@@ -32,7 +32,7 @@ const Footer = () => (
       </div>
 
       <div className="border-t border-border mt-12 pt-6 text-center text-sm text-muted-foreground">
-        © 2026 AI & IoT Club. All Rights Reserved.
+        © 2026 Neuron & Zigbee Club. All Rights Reserved.
       </div>
     </div>
   </footer>

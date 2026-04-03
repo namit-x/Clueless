@@ -7,7 +7,7 @@ import { FEATURES } from "@/lib/features";
 
 const navLinks = [
   // { label: "About", href: "/#how-it-works" },
-  { label: "Games", href: "/#games" },
+  // { label: "Games", href: "/#games" },
   { label: "Prizes", href: "/#prizes" },
   { label: "Rules", href: "/#rules" },
   { label: "FAQ", href: "/#faq" },

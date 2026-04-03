@@ -9,7 +9,7 @@ const CTASection = () => (
           <span className="text-primary neon-text">Ready to Compete?</span>
         </h2>
         <p className="text-muted-foreground text-base sm:text-lg mb-6 sm:mb-10 max-w-md mx-auto">
-          Limited team slots available. Register now before it's too late.
+          Limited slots. Register now before the cool ones take them all.
         </p>
         <a
           href="/register"
