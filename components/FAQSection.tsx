@@ -1,5 +1,6 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import ScrollReveal from "./ScrollReveal";
+import DetectiveGhost from "./DetectiveGhost";
 
 const faqs = [
   { q: "Is coding required?", a: "Basic coding knowledge is helpful but not strictly required. The challenges test a mix of logic, pattern recognition, and coding skills." },
@@ -9,30 +10,44 @@ const faqs = [
   { q: "Is internet provided?", a: "Yes but Jain WiFi, so rely on it at your own risk." },
   { q: "Are we supposed to bring Extention Cords?", a: "Yes, Our college is Gareeb." },
 ];
-  
-  const FAQSection = () => (
+
+const FAQSection = () => (
   <section id="faq" className="section-padding relative">
     <div className="absolute inset-0 gradient-bg opacity-30" />
-    <div className="section-container relative z-10 max-w-2xl">
-      <ScrollReveal>
-        <h2 className="section-title text-primary neon-text">FAQ</h2>
-        <p className="text-center text-muted-foreground mb-12">Got questions? We've got answers.</p>
-      </ScrollReveal>
+    <div className="section-container relative z-10 max-w-6xl">
+      <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
+        <div className="hidden lg:flex lg:min-h-[320px] lg:flex-1 lg:items-center lg:justify-start">
+          <DetectiveGhost className="lg:scale-[2.4] lg:origin-center" />
+        </div>
 
-      <ScrollReveal delay={200}>
-        <Accordion type="single" collapsible className="space-y-3">
-          {faqs.map((f, i) => (
-            <AccordionItem key={i} value={`faq-${i}`} className="glass rounded-xl border border-border/50 px-6 overflow-hidden">
-              <AccordionTrigger className="font-display text-sm font-bold tracking-wide hover:text-primary transition-colors py-5">
-                {f.q}
-              </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground text-sm pb-5">
-                {f.a}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </ScrollReveal>
+        <div className="w-full lg:max-w-3xl">
+          <ScrollReveal>
+            <h2 className="section-title text-primary neon-text lg:text-left">FAQ</h2>
+            <p className="text-center text-muted-foreground mb-8 sm:mb-12 lg:text-left">
+              Got questions? We&apos;ve got answers.
+            </p>
+          </ScrollReveal>
+
+          <ScrollReveal delay={200}>
+            <Accordion type="single" collapsible className="space-y-3">
+              {faqs.map((f, i) => (
+                <AccordionItem key={i} value={`faq-${i}`} className="glass rounded-xl border border-border/50 px-4 sm:px-6 overflow-hidden">
+                  <AccordionTrigger className="font-display text-sm font-bold tracking-wide hover:text-primary transition-colors py-4 sm:py-5">
+                    {f.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground text-sm pb-4 sm:pb-5">
+                    {f.a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </ScrollReveal>
+
+          <div className="flex justify-center items-center pt-8 lg:hidden">
+            <DetectiveGhost />
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 );

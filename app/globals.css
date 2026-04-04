@@ -182,7 +182,7 @@ html {
 
 @layer components {
   .section-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-7xl mx-auto px-5 sm:px-6 lg:px-8;
   }
 
   .section-title {
@@ -190,7 +190,7 @@ html {
   }
 
   .section-padding {
-    @apply py-20 sm:py-28 lg:py-32;
+    @apply py-14 sm:py-28 lg:py-32;
   }
 }
 
@@ -219,4 +219,220 @@ html {
 * {
   scrollbar-width: auto; /* thin → auto for wider */
   scrollbar-color: hsl(var(--neon-cyan)) hsl(var(--background));
+}
+
+.ghost-float {
+  animation: ghostFloat 4s ease-in-out infinite, ghostDrift 6s ease-in-out infinite;
+}
+
+.ghost-eyes {
+  transform-origin: center;
+  animation: ghostBlink 3.8s infinite;
+}
+
+@keyframes ghostFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-18px);
+  }
+}
+
+.ghost-float {
+  animation: ghostFloat 2s ease-in-out infinite;
+}
+
+@keyframes ghostDrift {
+  0%, 100% { transform: translateX(0px); }
+  50% { transform: translateX(-12px); }
+}
+
+@keyframes ghostBlink {
+  0%, 45%, 100% { transform: scaleY(1); }
+  48%, 52% { transform: scaleY(0.08); }
+}
+
+
+.reading-ghost {
+  animation: readingFloat 3s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.ghost-paper {
+  transform-origin: center;
+  animation: paperWiggle 2.5s ease-in-out infinite;
+}
+
+@keyframes readingFloat {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) translateX(4px) rotate(-2deg);
+  }
+}
+
+@keyframes paperWiggle {
+  0%, 100% {
+    transform: rotate(0deg) translateX(0px);
+  }
+  50% {
+    transform: rotate(4deg) translateX(2px);
+  }
+}
+
+/* 👀 Eye movement: right → left → repeat */
+@keyframes lookAround {
+  0%, 20% {
+    transform: translateX(2px);   /* looking at card (right) */
+  }
+  40%, 60% {
+    transform: translateX(-2px);  /* looking left */
+  }
+  80%, 100% {
+    transform: translateX(2px);   /* back to card */
+  }
+}
+
+/* 😑 Blink animation */
+@keyframes blink {
+  0%, 92%, 100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* apply movement */
+.ghost-pupils {
+  animation: lookAround 3s infinite ease-in-out;
+}
+
+/* apply blink to whole eye group */
+.ghost-eyes {
+  transform-origin: center;
+  animation: blink 4s infinite;
+}
+
+
+/* 🔍 move magnifying glass toward eye and away */
+/* 💻 Desktop: move left-right toward eye */
+@keyframes magnifyInspectDesktop {
+  0%, 100% {
+    transform: translateX(0px) translateY(0px);
+  }
+  35% {
+    transform: translateX(-18px) translateY(-10px);
+  }
+  55% {
+    transform: translateX(-18px) translateY(-10px);
+  }
+  75% {
+    transform: translateX(0px) translateY(0px);
+  }
+}
+
+/* 📱 Mobile: move upward toward eye */
+@keyframes magnifyInspectMobile {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  35% {
+    transform: translateY(-18px);
+  }
+  55% {
+    transform: translateY(-18px);
+  }
+  75% {
+    transform: translateY(0px);
+  }
+}
+
+.magnify-scan {
+  animation: magnifyInspectDesktop 3.2s infinite ease-in-out;
+  transform-origin: center;
+}
+
+/* 📱 switch animation on phones */
+@media (max-width: 768px) {
+  .magnify-scan {
+    animation: magnifyInspectMobile 3.2s infinite ease-in-out;
+  }
+}
+/* 💻 Desktop pupils look toward magnifying glass */
+@keyframes detectiveLookDesktop {
+  0%, 100% {
+    transform: translate(0px, 0px);
+  }
+  35%, 55% {
+    transform: translate(-1.5px, -1px);
+  }
+  75% {
+    transform: translate(0px, 0px);
+  }
+}
+
+/* 📱 Mobile pupils look upward */
+@keyframes detectiveLookMobile {
+  0%, 20% {
+    transform: translate(1.5px, 1px); /* look at magnifying glass */
+  }
+
+  40%, 60% {
+    transform: translate(0px, -2px); /* look up */
+  }
+
+  80%, 100% {
+    transform: translate(1.5px, 1px); /* back to magnifying glass */
+  }
+}
+
+.detective-pupils {
+  animation: detectiveLookDesktop 3.2s infinite ease-in-out;
+}
+
+/* 📱 switch to upward look on mobile */
+@media (max-width: 768px) {
+  .detective-pupils {
+    animation: detectiveLookMobile 3.2s infinite ease-in-out;
+  }
+}
+
+/* 💻 Desktop: card (right) → left */
+@keyframes readingLookDesktop {
+  0%, 20% {
+    transform: translateX(2px);   /* look at card */
+  }
+  40%, 60% {
+    transform: translateX(-2px);  /* look left */
+  }
+  80%, 100% {
+    transform: translateX(2px);   /* back to card */
+  }
+}
+
+/* 📱 Mobile: card (right) → up */
+@keyframes readingLookMobile {
+  0%, 20% {
+    transform: translate(2px, 0px);   /* look at card */
+  }
+  40%, 60% {
+    transform: translate(0px, -2px);  /* look upward */
+  }
+  80%, 100% {
+    transform: translate(2px, 0px);   /* back to card */
+  }
+}
+
+.ghost-pupils {
+  animation: readingLookDesktop 3s infinite ease-in-out;
+}
+
+/* 📱 mobile override */
+@media (max-width: 768px) {
+  .ghost-pupils {
+    animation: readingLookMobile 3s infinite ease-in-out;
+  }
 }

@@ -12,15 +12,15 @@ export default function MysteryBoxOverlay({
   );
 
   const colors = [
-    "#FFD700",
-    "#FF6B2B",
-    "#FF2D78",
-    "#8B2BFF",
     "#00E5FF",
+    "#7B3FFF",
+    "#1A6FFF",
     "#39FF14",
+    "#00E5FF",
+    "#7B3FFF",
   ];
 
-  const rewardEmojis = ["🗺️", "🏆", "🔑", "⭐", "💎"];
+  const rewardLetters = ["?", "?", "?", "?", "?", "?", "?"];
 
   const handleOpen = useCallback(() => {
     if (phase !== "idle") return;
@@ -63,14 +63,14 @@ export default function MysteryBoxOverlay({
         alignItems: "center",
         justifyContent: "center",
         flexDirection: "column",
-        background: "radial-gradient(ellipse at center, #1a0a3e 0%, #0D0518 70%)",
+        background: "radial-gradient(ellipse at center, #0D1628 0%, #090D14 70%)",
         opacity: phase === "burst" ? 0 : 1,
         transform: phase === "burst" ? "scale(1.2)" : "scale(1)",
         transition: "opacity 0.6s ease, transform 0.6s ease",
       }}
     >
       {/* Particles */}
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+      {/* <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
         {particles.map((p) => (
           <div
             key={p.id}
@@ -88,7 +88,7 @@ export default function MysteryBoxOverlay({
             }}
           />
         ))}
-      </div>
+      </div> */}
 
       {/* Box */}
       <div
@@ -110,7 +110,7 @@ export default function MysteryBoxOverlay({
             height: 600,
             borderRadius: "50%",
             background:
-              "radial-gradient(circle, rgba(255,215,0,0.9) 0%, rgba(255,107,43,0.5) 30%, transparent 70%)",
+              "radial-gradient(circle, rgba(0,229,255,0.2) 0%, rgba(123,63,255,0.1) 30%, transparent 70%)",
             pointerEvents: "none",
             zIndex: 1,
             transform: "translate(-50%, -50%) scale(0)",
@@ -122,7 +122,7 @@ export default function MysteryBoxOverlay({
         />
 
         {/* Flying reward items */}
-        {rewardEmojis.map((emoji, i) => (
+        {/* {rewardEmojis.map((emoji, i) => (
           <div
             key={i}
             style={{
@@ -142,6 +142,34 @@ export default function MysteryBoxOverlay({
             }}
           >
             {emoji}
+          </div>
+        ))} */}
+
+        {/* Flying CLUELESS letters */}
+        {rewardLetters.map((letter, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              top: "40%",
+              left: "50%",
+              fontSize: 48,
+              fontFamily: "'Bangers', cursive",
+              fontWeight: 900,
+              color: "#00E5FF",
+              textShadow: "0 0 12px #00E5FF",
+              opacity: 0,
+              pointerEvents: "none",
+              zIndex: 3,
+              ...(phase === "opening" || phase === "burst"
+                ? {
+                    animation: `mysteryFly${i} 1s ease-out forwards`,
+                    animationDelay: `${0.1 + i * 0.05}s`,
+                  }
+                : {}),
+            }}
+          >
+            {letter}
           </div>
         ))}
 
@@ -164,10 +192,10 @@ export default function MysteryBoxOverlay({
               left: "50%",
               width: 240,
               height: 50,
-              background: "linear-gradient(135deg, #8B2BFF, #7B2FDD)",
+              background: "linear-gradient(135deg, #7B3FFF, #5B1FDD)",
               borderRadius: "12px 12px 4px 4px",
-              border: "4px solid #FFD700",
-              boxShadow: "0 -4px 20px rgba(139,43,255,0.4)",
+              border: "4px solid #00E5FF",
+              boxShadow: "0 -4px 20px rgba(0,229,255,0.3)",
               transformOrigin: "bottom center",
               zIndex: 2,
               transform:
@@ -188,9 +216,9 @@ export default function MysteryBoxOverlay({
                 transform: "translateX(-50%)",
                 width: 40,
                 height: 28,
-                background: "#FFD700",
+                background: "#00E5FF",
                 borderRadius: "50% 50% 4px 4px",
-                boxShadow: "0 0 15px rgba(255,215,0,0.5)",
+                boxShadow: "0 0 15px rgba(0,229,255,0.6)",
               }}
             />
           </div>
@@ -204,11 +232,11 @@ export default function MysteryBoxOverlay({
               transform: "translateX(-50%)",
               width: 220,
               height: 180,
-              background: "linear-gradient(135deg, #8B2BFF, #6B1FCC)",
+              background: "linear-gradient(135deg, #7B3FFF, #4B1FCC)",
               borderRadius: "16px 16px 20px 20px",
-              border: "4px solid #FFD700",
+              border: "4px solid #00E5FF",
               boxShadow:
-                "0 0 30px rgba(139,43,255,0.5), inset 0 -20px 40px rgba(0,0,0,0.3)",
+                "0 0 30px rgba(0,229,255,0.3), 0 0 60px rgba(123,63,255,0.3), inset 0 -20px 40px rgba(0,0,0,0.3)",
               overflow: "hidden",
               display: "flex",
               alignItems: "center",
@@ -224,7 +252,7 @@ export default function MysteryBoxOverlay({
                 transform: "translateX(-50%)",
                 width: 50,
                 height: "100%",
-                background: "linear-gradient(180deg, #FFD700, #FF6B2B)",
+                background: "linear-gradient(180deg, #00E5FF, #7B3FFF)",
                 opacity: 0.3,
               }}
             />
@@ -233,9 +261,9 @@ export default function MysteryBoxOverlay({
               style={{
                 fontFamily: "'Bangers', cursive",
                 fontSize: 100,
-                color: "#FFD700",
+                color: "#00E5FF",
                 textShadow:
-                  "0 0 20px rgba(255,215,0,0.6), 3px 3px 0 #FF6B2B",
+                  "0 0 20px rgba(0,229,255,0.7), 3px 3px 0 #7B3FFF",
                 animation: "mysteryQuestion 1.5s ease-in-out infinite",
                 position: "relative",
                 zIndex: 1,
@@ -255,7 +283,7 @@ export default function MysteryBoxOverlay({
               width: 220,
               height: 60,
               background:
-                "radial-gradient(ellipse, rgba(255,215,0,0.4), transparent 70%)",
+                "radial-gradient(ellipse, rgba(0,229,255,0.35), transparent 70%)",
               borderRadius: "50%",
               animation: "mysteryGlow 2s ease-in-out infinite",
             }}
@@ -269,7 +297,7 @@ export default function MysteryBoxOverlay({
           style={{
             fontWeight: 800,
             fontSize: "1.1rem",
-            color: "rgba(255,255,255,0.6)",
+            color: "rgba(0,229,255,0.6)",
             letterSpacing: 3,
             textTransform: "uppercase",
             marginTop: 40,

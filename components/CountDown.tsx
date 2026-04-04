@@ -37,7 +37,7 @@ const CountDown = () => {
       ].map((item) => (
         <div
           key={item.label}
-          className="glass rounded-xl px-3 sm:px-6 py-2.5 sm:py-4 min-w-[70px] sm:min-w-[90px]"
+          className="glass rounded-xl px-3 sm:px-6 py-2.5 sm:py-4 min-w-[70px] sm:min-w-[90px] transition-transform duration-300 hover:scale-110 cursor-default"
         >
           <div className="font-display text-xl sm:text-3xl font-bold text-primary neon-text">
             {pad(item.value)}

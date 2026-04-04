@@ -5,15 +5,15 @@ const CTASection = () => (
     <div className="absolute inset-0 gradient-bg" />
     <div className="section-container relative z-10 text-center">
       <ScrollReveal>
-        <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black tracking-wider mb-6">
+        <h2 className="font-display text-3xl sm:text-5xl lg:text-6xl font-black tracking-wider mb-5 sm:mb-6">
           <span className="text-primary neon-text">Ready to Compete?</span>
         </h2>
-        <p className="text-muted-foreground text-lg mb-10 max-w-md mx-auto">
-          Limited team slots available. Register now before it's too late.
+        <p className="text-muted-foreground text-base sm:text-lg mb-6 sm:mb-10 max-w-md mx-auto">
+          Limited slots. Register now before the cool ones take them all.
         </p>
         <a
           href="/register"
-          className="inline-block px-10 py-4 rounded-xl bg-primary text-primary-foreground font-display font-bold text-lg tracking-wider neon-glow-strong hover:scale-105 transition-transform duration-200"
+          className="inline-block px-7 py-3 sm:px-10 sm:py-4 rounded-xl bg-primary text-primary-foreground font-display font-bold text-base sm:text-lg tracking-wider neon-glow-strong hover:scale-105 transition-transform duration-200"
         >
           REGISTER NOW
         </a>
