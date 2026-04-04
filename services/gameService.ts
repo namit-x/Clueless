@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { getActiveGameRepo, getAllGamesRepo, getGameByIdRepo, endGameRepo, restartGameRepo } from "@/lib/repositories/gameRepo";
+import { getActiveGameRepo, getTeamActiveGameRepo, getAllGamesRepo, getGameByIdRepo, endGameRepo, restartGameRepo } from "@/lib/repositories/gameRepo";
 import { getTeamProgressRepo } from "@/lib/repositories/teamProgressRepo";
+import { resolveTeamGameState } from "./teamGameStateResolver";
+import { getTeamLatestGameResultRepo } from "@/lib/repositories/teamGameResultsRepo";
 import { startTreasureHuntGame } from "./games/treasureHuntService";
 import { startBlindCodeGame } from "./games/blindCodeService";
 import { startQuizGame } from "./games/quizService";
@@ -153,15 +155,43 @@ export async function restartGameService(gameId: string) {
 
 export async function getCurrentRoundService(teamId: string) {
 
-    const game = await getActiveGameRepo();
-    // console.log(`[GameService] Fetching current round for team ${teamId} in game ${game ? game.name : "NO_ACTIVE_GAME"}`);
-    const handler = currentRoundHandlers[game.name];
+    let gameId: string;
+    let gameName: string;
 
-    if (!handler) {
-        throw new Error(`UNKNOWN_GAME_TYPE: ${game.name}`);
+    try {
+        const game = await getTeamActiveGameRepo(teamId);
+        gameId = game.id;
+        gameName = game.name;
+    } catch (e: any) {
+        if (e.message === "NO_ACTIVE_GAME_FOR_TEAM") {
+            // No active/failed rounds — check team_game_results for completed/timed-out games
+            const result = await getTeamLatestGameResultRepo(teamId);
+            if (!result) throw new Error("NO_ACTIVE_GAME_FOR_TEAM");
+
+            const state = await resolveTeamGameState(teamId, result.game_id);
+            return state;
+        }
+        throw e;
     }
 
-    return await handler(teamId);
+    const state = await resolveTeamGameState(teamId, gameId);
+
+    // Terminal states — no round data needed
+    if (state.teamState !== "IN_PROGRESS") {
+        return state;
+    }
+
+    // IN_PROGRESS — get round-specific data from game handler
+    const handler = currentRoundHandlers[gameName];
+    if (!handler) {
+        throw new Error(`UNKNOWN_GAME_TYPE: ${gameName}`);
+    }
+
+    const roundData = await handler(teamId, gameId);
+
+    // Strip the old ad-hoc `status` field; teamState + messageCode are authoritative
+    const { status: _oldStatus, ...data } = roundData;
+    return { ...data, ...state };
 }
 
 export async function startTeamGameService(teamId: string, gameId: string) {
@@ -184,14 +214,26 @@ export async function startTeamGameService(teamId: string, gameId: string) {
         throw new Error(`UNKNOWN_GAME_TYPE: ${game.name}`);
     }
 
-    return await handler(teamId);
+    return await handler(teamId, gameId);
 }
 
 export async function getTeamProgressService(teamId: string) {
 
     const progress = await getTeamProgressRepo(teamId);
 
-    return progress;
+    // Resolve authoritative game state if the team has an active/recent game
+    let state = null;
+    try {
+        const game = await getTeamActiveGameRepo(teamId);
+        state = await resolveTeamGameState(teamId, game.id);
+    } catch {
+        const result = await getTeamLatestGameResultRepo(teamId);
+        if (result) {
+            state = await resolveTeamGameState(teamId, result.game_id);
+        }
+    }
+
+    return { progress, ...(state ?? {}) };
 
 }
 

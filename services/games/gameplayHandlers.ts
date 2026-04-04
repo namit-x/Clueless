@@ -4,14 +4,14 @@ import { getDigitManipulationRound, startDigitManipulationForTeam, submitDigitMa
 import { getQuizV2Round, startQuizV2ForTeam, submitQuizV2Answer } from "./quizV2Service";
 import { completeTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
 
-export const teamStartHandlers: Record<string, (teamId: string) => Promise<any>> = {
+export const teamStartHandlers: Record<string, (teamId: string, gameId: string) => Promise<any>> = {
     "Treasure Hunt": startTreasureHuntForTeam,
     "Blind Code": startBlindCodeForTeam,
     "Digit Manipulation": startDigitManipulationForTeam,
     "Quiz V2": startQuizV2ForTeam,
 };
 
-export const currentRoundHandlers: Record<string, (teamId: string) => Promise<any>> = {
+export const currentRoundHandlers: Record<string, (teamId: string, gameId: string) => Promise<any>> = {
     "Treasure Hunt": getTreasureHuntRound,
     "Blind Code": getBlindCodeRound,
     "Digit Manipulation": getDigitManipulationRound,

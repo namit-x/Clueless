@@ -107,6 +107,24 @@ export async function markTimedOutTeamGameResults(gameId: string, penaltySeconds
     return result.rows;
 }
 
+export async function getTeamLatestGameResultRepo(teamId: string) {
+    const query = `
+        SELECT
+            tgr.game_id,
+            tgr.status,
+            g.name AS game_name
+        FROM team_game_results tgr
+        JOIN games g ON tgr.game_id = g.id
+        WHERE tgr.team_id = $1
+        ORDER BY tgr.started_at DESC
+        LIMIT 1;
+    `;
+
+    const result = await pool.query(query, [teamId]);
+
+    return result.rows[0] ?? null;
+}
+
 export async function deleteTeamGameResultsByGameId(gameId: string) {
     const query = `
         DELETE FROM team_game_results

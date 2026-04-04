@@ -11,7 +11,7 @@ import {
     getRevealedNumbersRepo,
     areAllRoundsDoneRepo,
 } from "@/lib/repositories/teamRoundProgressRepo";
-import { activateGameRepo, getActiveGameRepo } from "@/lib/repositories/gameRepo";
+import { activateGameRepo } from "@/lib/repositories/gameRepo";
 import { getRoundContextRepo, getRoundsForGameRepo } from "@/lib/repositories/roundsRepo";
 import { insertRewardWordRepo, getRewardWordRepo } from "@/lib/repositories/rewardWordsRepo";
 import { getFinalSubmissionRepo, insertFinalSubmissionRepo, updateFinalSubmissionRepo } from "@/lib/repositories/finalSubmissionsRepo";
@@ -63,11 +63,11 @@ export async function startQuizV2Game(gameId: string) {
 
 // ─── Team: start game ───────────────────────────────────────────────────────
 
-export async function startQuizV2ForTeam(teamId: string) {
+export async function startQuizV2ForTeam(teamId: string, gameId: string) {
 
     // 1. Activate round 1 (idempotent)
-    const roundId = await activateFirstRoundRepo(teamId);
-    const { configuration, gameId } = await getRoundContextRepo(roundId);
+    const roundId = await activateFirstRoundRepo(teamId, gameId);
+    const { configuration } = await getRoundContextRepo(roundId);
 
     // 2. Assign a random word (idempotent — ON CONFLICT returns existing)
     const randomWord = WORD_POOL[Math.floor(Math.random() * WORD_POOL.length)];
@@ -100,14 +100,13 @@ export async function startQuizV2ForTeam(teamId: string) {
 
 // ─── Team: get current round ────────────────────────────────────────────────
 
-export async function getQuizV2Round(teamId: string) {
+export async function getQuizV2Round(teamId: string, gameId: string) {
 
-    const roundProgress = await getCurrentRoundRepo(teamId);
+    const roundProgress = await getCurrentRoundRepo(teamId, gameId);
 
     if (!roundProgress) {
         // No ACTIVE round — check if all rounds are done (final phase)
-        const game = await getActiveGameRepo();
-        const allDone = await areAllRoundsDoneRepo(teamId, game.id);
+        const allDone = await areAllRoundsDoneRepo(teamId, gameId);
 
         if (allDone) {
             const finalSub = await getFinalSubmissionRepo(teamId);
@@ -119,7 +118,7 @@ export async function getQuizV2Round(teamId: string) {
                 };
             }
 
-            const revealed = await getRevealedNumbersRepo(teamId, game.id);
+            const revealed = await getRevealedNumbersRepo(teamId, gameId);
 
             return {
                 status: "COMPLETED",
@@ -135,7 +134,7 @@ export async function getQuizV2Round(teamId: string) {
     }
 
     const { roundId, roundNumber } = roundProgress;
-    const { configuration, gameId } = await getRoundContextRepo(roundId);
+    const { configuration } = await getRoundContextRepo(roundId);
     const { attemptCount } = await getRoundAttemptStatusRepo(teamId, roundId);
     const maxAttempts = configuration.max_attempts ?? 2;
 

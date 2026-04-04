@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
+import { getGameScreen } from "@/lib/gameMessages";
+import type { MessageCode } from "@/lib/types/teamGameState";
 
 /* ═══════════════════════════════════════════════════════
    SHARED UI PRIMITIVES
@@ -288,40 +290,17 @@ export default function TreasureHuntGame() {
                 credentials: "include",
             });
 
-            if (!res.ok) {
-                setIsGameEnded(true);
-                setIsFinished(false);
-                setIsWaiting(false);
-                setIsRoundFailed(false);
-                return;
-            }
-
-            const json = await res.json();
+            const json = res.ok ? await res.json() : null;
             console.log("ROUND API: ", json);
 
-            if (!json.success) {
-                setIsGameEnded(true);
-                setIsFinished(false);
-                setIsWaiting(false);
-                setIsRoundFailed(false);
-                return;
-            }
+            const screen = getGameScreen(json?.messageCode as MessageCode | undefined);
 
-            if (json.status === "FAILED") {
-                setIsRoundFailed(true);
-                setIsFinished(false);
-                setIsWaiting(false);
-                setIsGameEnded(false);
-                setCurrentRound(null);
-                setClue("");
-                return;
-            }
+            setIsFinished(screen === "finished" || screen === "rounds_done");
+            setIsRoundFailed(screen === "failed");
+            setIsGameEnded(screen === "time_over");
+            setIsWaiting(screen === "waiting");
 
-            if (json.status === "COMPLETED") {
-                setIsFinished(true);
-                setIsWaiting(false);
-                setIsGameEnded(false);
-                setIsRoundFailed(false);
+            if (screen !== "playing") {
                 setCurrentRound(null);
                 setClue("");
                 return;
@@ -329,20 +308,12 @@ export default function TreasureHuntGame() {
 
             if (!json.roundId) {
                 setIsWaiting(true);
-                setIsFinished(false);
-                setIsGameEnded(false);
-                setIsRoundFailed(false);
                 setCurrentRound(null);
                 setClue("");
                 return;
             }
 
-            setIsWaiting(false);
-            setIsFinished(false);
-            setIsGameEnded(false);
-            setIsRoundFailed(false);
             setAttemptsLeft(json.attemptsLeft ?? 3);
-
             setCurrentRound({
                 id: json.roundId,
                 number: json.round,

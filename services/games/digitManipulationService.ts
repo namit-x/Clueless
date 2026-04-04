@@ -105,9 +105,9 @@ export async function startDigitManipulationGame(gameId: string) {
     return await activateGameRepo(gameId);
 }
 
-export async function startDigitManipulationForTeam(teamId: string) {
-    const roundId = await activateFirstRoundRepo(teamId);
-    const { roundNumber, configuration, gameId } = await getRoundContextRepo(roundId);
+export async function startDigitManipulationForTeam(teamId: string, gameId: string) {
+    const roundId = await activateFirstRoundRepo(teamId, gameId);
+    const { roundNumber, configuration } = await getRoundContextRepo(roundId);
 
     await assertGameActive(gameId);
 
@@ -126,15 +126,15 @@ export async function startDigitManipulationForTeam(teamId: string) {
 
 // ─── Get current round ──────────────────────────────────────────────────────
 
-export async function getDigitManipulationRound(teamId: string) {
-    const roundProgress = await getCurrentRoundRepo(teamId);
+export async function getDigitManipulationRound(teamId: string, gameId: string) {
+    const roundProgress = await getCurrentRoundRepo(teamId, gameId);
 
     if (!roundProgress) {
         return { status: "NO_ACTIVE_ROUND", message: "No active round found." };
     }
 
     const { roundId, roundNumber } = roundProgress;
-    const { configuration, gameId } = await getRoundContextRepo(roundId);
+    const { configuration } = await getRoundContextRepo(roundId);
 
     await assertGameActive(gameId);
 

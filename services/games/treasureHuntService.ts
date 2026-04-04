@@ -38,13 +38,13 @@ export async function startTreasureHuntGame(gameId: string) {
     return await activateGameRepo(gameId);
 }
 
-export async function startTreasureHuntForTeam(teamId: string) {
+export async function startTreasureHuntForTeam(teamId: string, gameId: string) {
 
     console.log(`[TreasureHuntService] Starting Treasure Hunt for team ${teamId}`);
 
     const [routeId] = await Promise.all([
         getTeamRouteRepo(teamId),
-        activateFirstRoundRepo(teamId)
+        activateFirstRoundRepo(teamId, gameId)
     ]);
 
     const clue = await getRoundClueRepo(routeId, 1);
@@ -55,11 +55,11 @@ export async function startTreasureHuntForTeam(teamId: string) {
     };
 }
 
-export async function getTreasureHuntRound(teamId: string) {
+export async function getTreasureHuntRound(teamId: string, gameId: string) {
 
     const [routeId, roundProgress] = await Promise.all([
         getTeamRouteRepo(teamId),
-        getActiveOrFailedRoundRepo(teamId)
+        getActiveOrFailedRoundRepo(teamId, gameId)
     ]);
 
     if (!roundProgress) {

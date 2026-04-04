@@ -34,9 +34,9 @@ function getBlindCodeAnswer(configuration: any) {
     return getBlindCodeChallenge(configuration);
 }
 
-export async function startBlindCodeForTeam(teamId: string) {
+export async function startBlindCodeForTeam(teamId: string, gameId: string) {
 
-    const roundId = await activateFirstRoundRepo(teamId);
+    const roundId = await activateFirstRoundRepo(teamId, gameId);
     const { roundNumber, configuration } = await getRoundContextRepo(roundId);
 
     return {
@@ -46,9 +46,9 @@ export async function startBlindCodeForTeam(teamId: string) {
     };
 }
 
-export async function getBlindCodeRound(teamId: string) {
+export async function getBlindCodeRound(teamId: string, gameId: string) {
 
-    const roundProgress = await getCurrentRoundRepo(teamId);
+    const roundProgress = await getCurrentRoundRepo(teamId, gameId);
 
     if (!roundProgress) {
         return {

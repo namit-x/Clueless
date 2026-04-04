@@ -34,6 +34,44 @@ export async function getActiveGameRepo() {
   return result.rows[0];
 }
 
+export async function getTeamActiveGameRepo(teamId: string) {
+  const query = `
+    SELECT g.id, g.name
+    FROM team_round_progress trp
+    JOIN rounds r ON trp.round_id = r.id
+    JOIN games g ON r.game_id = g.id
+    WHERE trp.team_id = $1
+      AND trp.status IN ('ACTIVE', 'FAILED')
+    ORDER BY trp.started_at DESC NULLS LAST
+    LIMIT 1;
+  `;
+
+  const result = await pool.query(query, [teamId]);
+
+  if (result.rowCount === 0) {
+    throw new Error("NO_ACTIVE_GAME_FOR_TEAM");
+  }
+
+  // Integrity check: ensure only one active game per team
+  const checkQuery = `
+    SELECT DISTINCT g.id
+    FROM team_round_progress trp
+    JOIN rounds r ON trp.round_id = r.id
+    JOIN games g ON r.game_id = g.id
+    WHERE trp.team_id = $1
+      AND trp.status IN ('ACTIVE', 'FAILED');
+  `;
+
+  const checkResult = await pool.query(checkQuery, [teamId]);
+  const distinctGameIds = new Set(checkResult.rows.map((row: any) => row.id));
+
+  if (distinctGameIds.size > 1) {
+    throw new Error("DATA_INTEGRITY_ERROR: team has active rounds in multiple games");
+  }
+
+  return result.rows[0];
+}
+
 export async function activateGameRepo(gameId: string) {
 
   const query = `

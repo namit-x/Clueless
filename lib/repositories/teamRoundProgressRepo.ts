@@ -42,7 +42,7 @@ export async function initializeTeamRoundProgressForTeamRepo(teamId: string, gam
   await pool.query(query, [teamId, gameId]);
 }
 
-export async function activateFirstRoundRepo(teamId: string) {
+export async function activateFirstRoundRepo(teamId: string, gameId: string) {
 
   // Try to activate round 1 (LOCKED → ACTIVE)
   const activateQuery = `
@@ -50,16 +50,15 @@ export async function activateFirstRoundRepo(teamId: string) {
     SET status = 'ACTIVE',
         started_at = NOW()
     FROM rounds r
-    JOIN games g ON g.id = r.game_id
     WHERE trp.round_id = r.id
     AND trp.team_id = $1
     AND trp.status = 'LOCKED'
     AND r.round_number = 1
-    AND g.is_active = true
+    AND r.game_id = $2
     RETURNING trp.round_id;
   `;
 
-  const result = await pool.query(activateQuery, [teamId]);
+  const result = await pool.query(activateQuery, [teamId, gameId]);
 
   if (result.rowCount && result.rowCount > 0) {
     return result.rows[0].round_id;
@@ -70,14 +69,13 @@ export async function activateFirstRoundRepo(teamId: string) {
     SELECT trp.round_id
     FROM team_round_progress trp
     JOIN rounds r ON trp.round_id = r.id
-    JOIN games g ON g.id = r.game_id
     WHERE trp.team_id = $1
       AND r.round_number = 1
-      AND g.is_active = true
+      AND r.game_id = $2
       AND trp.status = 'ACTIVE'
   `;
 
-  const fallback = await pool.query(fallbackQuery, [teamId]);
+  const fallback = await pool.query(fallbackQuery, [teamId, gameId]);
 
   if (fallback.rowCount === 0) {
     throw new Error("ROUND_ACTIVATION_FAILED");
@@ -86,18 +84,19 @@ export async function activateFirstRoundRepo(teamId: string) {
   return fallback.rows[0].round_id;
 }
 
-export async function getCurrentRoundRepo(teamId: string) {
+export async function getCurrentRoundRepo(teamId: string, gameId: string) {
 
   const query = `
     SELECT r.id, r.round_number
     FROM team_round_progress trp
     JOIN rounds r ON trp.round_id = r.id
     WHERE trp.team_id = $1
+    AND r.game_id = $2
     AND trp.status = 'ACTIVE'
     LIMIT 1
   `;
 
-  const result = await pool.query(query, [teamId]);
+  const result = await pool.query(query, [teamId, gameId]);
 
   if (result.rowCount === 0) {
     return null;
@@ -109,18 +108,19 @@ export async function getCurrentRoundRepo(teamId: string) {
   };
 }
 
-export async function getActiveOrFailedRoundRepo(teamId: string) {
+export async function getActiveOrFailedRoundRepo(teamId: string, gameId: string) {
 
   const query = `
     SELECT r.id, r.round_number, trp.status, trp.attempt_count
     FROM team_round_progress trp
     JOIN rounds r ON trp.round_id = r.id
     WHERE trp.team_id = $1
+      AND r.game_id = $2
       AND trp.status IN ('ACTIVE', 'FAILED')
     LIMIT 1
   `;
 
-  const result = await pool.query(query, [teamId]);
+  const result = await pool.query(query, [teamId, gameId]);
 
   if (result.rowCount === 0) {
     return null;

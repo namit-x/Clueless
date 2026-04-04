@@ -4,7 +4,8 @@ import { useState,useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
-import { on } from "events";
+import { getGameScreen } from "@/lib/gameMessages";
+import type { MessageCode } from "@/lib/types/teamGameState";
 
 type Operation = {
   type: string;
@@ -43,66 +44,34 @@ export default function DigitManipulationGame() {
       failSoundRef.current?.play();
     }
 
-  async function fetchCurrentRound(afterCorrect = false) {
+  async function fetchCurrentRound() {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/v1/games/current/round", { 
+      const res = await fetch("/api/v1/games/current/round", {
         credentials: "include",
-        // body: JSON.stringify({  }),
       });
-      const json = await res.json();
+      const json = res.ok ? await res.json() : null;
       console.log("Digit Manipulation - Fetch Round:", json);
 
-      if (!res.ok || !json.success) {
-        if (afterCorrect) {
-          setIsFinished(true);
-        } else {
-          setIsGameEnded(true);
-        }
-        setIsWaiting(false);
-        setIsRoundFailed(false);
-        return;
-      }
+      const screen = getGameScreen(json?.messageCode as MessageCode | undefined);
 
-      if (json.status === "FAILED") {
-        setIsRoundFailed(true);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setCurrentRound(null);
-        return;
-      }
+      setIsFinished(screen === "finished" || screen === "rounds_done");
+      setIsRoundFailed(screen === "failed");
+      setIsGameEnded(screen === "time_over");
+      setIsWaiting(screen === "waiting");
 
-      if (json.status === "COMPLETED") {
-        setIsFinished(true);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setIsRoundFailed(false);
-        setCurrentRound(null);
-        return;
-      }
-
-      if (json.status === "GAME_ENDED") {
-        setIsGameEnded(true);
-        setIsWaiting(false);
-        setIsFinished(false);
-        setIsRoundFailed(false);
+      if (screen !== "playing") {
         setCurrentRound(null);
         return;
       }
 
       if (!json.roundId) {
         setIsWaiting(true);
-        setIsFinished(false);
-        setIsGameEnded(false);
-        setIsRoundFailed(false);
         setCurrentRound(null);
         return;
       }
 
-      setIsWaiting(false);
-      setIsGameEnded(false);
-      setIsRoundFailed(false);
       setCurrentRound({ id: json.roundId, number: json.roundNumber ?? json.round });
       setStartingNumber(json.number);
       setOperations(json.operations ?? []);
@@ -145,7 +114,7 @@ export default function DigitManipulationGame() {
           return;
         }
 
-        await fetchCurrentRound(true);
+        await fetchCurrentRound();
         setResult(null);
       } else {
         setResult("incorrect");

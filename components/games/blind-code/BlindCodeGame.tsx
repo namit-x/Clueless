@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
+import { getGameScreen } from "@/lib/gameMessages";
+import type { MessageCode } from "@/lib/types/teamGameState";
 
 export default function BlindCodeGame() {
   const router = useRouter();
@@ -65,7 +67,7 @@ export default function BlindCodeGame() {
     }
   }
 
-  async function fetchCurrentRound(afterCorrect = false) {
+  async function fetchCurrentRound() {
     try {
       setLoading(true);
 
@@ -73,58 +75,29 @@ export default function BlindCodeGame() {
         credentials: "include",
       });
 
-      if (!res.ok) {
-        if (afterCorrect) setIsFinished(true);
-        else setIsGameEnded(true);
-        setIsWaiting(false);
-        setIsRoundFailed(false);
-        return;
-      }
-
-      const json = await res.json();
+      const json = res.ok ? await res.json() : null;
       console.log("ROUND API: ", json);
 
-      if (!json.success) {
-        if (afterCorrect) setIsFinished(true);
-        else setIsGameEnded(true);
-        setIsWaiting(false);
-        setIsRoundFailed(false);
-        return;
-      }
+      const screen = getGameScreen(json?.messageCode as MessageCode | undefined);
 
-      // NOTE for backend: getBlindCodeRound should return status: "FAILED" when attempts exhausted
-      if (json.status === "FAILED") {
-        setIsRoundFailed(true);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setCurrentRound(null);
-        return;
-      }
+      setIsFinished(screen === "finished" || screen === "rounds_done");
+      setIsRoundFailed(screen === "failed");
+      setIsGameEnded(screen === "time_over");
+      setIsWaiting(screen === "waiting");
 
-      if (json.status === "COMPLETED") {
-        setIsFinished(true);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setIsRoundFailed(false);
+      if (screen !== "playing") {
         setCurrentRound(null);
         return;
       }
 
       if (!json.roundId) {
         setIsWaiting(true);
-        setIsFinished(false);
-        setIsGameEnded(false);
-        setIsRoundFailed(false);
         setCurrentRound(null);
         return;
       }
 
-      setIsWaiting(false);
-      setIsGameEnded(false);
-      setIsRoundFailed(false);
       setCurrentRound({ id: json.roundId, number: json.round });
       setTargetString(json.challenge);
-      // NOTE for backend: getBlindCodeRound should return attemptsLeft
       setAttemptsLeft(json.attemptsLeft ?? 3);
     } catch (err) {
       console.error("Round fetch error", err);
@@ -157,8 +130,8 @@ export default function BlindCodeGame() {
         setCode("");
         setLineCount(10);
 
-        // Re-fetch to load the next round (pass true so a failed fetch = completed)
-        await fetchCurrentRound(true);
+        // Re-fetch to load the next round (resolver handles terminal states)
+        await fetchCurrentRound();
         setResult(null);
       } else {
         setResult("incorrect");

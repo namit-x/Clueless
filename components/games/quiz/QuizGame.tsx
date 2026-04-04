@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
+import { getGameScreen } from "@/lib/gameMessages";
+import type { MessageCode } from "@/lib/types/teamGameState";
 
 export default function QuizGame() {
   const router = useRouter();
@@ -46,60 +48,41 @@ export default function QuizGame() {
     failSoundRef.current?.play();
   }
 
-  async function fetchCurrentRound(afterCorrect = false) {
+  async function fetchCurrentRound() {
     try {
       setLoading(true);
 
       const res = await fetch("/api/v1/games/current/round", {
         credentials: "include",
       });
-      const json = await res.json();
+      const json = res.ok ? await res.json() : null;
       console.log("Quiz V2 - Fetch Round:", json);
 
-      if (!res.ok || !json.success) {
-        if (afterCorrect) {
-          setIsFinished(true);
-        } else {
-          setIsGameEnded(true);
-        }
-        setIsWaiting(false);
-        setIsFinalPhase(false);
-        return;
-      }
+      const screen = getGameScreen(json?.messageCode as MessageCode | undefined);
 
-      if (json.status === "GAME_OVER") {
-        setIsFinished(true);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setIsFinalPhase(false);
+      setIsFinished(screen === "finished");
+      setIsGameEnded(screen === "time_over");
+      setIsWaiting(screen === "waiting");
+      setIsFinalPhase(screen === "rounds_done");
+
+      if (screen === "rounds_done") {
+        setRevealedNumbers(json?.revealedNumbers ?? []);
         setCurrentRound(null);
         return;
       }
 
-      if (json.status === "COMPLETED") {
-        setIsFinalPhase(true);
-        setRevealedNumbers(json.revealedNumbers ?? []);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setIsFinished(false);
+      if (screen !== "playing") {
         setCurrentRound(null);
         return;
       }
 
-      if (json.status === "NOT_STARTED" || !json.roundId) {
+      if (!json.roundId) {
         setIsWaiting(true);
-        setIsFinished(false);
-        setIsGameEnded(false);
-        setIsFinalPhase(false);
         setCurrentRound(null);
         return;
       }
 
       // ACTIVE round
-      setIsWaiting(false);
-      setIsGameEnded(false);
-      setIsFinished(false);
-      setIsFinalPhase(false);
       setCurrentRound({ id: json.roundId, number: json.round });
       setQuestion(json.question);
       setOptions(json.options ?? []);
@@ -135,7 +118,7 @@ export default function QuizGame() {
         setResult("correct");
         setSelectedOption(null);
         setTimeout(async () => {
-          await fetchCurrentRound(true);
+          await fetchCurrentRound();
           setResult(null);
         }, 1200);
         return;
@@ -156,7 +139,7 @@ export default function QuizGame() {
         setResult("round_failed");
         playFail();
         setTimeout(async () => {
-          await fetchCurrentRound(false);
+          await fetchCurrentRound();
           setResult(null);
         }, 1800);
         return;
