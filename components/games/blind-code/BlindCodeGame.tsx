@@ -201,13 +201,22 @@ export default function BlindCodeGame() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setCode(val);
-    setResult(null);
-    const lines = val.split("\n").length;
+  // Keep cursor pinned to position 0 so it never visually moves
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.selectionStart = 0;
+    ta.selectionEnd = 0;
+  }, [code]);
+
+  // Recalculate line count whenever code changes
+  useEffect(() => {
+    const lines = code.split("\n").length;
     setLineCount(Math.max(10, lines + 2));
-  };
+  }, [code]);
+
+  // No-op: all input is handled in onKeyDown; onChange is required by React for controlled inputs
+  const handleChange = () => {};
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 
@@ -215,21 +224,43 @@ export default function BlindCodeGame() {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();
+      return;
     }
 
-    // Tab --> Insert spaces (4)
+    // Tab --> append 4 spaces
     if (e.key === "Tab") {
       e.preventDefault();
-      const ta = textareaRef.current!;
-      const s = ta.selectionStart;
-      const newVal = code.substring(0, s) + "    " + code.substring(ta.selectionEnd);
-      setCode(newVal);
-      setTimeout(() => { ta.selectionStart = ta.selectionEnd = s + 4; }, 0);
+      setCode(prev => prev + "    ");
+      setResult(null);
+      playTypingSound(e.key);
+      return;
     }
 
-    // Play typing sound for printable keys, Enter, Backspace, Tab, Space, Arrow keys
-    if (e.key.length === 1 || ["Enter", "Backspace", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+    // Enter --> append newline
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setCode(prev => prev + "\n");
+      setResult(null);
       playTypingSound(e.key);
+      return;
+    }
+
+    // Backspace --> remove last character
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      setCode(prev => prev.slice(0, -1));
+      setResult(null);
+      playTypingSound(e.key);
+      return;
+    }
+
+    // Printable character (exclude ctrl/meta combos like Ctrl+A, Ctrl+C)
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      setCode(prev => prev + e.key);
+      setResult(null);
+      playTypingSound(e.key);
+      return;
     }
   };
 
