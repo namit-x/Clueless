@@ -14,6 +14,7 @@ import QuizGame from "@/components/games/quiz/QuizGame";
 import DigitManipulationGame from "@/components/games/digit-manipulation/DigitManipulationGame";
 import BlindCodeGame from "@/components/games/blind-code/BlindCodeGame";
 import TeamBlockedScreen from "@/components/game/TeamBlockedScreen";
+import LoadingGhost from "@/components/LoadingGhost";
 function GamesPageInner() {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
@@ -58,10 +59,16 @@ function GamesPageInner() {
 
   if (teamBlocked) return <TeamBlockedScreen />;
 
+  const isLoading = gamesStatus === "idle" || gamesStatus === "loading";
+
   return (
     <GameLayout>
       <GameHeader gName={selectedGame?.name ?? ""} />
-      {selectedGame ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-[320px]">
+          <LoadingGhost />
+        </div>
+      ) : selectedGame ? (
         gameComponents[selectedGame.name] ?? <NoActiveGame />
       ) : (
         <NoActiveGame />
