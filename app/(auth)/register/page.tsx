@@ -447,14 +447,16 @@ export default function TeamRegistrationPage() {
             // Parse backend response
             const data = await res.json();
 
+            const responseMessage = data?.error || data?.message || "Request failed";
+
             // ✅ Print status + message in console
             console.log("Status Code:", res.status);
-            console.log("Response Message:", data.message);
+            console.log("Response Message:", responseMessage);
             console.log("Full Response:", data);
 
             // If backend returned error status
             if (!res.ok) {
-                throw new Error(data.message || "Request failed");
+                throw new Error(responseMessage);
             }
 
             // Success
