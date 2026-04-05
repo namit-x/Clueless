@@ -9,6 +9,8 @@ import {
 import { activateGameRepo, getGameByIdRepo } from "@/lib/repositories/gameRepo";
 import { getRoundContextRepo } from "@/lib/repositories/roundsRepo";
 import { getOrResolvePuzzle } from "@/lib/digitManipulation/cache";
+import { resolvePuzzle } from "@/lib/digitManipulation/resolver";
+import { MIN_RESULT, DEFAULT_MAX_RESULT } from "@/lib/digitManipulation/engine";
 import { GeneratorConfig } from "@/lib/digitManipulation/generator";
 import { Operation } from "@/lib/digitManipulation/types";
 
@@ -49,6 +51,7 @@ export function parseConfiguration(configuration: unknown): GeneratorConfig {
     const operationCount = c.operationCount;
     const allowedOperations = c.allowedOperations;
     const operandRange = c.operandRange as Record<string, unknown> | undefined;
+    const maxResult = c.maxResult;
 
     if (typeof digitCount !== "number" || digitCount < 1)
         throw new Error("INVALID_CONFIGURATION: digitCount missing or < 1");
@@ -58,18 +61,27 @@ export function parseConfiguration(configuration: unknown): GeneratorConfig {
         throw new Error("INVALID_CONFIGURATION: allowedOperations missing or empty");
     if (!operandRange || typeof operandRange.min !== "number" || typeof operandRange.max !== "number")
         throw new Error("INVALID_CONFIGURATION: operandRange missing or invalid");
+    if (maxResult !== undefined && (typeof maxResult !== "number" || maxResult < 1))
+        throw new Error("INVALID_CONFIGURATION: maxResult must be a positive number");
 
     return {
         digitCount,
         operationCount,
         allowedOperations,
-        operandRange: { min: operandRange.min as number, max: operandRange.max as number }
+        operandRange: { min: operandRange.min as number, max: operandRange.max as number },
+        ...(maxResult !== undefined && { maxResult: maxResult as number })
     };
 }
+
+/** Maximum length of a submitted answer string. No valid result exceeds this. */
+const MAX_ANSWER_LENGTH = 20;
 
 export function validateSubmissionAnswer(answer: string): void {
     if (!answer || answer.trim() === "") {
         throw new Error("INVALID_SUBMISSION: answer is empty");
+    }
+    if (answer.trim().length > MAX_ANSWER_LENGTH) {
+        throw new Error("INVALID_SUBMISSION: answer exceeds maximum length");
     }
     if (!/^-?\d+$/.test(answer.trim())) {
         throw new Error("INVALID_SUBMISSION: answer must be numeric");
@@ -164,8 +176,18 @@ export async function submitDigitManipulationAnswer(
     // 1. Input validation
     validateSubmissionAnswer(answer);
 
-    // 3. Config validation
+    // 2. Config validation
     const config = parseConfiguration(configuration);
+
+    // 3. Early bounds rejection (uses engine constants, no separate logic)
+    const maxResult = config.maxResult !== undefined
+        ? BigInt(config.maxResult)
+        : DEFAULT_MAX_RESULT;
+    const submittedValue = BigInt(answer.trim());
+
+    if (submittedValue < MIN_RESULT || submittedValue > maxResult) {
+        throw new Error("INVALID_SUBMISSION: answer is out of bounds");
+    }
 
     // 4. Game state guard
     await assertGameActive(gameId);
@@ -177,7 +199,8 @@ export async function submitDigitManipulationAnswer(
         throw new Error("ROUND_LOCKED: round is not active");
     }
     if (status === "COMPLETED") {
-        throw new Error("ROUND_ALREADY_COMPLETED");
+        // Idempotent: round already completed — return existing result
+        return { correct: true, attemptsLeft: MAX_ATTEMPTS };
     }
     if (status === "FAILED" || attemptCount >= MAX_ATTEMPTS) {
         throw new Error("MAX_ATTEMPTS_REACHED");
@@ -186,10 +209,10 @@ export async function submitDigitManipulationAnswer(
         throw new Error("ROUND_NOT_ACTIVE: unexpected status " + status);
     }
 
-    // 6. Resolve correct answer (cache → resolver, deterministic)
-    const { answer: correctAnswer } = getOrResolvePuzzle(teamId, roundId, config);
+    // 6. Recompute correct answer from resolver (never trust cache for verification)
+    const { answer: correctAnswer } = resolvePuzzle(teamId, roundId, config);
 
-    const isCorrect = BigInt(answer.trim()) === correctAnswer;
+    const isCorrect = submittedValue === correctAnswer;
     const evaluation = isCorrect ? "CORRECT" : `WRONG: expected ${correctAnswer}`;
 
     // 7+8. Atomic: record submission + state transition in one transaction
@@ -200,8 +223,9 @@ export async function submitDigitManipulationAnswer(
         );
 
         if (!advanced) {
+            // Idempotent: concurrent request already completed this round
             console.log(`[DIGIT] Team ${teamId} round ${roundNumber}: concurrent completion (no-op)`);
-            throw new Error("ROUND_ALREADY_COMPLETED");
+            return { correct: true, attemptsLeft: MAX_ATTEMPTS };
         }
 
         console.log(`[DIGIT] Team ${teamId} completed round ${roundNumber} ✓`);
