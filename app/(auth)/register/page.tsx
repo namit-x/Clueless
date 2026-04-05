@@ -490,9 +490,8 @@ export default function TeamRegistrationPage() {
 
     return (
         <div
-            className={`min-h-screen px-4 py-8 sm:px-6 sm:py-12 lg:px-8 ${
-                shouldCenterDesktopStepOne ? "lg:flex lg:items-center" : ""
-            }`}
+            className={`min-h-screen px-4 py-8 sm:px-6 sm:py-12 lg:px-8 ${shouldCenterDesktopStepOne ? "lg:flex lg:items-center" : ""
+                }`}
         >
             {/* Back Button */}
             <button
@@ -503,9 +502,8 @@ export default function TeamRegistrationPage() {
             </button>
 
             <div
-                className={`mx-auto w-full max-w-3xl ${
-                    shouldCenterDesktopStepOne ? "lg:flex lg:min-h-[calc(100vh-6rem)] lg:flex-col lg:justify-center" : ""
-                }`}
+                className={`mx-auto w-full max-w-3xl ${shouldCenterDesktopStepOne ? "lg:flex lg:min-h-[calc(100vh-6rem)] lg:flex-col lg:justify-center" : ""
+                    }`}
             >
                 {/* Header */}
                 <div className="text-center mb-5">
@@ -702,29 +700,26 @@ export default function TeamRegistrationPage() {
                                             <div className="grid grid-cols-4 gap-2">
                                                 {teamData.members.map((member, index) => {
                                                     const filled = [member.name, member.mobile, member.email, member.branch].filter(Boolean).length === 4;
-                                                    const hasError = ['name','mobile','email','branch'].some(f => errors[`member-${index}-${f}`]);
+                                                    const hasError = ['name', 'mobile', 'email', 'branch'].some(f => errors[`member-${index}-${f}`]);
                                                     const isSelected = activeMemberIndex === index;
                                                     return (
                                                         <button
                                                             key={index}
                                                             type="button"
                                                             onClick={() => setActiveMemberIndex(index)}
-                                                            className={`relative flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 ${
-                                                                isSelected
-                                                                    ? 'border-primary bg-primary/10 text-primary neon-glow'
-                                                                    : 'border-border bg-background/40 text-muted-foreground hover:border-primary/50'
-                                                            }`}
+                                                            className={`relative flex flex-col items-center gap-1 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 ${isSelected
+                                                                ? 'border-primary bg-primary/10 text-primary neon-glow'
+                                                                : 'border-border bg-background/40 text-muted-foreground hover:border-primary/50'
+                                                                }`}
                                                         >
-                                                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                                                member.isLeader ? 'bg-warning/20 text-warning' : isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
-                                                            }`}>
+                                                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${member.isLeader ? 'bg-warning/20 text-warning' : isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                                                                }`}>
                                                                 {index + 1}
                                                             </span>
                                                             <span className="leading-none">{member.isLeader ? 'Lead' : `M${index + 1}`}</span>
                                                             {/* status dot */}
-                                                            <span className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full ${
-                                                                hasError ? 'bg-destructive' : filled ? 'bg-success' : 'bg-muted'
-                                                            }`} />
+                                                            <span className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full ${hasError ? 'bg-destructive' : filled ? 'bg-success' : 'bg-muted'
+                                                                }`} />
                                                         </button>
                                                     );
                                                 })}
@@ -743,9 +738,8 @@ export default function TeamRegistrationPage() {
                                                     >
                                                         <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-background/60">
                                                             <div className="flex items-center gap-2">
-                                                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                                                                    teamData.members[activeMemberIndex].isLeader ? 'bg-warning/20 text-warning' : 'bg-primary/20 text-primary'
-                                                                }`}>
+                                                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${teamData.members[activeMemberIndex].isLeader ? 'bg-warning/20 text-warning' : 'bg-primary/20 text-primary'
+                                                                    }`}>
                                                                     {activeMemberIndex + 1}
                                                                 </div>
                                                                 <span className="font-semibold text-sm text-foreground">
@@ -760,7 +754,7 @@ export default function TeamRegistrationPage() {
                                                             </span>
                                                         </div>
                                                         <div className="p-4 space-y-3">
-                                                            {(['name','mobile','email','branch'] as (keyof TeamMember)[]).map((field) => (
+                                                            {(['name', 'mobile', 'email', 'branch'] as (keyof TeamMember)[]).map((field) => (
                                                                 <div key={field}>
                                                                     <label className="block text-sm font-medium text-muted-foreground mb-1 capitalize">
                                                                         {field === 'name' ? 'Full Name' : field.charAt(0).toUpperCase() + field.slice(1)} <span className="text-destructive">*</span>
@@ -876,6 +870,15 @@ export default function TeamRegistrationPage() {
                                     </div>
                                     <h2 className="font-display text-2xl font-semibold text-foreground mb-2">Registration Successful!</h2>
                                     <p className="text-muted-foreground">Your team has been registered</p>
+                                    <br />
+                                    <a
+                                        href="https://chat.whatsapp.com/DszaCFRNBLRERu4PBf3pS9?mode=gi_t"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center justify-center bg-[#25D366] text-primary-foreground py-2 px-4 rounded-lg transition-all duration-300 hover:bg-[#1ebe5d] hover:scale-105  hover:-translate-y-0.5 active:scale-95"
+                                    >
+                                        Join WhatsApp Group
+                                    </a>
                                 </div>
 
                                 {/* Team Summary */}
@@ -951,6 +954,15 @@ export default function TeamRegistrationPage() {
                                             ))}
                                         </div>
                                     </div>
+                                </div>
+                                {/* Next Steps */}
+                                <div className="rounded-xl bg-muted/20 border border-border p-4 text-sm space-y-2">
+                                    <p className="font-medium text-foreground">What happens next?</p>
+                                    <ul className="space-y-1 text-muted-foreground">
+                                        <li>• Join the Participants WhatsApp group.</li>
+                                        <li>• Stay active there for all important updates.</li>
+                                        <li>• Check Zigbee and Neuron club pages for announcements.</li>
+                                    </ul>
                                 </div>
                                 <button
                                     onClick={() => router.push("/")}
