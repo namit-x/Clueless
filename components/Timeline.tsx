@@ -1,8 +1,8 @@
 import ScrollReveal from "./ScrollReveal";
 
 const events = [
-  { title: "Registration Opens", date: "April 04", icon: "📝", year: 2026, month: 3, day: 1 },
-  { title: "Registration Closes", date: "April 07", icon: "🔒", year: 2026, month: 3, day: 5 },
+  { title: "Registration Opens", date: "April 04", icon: "📝", year: 2026, month: 3, day: 4 },
+  { title: "Registration Closes", date: "April 07", icon: "🔒", year: 2026, month: 3, day: 7 },
   { title: "Event Day", date: "April 09", icon: "⚡", year: 2026, month: 3, day: 9 },
 ];
 
