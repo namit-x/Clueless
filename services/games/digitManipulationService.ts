@@ -48,27 +48,19 @@ export function parseConfiguration(configuration: unknown): GeneratorConfig {
     if (!c || typeof c !== "object") throw new Error("INVALID_CONFIGURATION");
 
     const digitCount = c.digitCount;
-    const operationCount = c.operationCount;
-    const allowedOperations = c.allowedOperations;
-    const operandRange = c.operandRange as Record<string, unknown> | undefined;
     const maxResult = c.maxResult;
 
     if (typeof digitCount !== "number" || digitCount < 1)
         throw new Error("INVALID_CONFIGURATION: digitCount missing or < 1");
-    if (typeof operationCount !== "number" || operationCount < 1)
-        throw new Error("INVALID_CONFIGURATION: operationCount missing or < 1");
-    if (!Array.isArray(allowedOperations) || allowedOperations.length === 0)
-        throw new Error("INVALID_CONFIGURATION: allowedOperations missing or empty");
-    if (!operandRange || typeof operandRange.min !== "number" || typeof operandRange.max !== "number")
-        throw new Error("INVALID_CONFIGURATION: operandRange missing or invalid");
+
     if (maxResult !== undefined && (typeof maxResult !== "number" || maxResult < 1))
         throw new Error("INVALID_CONFIGURATION: maxResult must be a positive number");
 
     return {
         digitCount,
-        operationCount,
-        allowedOperations,
-        operandRange: { min: operandRange.min as number, max: operandRange.max as number },
+        operationCount: 1,            // dummy (not used anymore)
+        allowedOperations: [],        // dummy
+        operandRange: { min: 0, max: 0 }, // dummy
         ...(maxResult !== undefined && { maxResult: maxResult as number })
     };
 }

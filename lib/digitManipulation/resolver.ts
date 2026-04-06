@@ -21,10 +21,11 @@ export function resolvePuzzle(
     roundId: string,
     config: GeneratorConfig
 ): PuzzleResult {
-    const { number, operations } = generatePuzzle(teamId, roundId, config);
+    const { number, operations } = generatePuzzle(teamId, roundId, 8);
     const maxResult = config.maxResult !== undefined
         ? BigInt(config.maxResult)
         : DEFAULT_MAX_RESULT;
     const answer = executeOperations(number, operations, maxResult);
+    console.log("Answer computed by resolver:", answer.toString());
     return { number, operations, answer };
 }

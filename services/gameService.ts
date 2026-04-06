@@ -159,6 +159,7 @@ export async function getCurrentRoundService(teamId: string) {
     let gameName: string;
 
     try {
+        // console.log("Finding active game for team:", teamId);
         const game = await getTeamActiveGameRepo(teamId);
         gameId = game.id;
         gameName = game.name;

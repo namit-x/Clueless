@@ -10,23 +10,26 @@ import {
 export const MIN_RESULT = BigInt(0);
 
 /** Default maximum allowed result after any operation step. */
-export const DEFAULT_MAX_RESULT = BigInt(1_000_000);
+export const DEFAULT_MAX_RESULT = BigInt(1_000_000_000);
 
 // ─── Digit operation helpers (pure string transforms) ────────────────────────
 
 function rotateLeft(str: string, k: number): string {
     if (str.length <= 1) return str;
     k = ((k % str.length) + str.length) % str.length;
+    console.log(str.slice(k) + str.slice(0, k));
     return str.slice(k) + str.slice(0, k);
 }
 
 function rotateRight(str: string, k: number): string {
     if (str.length <= 1) return str;
     k = ((k % str.length) + str.length) % str.length;
+    console.log(str.slice(-k) + str.slice(0, -k));
     return str.slice(-k) + str.slice(0, -k);
 }
 
 function reverse(str: string): string {
+    console.log(str.split("").reverse().join(""));
     return str.split("").reverse().join("");
 }
 
