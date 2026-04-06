@@ -26,6 +26,6 @@ export function resolvePuzzle(
         ? BigInt(config.maxResult)
         : DEFAULT_MAX_RESULT;
     const answer = executeOperations(number, operations, maxResult);
-    console.log("Answer computed by resolver:", answer.toString());
+    // console.log("Answer computed by resolver:", answer.toString());
     return { number, operations, answer };
 }

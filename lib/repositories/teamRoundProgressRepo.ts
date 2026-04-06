@@ -288,6 +288,7 @@ export async function submitAndAdvanceRoundRepo(
   const client = await pool.connect();
 
   try {
+    console.log('Evaluations result:', { teamId, roundId, roundNumber, gameId, answer, isCorrect, evaluationResult });
     await client.query("BEGIN");
 
     // 1. Record the submission
@@ -326,6 +327,27 @@ export async function submitAndAdvanceRoundRepo(
          )`,
       [teamId, gameId, roundNumber + 1]
     );
+
+    // 4. If last round → mark game completed
+    const isLastRound = await client.query(
+      `SELECT 1 FROM rounds
+   WHERE game_id = $1 AND round_number > $2
+   LIMIT 1`,
+      [gameId, roundNumber]
+    );
+
+    if (isLastRound.rowCount === 0) {
+      // no next round → this was last round
+      await client.query(
+        `UPDATE team_game_results
+     SET 
+       completed_at = NOW(),
+       completion_time = NOW() - started_at
+     WHERE team_id = $1 
+       AND game_id = $2`,
+        [teamId, gameId]
+      );
+    }
 
     await client.query("COMMIT");
     return { advanced: true };

@@ -17,19 +17,18 @@ export const DEFAULT_MAX_RESULT = BigInt(1_000_000_000);
 function rotateLeft(str: string, k: number): string {
     if (str.length <= 1) return str;
     k = ((k % str.length) + str.length) % str.length;
-    console.log(str.slice(k) + str.slice(0, k));
     return str.slice(k) + str.slice(0, k);
 }
 
 function rotateRight(str: string, k: number): string {
     if (str.length <= 1) return str;
     k = ((k % str.length) + str.length) % str.length;
-    console.log(str.slice(-k) + str.slice(0, -k));
+    // console.log(str.slice(-k) + str.slice(0, -k));
     return str.slice(-k) + str.slice(0, -k);
 }
 
 function reverse(str: string): string {
-    console.log(str.split("").reverse().join(""));
+    // console.log(str.split("").reverse().join(""));
     return str.split("").reverse().join("");
 }
 

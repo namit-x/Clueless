@@ -31,6 +31,7 @@ export async function submitAnswerService(
 ) {
 
     enforceRateLimit(teamId);
+    console.log(`submission reached service: teamId=${teamId}, roundId=${roundId}, answer=${answer}`);
 
     const roundContext = await getRoundContextRepo(roundId);
     const handler = submissionHandlers[roundContext.gameName];
