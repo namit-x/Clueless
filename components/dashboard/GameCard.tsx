@@ -88,11 +88,11 @@ export default function GameCard({ name, state, onPlay }: Props) {
         </h2>
 
         {/* Bottom hint for inactive */}
-        {!isActive && (
+        {/* {!isActive && (
           <p className="mt-1.5 text-xs text-white/20 tracking-wide">
             Waiting for admin to start
           </p>
-        )}
+        )} */}
       </div>
     </div>
   );

@@ -261,11 +261,11 @@ export default function DigitManipulationGame() {
       {/* Header */}
       <header className="dm-header">
         <div className="dm-header__left">
-          <span className="dm-title dm-title--glitch" data-text="DIGIT">DIGIT</span>
-          <span className="dm-title dm-title--thin">MANIPULATION</span>
+          {/* <span className="dm-title dm-title--glitch" data-text="DIGIT">DIGIT</span>
+          <span className="dm-title dm-title--thin">MANIPULATION</span> */}
+          <span className="dm-round-badge">ROUND {currentRound?.number}</span>
         </div>
         <div className="dm-header__right">
-          <span className="dm-round-badge">RND {currentRound?.number}</span>
           <AttemptsHearts remaining={attemptsLeft} />
         </div>
       </header>

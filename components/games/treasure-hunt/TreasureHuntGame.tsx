@@ -675,14 +675,20 @@ export default function TreasureHuntGame() {
         >
             <GridOverlay />
 
-            {/* Round pill */}
-            <div
-                className="relative z-10 inline-flex items-center gap-2 rounded-full px-4 py-1.5"
-                style={{ background: "hsl(var(--foreground) / 0.03)", border: "0.5px solid hsl(var(--foreground) / 0.09)", backdropFilter: "blur(12px)" }}
-            >
-                <span className="text-[10px] uppercase tracking-widest font-display text-muted-foreground/40">Round</span>
-                <span className="text-xl font-medium font-mono text-foreground">{currentRound?.number}</span>
-                <div style={{ width: "0.5px", height: 16, background: "hsl(var(--foreground) / 0.13)" }} />
+            {/* Match the digit manipulation round/hearts placement */}
+            <div className="absolute left-6 right-6 top-10 z-20 flex items-center justify-between">
+                <span
+                    className="inline-flex items-center rounded-md px-3 py-1 text-[12px] font-bold uppercase font-display text-primary"
+                    style={{
+                        letterSpacing: "0.16em",
+                        background: "hsl(var(--foreground) / 0.05)",
+                        border: "1px solid hsl(var(--foreground) / 0.09)",
+                        boxShadow: "inset 0 0.5px 0 hsl(var(--foreground) / 0.05)",
+                        backdropFilter: "blur(12px)",
+                    }}
+                >
+                    ROUND {currentRound?.number}
+                </span>
                 <AttemptsHearts remaining={attemptsLeft} />
             </div>
 

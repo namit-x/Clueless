@@ -189,7 +189,7 @@ export default function BlindCodeGame() {
   }, [code]);
 
   // No-op: all input is handled in onKeyDown; onChange is required by React for controlled inputs
-  const handleChange = () => {};
+  const handleChange = () => { };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 
@@ -312,7 +312,19 @@ export default function BlindCodeGame() {
             target output — print this exact string
           </span>
           <span className="text-[10px] text-muted-foreground/50 flex items-center gap-2">
-            round {currentRound?.number} · <AttemptsHearts remaining={attemptsLeft} />
+            <span
+              className="inline-flex items-center rounded-md px-3 py-1 text-[12px] font-bold uppercase font-display text-primary"
+              style={{
+                letterSpacing: "0.16em",
+                background: "hsl(var(--foreground) / 0.05)",
+                border: "1px solid hsl(var(--foreground) / 0.09)",
+                boxShadow: "inset 0 0.5px 0 hsl(var(--foreground) / 0.05)",
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              ROUND {currentRound?.number}
+            </span>
+            <AttemptsHearts remaining={attemptsLeft} />
           </span>
         </div>
         <div className="bg-muted/30 border border-border border-l-2 border-l-success rounded-r-md px-4 py-3 text-success text-sm tracking-wide break-all leading-relaxed">

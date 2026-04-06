@@ -60,15 +60,15 @@ export default function TeamControllerGhost({ className = "" }: TeamControllerGh
 
           <g>
             <circle cx={87 + eyeOffset.x} cy={87 + eyeOffset.y} r="4.2"
- fill="#111" />
+              fill="#111" />
             <circle cx={117 + eyeOffset.x} cy={87 + eyeOffset.y} r="4.2"
- fill="#111" />
+              fill="#111" />
           </g>
 
           <path
-            d="M90 108C94 112 106 112 110 108"
+            d="M90 108C96 111 106 114 112 106"
             stroke="#0f172a"
-            strokeWidth="3"
+            strokeWidth="4"
             strokeLinecap="round"
           />
 

@@ -4,8 +4,8 @@ export default function AttemptsHearts({ total = 3, remaining }: { total?: numbe
       {Array.from({ length: total }, (_, i) => (
         <svg
           key={i}
-          width="14"
-          height="14"
+          width="20"
+          height="20"
           viewBox="0 0 24 24"
           fill={i < remaining ? "hsl(var(--destructive))" : "hsl(var(--muted))"}
           xmlns="http://www.w3.org/2000/svg"
