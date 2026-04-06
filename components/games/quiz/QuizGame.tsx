@@ -48,6 +48,27 @@ export default function QuizGame() {
     failSoundRef.current?.play();
   }
 
+  function appendRevealedNumber(asciiNumber: unknown) {
+    if (typeof asciiNumber !== "number" || Number.isNaN(asciiNumber)) return;
+
+    setRevealedNumbers((prev) => (
+      prev.includes(asciiNumber) ? prev : [...prev, asciiNumber]
+    ));
+  }
+
+  function syncRevealedNumbers(nextNumbers: unknown) {
+    if (!Array.isArray(nextNumbers)) return;
+
+    const normalized = nextNumbers.filter(
+      (value): value is number => typeof value === "number" && !Number.isNaN(value)
+    );
+
+    setRevealedNumbers((prev) => {
+      if (normalized.length === 0) return prev;
+      return normalized;
+    });
+  }
+
   async function fetchCurrentRound() {
     try {
       setLoading(true);
@@ -66,7 +87,7 @@ export default function QuizGame() {
       setIsFinalPhase(screen === "rounds_done");
 
       if (screen === "rounds_done") {
-        setRevealedNumbers(json?.revealedNumbers ?? []);
+        syncRevealedNumbers(json?.revealedNumbers);
         setCurrentRound(null);
         return;
       }
@@ -87,7 +108,7 @@ export default function QuizGame() {
       setQuestion(json.question);
       setOptions(json.options ?? []);
       setAttemptsLeft(json.attemptsLeft ?? 2);
-      setRevealedNumbers(json.revealedNumbers ?? []);
+      syncRevealedNumbers(json.revealedNumbers);
       setSelectedOption(null);
       setResult(null);
     } catch (err) {
@@ -116,6 +137,7 @@ export default function QuizGame() {
 
       if (json.status === "CORRECT") {
         setResult("correct");
+        appendRevealedNumber(json.asciiNumber);
         setSelectedOption(null);
         setTimeout(async () => {
           await fetchCurrentRound();
@@ -126,7 +148,8 @@ export default function QuizGame() {
 
       if (json.status === "ALL_ROUNDS_COMPLETED") {
         setResult("correct");
-        setRevealedNumbers(json.revealedNumbers ?? []);
+        appendRevealedNumber(json.asciiNumber);
+        syncRevealedNumbers(json.revealedNumbers);
         setTimeout(() => {
           setIsFinalPhase(true);
           setCurrentRound(null);
@@ -313,11 +336,10 @@ export default function QuizGame() {
             {revealedNumbers.map((num, i) => (
               <div
                 key={i}
-                className={`qz-ascii-card ${num >= 65 && num <= 90 ? "qz-ascii-card--upper" : "qz-ascii-card--lower"}`}
+                className="qz-ascii-card"
                 style={{ animationDelay: `${i * 80}ms` }}
               >
                 <span className="qz-ascii-card__num">{num}</span>
-                <span className="qz-ascii-card__char">{String.fromCharCode(num)}</span>
               </div>
             ))}
           </div>

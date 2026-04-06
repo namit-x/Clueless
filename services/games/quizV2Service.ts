@@ -7,6 +7,7 @@ import {
     submitDecrementAndAdvanceRepo,
     bulkSetMetadataRepo,
     getRoundMetadataRepo,
+    getMetadataCoverageRepo,
     updateMetadataRevealedRepo,
     getRevealedNumbersRepo,
     areAllRoundsDoneRepo,
@@ -20,21 +21,23 @@ import { completeTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const WORD_POOL = [
-    "WEATHER", "NAMIT", "MAYANK", "HARMED", "ACTION",
-    "SCHOOL", "BOTTLE", "BREAD", "KITCHEN", "CLUELESS"
+    "VENOM", "STARK", "NAMIT", "CRUISE", "BLADE",
+    "FALCON", "BATMAN", "GHOST", "CYBORG", "CLUELESS"
 ];
-
-const TOTAL_ROUNDS = 10;
 
 // ─── Pure helpers ───────────────────────────────────────────────────────────
 
 /**
- * Generate a shuffled array of 10 ASCII codes for a given word.
+ * Generate a shuffled array of ASCII codes for a given word.
  * Uppercase ASCII codes for real letters, random lowercase (97-122) for noise.
  */
 function generateAsciiSequence(word: string, totalRounds: number): number[] {
 
     const realCodes = word.split("").map(ch => ch.charCodeAt(0));
+
+    if (realCodes.length > totalRounds) {
+        throw new Error("WORD_TOO_LONG_FOR_ROUNDS");
+    }
 
     const noiseCodes: number[] = [];
     for (let i = 0; i < totalRounds - realCodes.length; i++) {
@@ -43,13 +46,43 @@ function generateAsciiSequence(word: string, totalRounds: number): number[] {
 
     const combined = [...realCodes, ...noiseCodes];
 
-    // Fisher-Yates shuffle
     for (let i = combined.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [combined[i], combined[j]] = [combined[j], combined[i]];
     }
 
     return combined;
+}
+
+async function ensureQuizV2Metadata(teamId: string, gameId: string, fallbackWord?: string) {
+
+    const rounds = await getRoundsForGameRepo(gameId);
+    const coverage = await getMetadataCoverageRepo(teamId, gameId);
+
+    if (coverage.total === 0 || coverage.withAscii === coverage.total) {
+        return rounds;
+    }
+
+    // If some rounds already have ASCII numbers and some do not, we avoid rewriting
+    // the sequence because that would corrupt the hidden word mapping.
+    if (coverage.withAscii > 0) {
+        return rounds;
+    }
+
+    const word = fallbackWord ?? await getRewardWordRepo(teamId, gameId);
+    if (!word) {
+        throw new Error("REWARD_WORD_NOT_FOUND");
+    }
+
+    const asciiSequence = generateAsciiSequence(word, rounds.length);
+    const updates = rounds.map((round: any, i: number) => ({
+        teamId,
+        roundId: round.id,
+        metadata: { ascii_number: asciiSequence[i], revealed: false },
+    }));
+
+    await bulkSetMetadataRepo(updates);
+    return rounds;
 }
 
 // ─── Admin: start game ──────────────────────────────────────────────────────
@@ -73,21 +106,8 @@ export async function startQuizV2ForTeam(teamId: string, gameId: string) {
     const randomWord = WORD_POOL[Math.floor(Math.random() * WORD_POOL.length)];
     const word = await insertRewardWordRepo(teamId, gameId, randomWord);
 
-    // 3. Generate ASCII sequence and store metadata (only if not already set)
-    const existingMetadata = await getRoundMetadataRepo(teamId, roundId);
-
-    if (!existingMetadata) {
-        const rounds = await getRoundsForGameRepo(gameId);
-        const asciiSequence = generateAsciiSequence(word, TOTAL_ROUNDS);
-
-        const updates = rounds.map((round: any, i: number) => ({
-            teamId,
-            roundId: round.id,
-            metadata: { ascii_number: asciiSequence[i], revealed: false },
-        }));
-
-        await bulkSetMetadataRepo(updates);
-    }
+    // 3. Ensure every round has per-team ASCII metadata.
+    await ensureQuizV2Metadata(teamId, gameId, word);
 
     // 4. Return first question
     return {
@@ -101,6 +121,8 @@ export async function startQuizV2ForTeam(teamId: string, gameId: string) {
 // ─── Team: get current round ────────────────────────────────────────────────
 
 export async function getQuizV2Round(teamId: string, gameId: string) {
+
+    await ensureQuizV2Metadata(teamId, gameId);
 
     const roundProgress = await getCurrentRoundRepo(teamId, gameId);
 
@@ -161,6 +183,8 @@ export async function submitQuizV2Answer(
     roundNumber: number,
     gameId: string,
 ) {
+
+    await ensureQuizV2Metadata(teamId, gameId);
 
     const maxAttempts = configuration.max_attempts ?? 2;
 

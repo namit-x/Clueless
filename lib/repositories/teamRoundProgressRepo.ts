@@ -433,8 +433,13 @@ export async function bulkSetMetadataRepo(
     for (const u of updates) {
       await client.query(
         `UPDATE team_round_progress
-         SET metadata = $3
-         WHERE team_id = $1 AND round_id = $2 AND metadata IS NULL`,
+         SET metadata = $3::jsonb
+         WHERE team_id = $1
+           AND round_id = $2
+           AND (
+             metadata IS NULL
+             OR NOT (metadata ? 'ascii_number')
+           )`,
         [u.teamId, u.roundId, JSON.stringify(u.metadata)]
       );
     }
@@ -449,10 +454,48 @@ export async function bulkSetMetadataRepo(
 
 export async function getRoundMetadataRepo(teamId: string, roundId: string) {
   const result = await pool.query(
-    `SELECT metadata FROM team_round_progress WHERE team_id = $1 AND round_id = $2`,
+    `SELECT
+       metadata,
+       (metadata->>'ascii_number')::int AS ascii_number,
+       COALESCE((metadata->>'revealed')::boolean, false) AS revealed
+     FROM team_round_progress
+     WHERE team_id = $1 AND round_id = $2`,
     [teamId, roundId]
   );
-  return result.rows[0]?.metadata ?? null;
+
+  if (result.rowCount === 0) {
+    return null;
+  }
+
+  if (result.rows[0].ascii_number === null || result.rows[0].ascii_number === undefined) {
+    return result.rows[0]?.metadata ?? null;
+  }
+
+  return {
+    ascii_number: result.rows[0].ascii_number as number,
+    revealed: result.rows[0].revealed as boolean,
+  };
+}
+
+export async function getMetadataCoverageRepo(teamId: string, gameId: string) {
+  const result = await pool.query(
+    `SELECT
+       COUNT(*) AS total,
+       COUNT(*) FILTER (
+         WHERE trp.metadata IS NOT NULL
+           AND trp.metadata ? 'ascii_number'
+       ) AS with_ascii
+     FROM team_round_progress trp
+     JOIN rounds r ON trp.round_id = r.id
+     WHERE trp.team_id = $1
+       AND r.game_id = $2`,
+    [teamId, gameId]
+  );
+
+  return {
+    total: Number(result.rows[0]?.total ?? 0),
+    withAscii: Number(result.rows[0]?.with_ascii ?? 0),
+  };
 }
 
 export async function updateMetadataRevealedRepo(teamId: string, roundId: string) {
@@ -470,20 +513,23 @@ export async function updateMetadataRevealedRepo(teamId: string, roundId: string
  */
 export async function getRevealedNumbersRepo(teamId: string, gameId: string) {
   const result = await pool.query(
-    `SELECT trp.metadata, r.round_number
+    `SELECT
+       r.round_number,
+       (trp.metadata->>'ascii_number')::int AS ascii_number
      FROM team_round_progress trp
      JOIN rounds r ON trp.round_id = r.id
      WHERE trp.team_id = $1
        AND r.game_id = $2
        AND trp.status = 'COMPLETED'
        AND trp.metadata IS NOT NULL
+       AND trp.metadata ? 'ascii_number'
        AND (trp.metadata->>'revealed')::boolean = true
      ORDER BY r.round_number`,
     [teamId, gameId]
   );
   return result.rows.map((r: any) => ({
     roundNumber: r.round_number as number,
-    asciiNumber: r.metadata.ascii_number as number,
+    asciiNumber: r.ascii_number as number,
   }));
 }
 
