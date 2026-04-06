@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
 import { getGameScreen } from "@/lib/gameMessages";
 import type { MessageCode } from "@/lib/types/teamGameState";
+import CoderGhost from "@/components/CoderGhost";
 
 export default function BlindCodeGame() {
   const router = useRouter();
@@ -41,6 +42,12 @@ export default function BlindCodeGame() {
     failSoundRef.current!.currentTime = 0;
     failSoundRef.current?.play();
   }
+
+  // top of component — track typing state with a timeout ref
+  const [ghostTyping, setGhostTyping] = useState(false);
+  const ghostTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+
 
   // Typing Sound Effects
   const keySoundsRef = useRef<HTMLAudioElement[]>([]);
@@ -191,51 +198,62 @@ export default function BlindCodeGame() {
   // No-op: all input is handled in onKeyDown; onChange is required by React for controlled inputs
   const handleChange = () => { };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  // Ctrl + Enter --> Run & Submit (no ghost trigger)
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    handleSubmit();
+    return;
+  }
 
-    // Ctrl + Enter --> Run & Submit
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleSubmit();
-      return;
-    }
+  // Tab --> append 4 spaces
+  if (e.key === "Tab") {
+    e.preventDefault();
+    setCode(prev => prev + "    ");
+    setResult(null);
+    playTypingSound(e.key);
+    if (!ghostTyping) setGhostTyping(true);
+    clearTimeout(ghostTimeoutRef.current!);
+    ghostTimeoutRef.current = setTimeout(() => setGhostTyping(false), 1200);
+    return;
+  }
 
-    // Tab --> append 4 spaces
-    if (e.key === "Tab") {
-      e.preventDefault();
-      setCode(prev => prev + "    ");
-      setResult(null);
-      playTypingSound(e.key);
-      return;
-    }
+  // Enter --> append newline
+  if (e.key === "Enter") {
+    e.preventDefault();
+    setCode(prev => prev + "\n");
+    setResult(null);
+    playTypingSound(e.key);
+    if (!ghostTyping) setGhostTyping(true);
+    clearTimeout(ghostTimeoutRef.current!);
+    ghostTimeoutRef.current = setTimeout(() => setGhostTyping(false), 1200);
+    return;
+  }
 
-    // Enter --> append newline
-    if (e.key === "Enter") {
-      e.preventDefault();
-      setCode(prev => prev + "\n");
-      setResult(null);
-      playTypingSound(e.key);
-      return;
-    }
+  // Backspace --> remove last character
+  if (e.key === "Backspace") {
+    e.preventDefault();
+    setCode(prev => prev.slice(0, -1));
+    setResult(null);
+    playTypingSound(e.key);
+    if (!ghostTyping) setGhostTyping(true);
+    clearTimeout(ghostTimeoutRef.current!);
+    ghostTimeoutRef.current = setTimeout(() => setGhostTyping(false), 1200);
+    return;
+  }
 
-    // Backspace --> remove last character
-    if (e.key === "Backspace") {
-      e.preventDefault();
-      setCode(prev => prev.slice(0, -1));
-      setResult(null);
-      playTypingSound(e.key);
-      return;
-    }
-
-    // Printable character (exclude ctrl/meta combos like Ctrl+A, Ctrl+C)
-    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      setCode(prev => prev + e.key);
-      setResult(null);
-      playTypingSound(e.key);
-      return;
-    }
-  };
+  // Printable character (exclude ctrl/meta combos like Ctrl+A, Ctrl+C)
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    setCode(prev => prev + e.key);
+    setResult(null);
+    playTypingSound(e.key);
+    if (!ghostTyping) setGhostTyping(true);
+    clearTimeout(ghostTimeoutRef.current!);
+    ghostTimeoutRef.current = setTimeout(() => setGhostTyping(false), 1200);
+    return;
+  }
+};
 
   // ── UI states ──────────────────────────────────────────────────────────────
 
@@ -341,7 +359,7 @@ export default function BlindCodeGame() {
             <span className="text-[12px] tracking-widest text-muted-foreground uppercase">editor</span>
             <span className="text-[10px] text-muted-foreground/60">Main.java</span>
           </div>
-          <span className="bg-muted border border-border rounded px-2 py-0.5 text-[10px] text-muted-foreground/40">Java</span>
+          <span className="bg-muted border border-border rounded px-2 py-0.5 text-[10px] text-white/40">Java</span>
         </div>
 
         {/* Code area */}
@@ -411,17 +429,32 @@ export default function BlindCodeGame() {
           )}
         </div>
         <div className="flex items-center gap-3 ml-auto">
-          <span className="text-[10px] text-muted-foreground/20">{code.length} chars</span>
+          <CoderGhost isTyping={ghostTyping} className="mr-1" />
+          <span className="text-[10px] text-white/80">{code.length} chars</span>
           <button
             onClick={handleSubmit}
             disabled={!code.trim() || submitting}
-            className="relative group bg-success/10 border border-success/25 text-success text-xs rounded-md px-4 py-1.5 transition-all duration-200 hover:bg-success/15 hover:border-success/35 active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="relative group flex items-center gap-2 px-4 py-1.5 text-xs font-mono rounded-md border transition-all duration-200
+    bg-success/5 border-success/20 text-success
+    hover:bg-success/10 hover:border-success/40 hover:shadow-[0_0_12px_rgba(var(--color-success),0.15)]
+    active:scale-[0.97]
+    disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:bg-success/5 disabled:hover:border-success/20"
           >
-            {submitting ? "[ running... ]" : "[ run & submit ]"}
+            {/* left accent bar */}
+            <span className="w-[2px] h-3 rounded-full bg-success/60 group-hover:bg-success transition-colors duration-200" />
+
+            {submitting ? (
+              <>
+                <span className="animate-pulse">running</span>
+                <span className="tracking-widest animate-pulse">...</span>
+              </>
+            ) : (
+              <span className="tracking-wide">Submit</span>
+            )}
 
             {/* tooltip */}
             {!submitting && (
-              <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-black/90 px-2 py-1 text-[10px] text-white opacity-0 transition group-hover:opacity-100">
+              <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded border border-white/10 bg-black/90 px-2 py-1 text-[10px] text-white/70 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                 Ctrl + Enter
               </span>
             )}
