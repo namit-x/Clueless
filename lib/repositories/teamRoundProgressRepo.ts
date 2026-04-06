@@ -288,7 +288,7 @@ export async function submitAndAdvanceRoundRepo(
   const client = await pool.connect();
 
   try {
-    console.log('Evaluations result:', { teamId, roundId, roundNumber, gameId, answer, isCorrect, evaluationResult });
+    // console.log('Evaluations result:', { teamId, roundId, roundNumber, gameId, answer, isCorrect, evaluationResult });
     await client.query("BEGIN");
 
     // 1. Record the submission
