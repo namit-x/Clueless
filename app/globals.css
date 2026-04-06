@@ -471,3 +471,28 @@ html {
     opacity: 1;
   }
 }
+
+
+.ghost-dashboard-eyes {
+  animation: dashboardLook 4s infinite ease-in-out;
+  transform-origin: center;
+}
+
+@keyframes dashboardLook {
+  0%, 100% {
+    transform: translateX(0) scaleY(1);
+  }
+  20% {
+    transform: translateX(-2px) scaleY(1);
+  }
+  40% {
+    transform: translateX(2px) scaleY(1);
+  }
+  60% {
+    transform: translateX(0) scaleY(0.15); /* blink */
+  }
+  80% {
+    transform: translateX(-1px) scaleY(1);
+  }
+}
+
