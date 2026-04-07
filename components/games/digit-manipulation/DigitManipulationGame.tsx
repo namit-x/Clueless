@@ -1,6 +1,6 @@
 "use client";
 
-import { useState,useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
@@ -44,6 +44,9 @@ export default function DigitManipulationGame() {
       failSoundRef.current!.currentTime = 0;
       failSoundRef.current?.play();
     }
+
+  const fetchCurrentRoundRef = useRef<() => void>(() => {});
+  const lastLocalSubmitRef = useRef(0);
 
   async function fetchCurrentRound() {
     try {
@@ -116,6 +119,7 @@ export default function DigitManipulationGame() {
           return;
         }
 
+        lastLocalSubmitRef.current = Date.now();
         await fetchCurrentRound();
         setResult(null);
       } else {
@@ -131,25 +135,27 @@ export default function DigitManipulationGame() {
     }
   }
 
+  useEffect(() => { fetchCurrentRoundRef.current = fetchCurrentRound; });
+
   useEffect(() => {
-    fetchCurrentRound();
+    fetchCurrentRoundRef.current();
 
     const channel = supabase
       .channel("realtime:games:digit-manipulation")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games" },
-        () => { fetchCurrentRound(); }
+        () => { fetchCurrentRoundRef.current(); }
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "teams" },
-        () => { fetchCurrentRound(); }
+        () => { fetchCurrentRoundRef.current(); }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "team_round_progress" },
-        () => { fetchCurrentRound(); }
+        () => { if (Date.now() - lastLocalSubmitRef.current > 1000) fetchCurrentRoundRef.current(); }
       )
       .subscribe();
 

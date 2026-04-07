@@ -25,11 +25,13 @@ export default function DashboardPage() {
   const games = useAppSelector(selectDashboardGames);
   const user = useAppSelector((state) => state.auth.user);
 
+  // Hydrate auth once on mount
   useEffect(() => {
-    // Hydrate auth on mount
     dispatch(hydrateFromStorage());
+  }, [dispatch]);
 
-    // Only fetch if not already loaded
+  // Fetch data when status is idle
+  useEffect(() => {
     if (teamStatus === "idle") {
       dispatch(fetchTeamDashboardThunk()).then((result) => {
         if (result.payload === "unauthorized") {

@@ -15,6 +15,20 @@ import DigitManipulationGame from "@/components/games/digit-manipulation/DigitMa
 import BlindCodeGame from "@/components/games/blind-code/BlindCodeGame";
 import TeamBlockedScreen from "@/components/game/TeamBlockedScreen";
 import LoadingGhost from "@/components/LoadingGhost";
+
+const NoActiveGame = () => (
+  <div className="flex items-center justify-center min-h-[320px] p-8">
+    <div className="text-center max-w-[360px]">
+      <div className="w-16 h-16 mx-auto mb-5 rounded-xl bg-muted flex items-center justify-center">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>        </div>
+      <p className="text-base font-medium mb-2">No active game</p>
+    </div>
+  </div>
+);
+
 function GamesPageInner() {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
@@ -44,19 +58,6 @@ function GamesPageInner() {
     "Digit Manipulation": <DigitManipulationGame />,
     "Blind Code": <BlindCodeGame />,
   };
-  const NoActiveGame = () => (
-    <div className="flex items-center justify-center min-h-[320px] p-8">
-      <div className="text-center max-w-[360px]">
-        <div className="w-16 h-16 mx-auto mb-5 rounded-xl bg-muted flex items-center justify-center">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>        </div>
-        <p className="text-base font-medium mb-2">No active game</p>
-      </div>
-    </div>
-  );
-
   if (teamBlocked) return <TeamBlockedScreen />;
 
   const isLoading = gamesStatus === "idle" || gamesStatus === "loading";

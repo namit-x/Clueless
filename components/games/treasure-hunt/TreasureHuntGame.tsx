@@ -282,6 +282,9 @@ export default function TreasureHuntGame() {
     }
 
     // ─── Fetch current round ───────────────────────────
+    const fetchCurrentRoundRef = useRef<() => void>(() => { });
+    const lastLocalSubmitRef = useRef(0);
+
     async function fetchCurrentRound() {
         try {
             setLoading(true);
@@ -378,30 +381,33 @@ export default function TreasureHuntGame() {
             return;
         }
 
+        lastLocalSubmitRef.current = Date.now();
         await fetchCurrentRound();
         setShowSuccess(false);
     }
 
+    useEffect(() => { fetchCurrentRoundRef.current = fetchCurrentRound; });
+
     // ─── Realtime subscription ─────────────────────────
     useEffect(() => {
-        fetchCurrentRound();
+        fetchCurrentRoundRef.current();
 
         const channel = supabase
             .channel("realtime:games:treasure-hunt")
             .on(
                 "postgres_changes",
                 { event: "UPDATE", schema: "public", table: "games" },
-                () => { fetchCurrentRound(); }
+                () => { fetchCurrentRoundRef.current(); }
             )
             .on(
                 "postgres_changes",
                 { event: "UPDATE", schema: "public", table: "teams" },
-                () => { fetchCurrentRound(); }
+                () => { fetchCurrentRoundRef.current(); }
             )
             .on(
                 "postgres_changes",
                 { event: "*", schema: "public", table: "team_round_progress" },
-                () => { fetchCurrentRound(); }
+                () => { if (Date.now() - lastLocalSubmitRef.current > 1000) fetchCurrentRoundRef.current(); }
             )
             .subscribe();
 

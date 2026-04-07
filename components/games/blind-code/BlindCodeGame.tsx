@@ -81,6 +81,9 @@ export default function BlindCodeGame() {
     ghostTimeoutRef.current = setTimeout(() => setGhostTyping(false), 1200);
   }
 
+  const fetchCurrentRoundRef = useRef<() => void>(() => {});
+  const lastLocalSubmitRef = useRef(0);
+
   async function fetchCurrentRound() {
     try {
       setLoading(true);
@@ -146,6 +149,7 @@ export default function BlindCodeGame() {
         setLineCount(10);
 
         // Re-fetch to load the next round (resolver handles terminal states)
+        lastLocalSubmitRef.current = Date.now();
         await fetchCurrentRound();
         setResult(null);
       } else {
@@ -164,25 +168,27 @@ export default function BlindCodeGame() {
     }
   }
 
+  useEffect(() => { fetchCurrentRoundRef.current = fetchCurrentRound; });
+
   useEffect(() => {
-    fetchCurrentRound();
+    fetchCurrentRoundRef.current();
 
     const channel = supabase
       .channel("realtime:games:blind-code")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games" },
-        () => { fetchCurrentRound(); }
+        () => { fetchCurrentRoundRef.current(); }
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "teams" },
-        () => { fetchCurrentRound(); }
+        () => { fetchCurrentRoundRef.current(); }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "team_round_progress" },
-        () => { fetchCurrentRound(); }
+        () => { if (Date.now() - lastLocalSubmitRef.current > 1000) fetchCurrentRoundRef.current(); }
       )
       .subscribe();
 

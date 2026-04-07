@@ -69,7 +69,15 @@ export default function QuizGame() {
     });
   }
 
+  const fetchCurrentRoundRef = useRef<() => void>(() => { });
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFetchingRef = useRef(false);
+  const debounceFetchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   async function fetchCurrentRound() {
+    // Prevent concurrent requests
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
       setLoading(true);
 
@@ -115,7 +123,18 @@ export default function QuizGame() {
       console.error("Round fetch error", err);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
+  }
+
+  function debouncedFetchCurrentRound() {
+    // Clear existing debounce timer
+    if (debounceFetchRef.current) clearTimeout(debounceFetchRef.current);
+    
+    // Set new debounce timer - delay by 200ms to coalesce multiple events
+    debounceFetchRef.current = setTimeout(() => {
+      fetchCurrentRoundRef.current();
+    }, 200);
   }
 
   async function handleSubmitAnswer() {
@@ -139,8 +158,8 @@ export default function QuizGame() {
         setResult("correct");
         appendRevealedNumber(json.asciiNumber);
         setSelectedOption(null);
-        setTimeout(async () => {
-          await fetchCurrentRound();
+        if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = setTimeout(() => {
           setResult(null);
         }, 1200);
         return;
@@ -150,7 +169,9 @@ export default function QuizGame() {
         setResult("correct");
         appendRevealedNumber(json.asciiNumber);
         syncRevealedNumbers(json.revealedNumbers);
-        setTimeout(() => {
+        // lastLocalSubmitRef.current = Date.now();
+        if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = setTimeout(() => {
           setIsFinalPhase(true);
           setCurrentRound(null);
           setResult(null);
@@ -161,8 +182,8 @@ export default function QuizGame() {
       if (json.status === "ROUND_FAILED") {
         setResult("round_failed");
         playFail();
-        setTimeout(async () => {
-          await fetchCurrentRound();
+        if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = setTimeout(() => {
           setResult(null);
         }, 1800);
         return;
@@ -233,30 +254,42 @@ export default function QuizGame() {
     }
   }
 
+  useEffect(() => { fetchCurrentRoundRef.current = fetchCurrentRound; });
+
   // Supabase Realtime subscription
   useEffect(() => {
-    fetchCurrentRound();
+    fetchCurrentRoundRef.current();
 
     const channel = supabase
       .channel("realtime:games:quiz-v2")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games" },
-        () => { fetchCurrentRound(); }
+        () => { debouncedFetchCurrentRound(); }
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "teams" },
-        () => { fetchCurrentRound(); }
+        () => { debouncedFetchCurrentRound(); }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "team_round_progress" },
-        () => { fetchCurrentRound(); }
+        () => { debouncedFetchCurrentRound(); }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+      if (debounceFetchRef.current) clearTimeout(debounceFetchRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+      if (debounceFetchRef.current) clearTimeout(debounceFetchRef.current);
+    };
   }, []);
 
   // ── UI States ──────────────────────────────────────────────────────────────
