@@ -160,8 +160,9 @@ export async function getCurrentRoundService(teamId: string) {
 
     try {
         // console.log("Finding active game for team:", teamId);
-        const game = await getTeamActiveGameRepo(teamId);
-        gameId = game.id;
+        const activeGame = await getTeamActiveGameRepo(teamId);
+        gameId = activeGame.game_id;
+        const game = await getGameByIdRepo(gameId);
         gameName = game.name;
     } catch (e: any) {
         if (e.message === "NO_ACTIVE_GAME_FOR_TEAM") {
@@ -226,7 +227,7 @@ export async function getTeamProgressService(teamId: string) {
     let state = null;
     try {
         const game = await getTeamActiveGameRepo(teamId);
-        state = await resolveTeamGameState(teamId, game.id);
+        state = await resolveTeamGameState(teamId, game.game_id);
     } catch {
         const result = await getTeamLatestGameResultRepo(teamId);
         if (result) {
@@ -243,4 +244,3 @@ export async function getAllGamesService() {
     return await getAllGamesRepo();
 
 }
-
