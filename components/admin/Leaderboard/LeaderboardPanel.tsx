@@ -1,6 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Fragment } from "react";
+import PenaltyAdjuster from "@/components/admin/PenaltyAdjuster";
+
+type LeaderboardGameEntry = {
+  teamGameResultId: string;
+  gameId: string;
+  gameName: string;
+  time: number;
+  penaltySeconds: number;
+  status: string;
+  isCorrect: boolean;
+};
 
 type LeaderboardEntry = {
   teamId: string;
@@ -8,6 +20,7 @@ type LeaderboardEntry = {
   totalTime: number;
   gamesSolved: number;
   rank: number;
+  games: LeaderboardGameEntry[];
 };
 
 function formatTime(seconds: number): string {
@@ -29,6 +42,7 @@ export default function LeaderboardPanel() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [error, setError] = useState("");
+  const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
 
   async function fetchLeaderboard() {
     setStatus("loading");
@@ -99,32 +113,89 @@ export default function LeaderboardPanel() {
                 <th className="px-5 py-3 font-medium w-16">Rank</th>
                 <th className="px-5 py-3 font-medium">Team</th>
                 <th className="px-5 py-3 font-medium text-center">Games Solved</th>
+                <th className="px-5 py-3 font-medium text-center">Penalty</th>
                 <th className="px-5 py-3 font-medium text-right">Total Time</th>
               </tr>
             </thead>
             <tbody>
               {leaderboard.map((entry, idx) => (
-                <tr
-                  key={entry.teamId}
-                  className={`border-t border-gray-700 transition-colors ${
-                    idx % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50"
-                  } hover:bg-gray-700/60`}
-                >
-                  <td className="px-5 py-3">
-                    <span className={`text-base ${RANK_STYLES[entry.rank] ?? "text-gray-300"}`}>
-                      {entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : `#${entry.rank}`}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 font-medium text-white">{entry.teamName}</td>
-                  <td className="px-5 py-3 text-center">
-                    <span className="bg-green-800/50 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">
-                      {entry.gamesSolved}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right text-gray-300 font-mono">
-                    {formatTime(entry.totalTime)}
-                  </td>
-                </tr>
+                <Fragment key={entry.teamId}>
+                  <tr
+                    className={`border-t border-gray-700 transition-colors ${
+                      idx % 2 === 0 ? "bg-gray-900" : "bg-gray-800/50"
+                    } hover:bg-gray-700/60`}
+                  >
+                    <td className="px-5 py-3">
+                      <span className={`text-base ${RANK_STYLES[entry.rank] ?? "text-gray-300"}`}>
+                        {entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : `#${entry.rank}`}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium text-white">{entry.teamName}</span>
+                        {entry.games.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedTeamId((current) =>
+                                current === entry.teamId ? null : entry.teamId
+                              )
+                            }
+                            className="rounded-lg border border-gray-600 px-3 py-1 text-xs text-gray-200 transition hover:border-amber-400 hover:text-white"
+                          >
+                            {expandedTeamId === entry.teamId ? "Hide penalties" : "Manage penalties"}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <span className="bg-green-800/50 text-green-300 px-3 py-1 rounded-full text-xs font-semibold">
+                        {entry.gamesSolved}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-center text-amber-300 font-mono">
+                      {entry.games.reduce((sum, game) => sum + game.penaltySeconds, 0)}s
+                    </td>
+                    <td className="px-5 py-3 text-right text-gray-300 font-mono">
+                      {formatTime(entry.totalTime)}
+                    </td>
+                  </tr>
+                  {expandedTeamId === entry.teamId && entry.games.length > 0 && (
+                    <tr className={idx % 2 === 0 ? "bg-gray-950" : "bg-gray-900/80"}>
+                      <td colSpan={5} className="px-5 py-5">
+                        <div className="space-y-4">
+                          {entry.games.map((game) => (
+                            <div
+                              key={game.teamGameResultId}
+                              className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4"
+                            >
+                              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                  <h3 className="text-base font-semibold text-white">{game.gameName}</h3>
+                                  <p className="mt-1 text-sm text-gray-400">
+                                    Status: {game.status} · Counted time: {formatTime(game.time)} · Solved: {game.isCorrect ? "Yes" : "No"}
+                                  </p>
+                                </div>
+                                <span className="rounded-full border border-amber-500/30 px-3 py-1 text-xs text-amber-300">
+                                  Current penalty {game.penaltySeconds}s
+                                </span>
+                              </div>
+
+                              <PenaltyAdjuster
+                                teamGameResultId={game.teamGameResultId}
+                                currentPenalty={game.penaltySeconds}
+                                teamName={`${entry.teamName} · ${game.gameName}`}
+                                onUpdated={() => {
+                                  void fetchLeaderboard();
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>

@@ -2,7 +2,12 @@ export type Team = {
     teamId: string;
     teamName: string;
     games: {
+        teamGameResultId: string;
+        gameId: string;
+        gameName: string;
         time: number;
+        penaltySeconds: number;
+        status: string;
         isCorrect: boolean;
     }[];
 };
@@ -13,6 +18,7 @@ export type LeaderboardEntry = {
     totalTime: number;
     gamesSolved: number;
     rank: number;
+    games: Team["games"];
 };
 
 function toLeaderboardEntry(team: Team): Omit<LeaderboardEntry, "rank"> {
@@ -27,6 +33,7 @@ function toLeaderboardEntry(team: Team): Omit<LeaderboardEntry, "rank"> {
         teamName: team.teamName,
         totalTime,
         gamesSolved,
+        games: team.games,
     };
 }
 

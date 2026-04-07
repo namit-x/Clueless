@@ -7,9 +7,13 @@ type TeamRow = {
 };
 
 type TeamGameResultRow = {
+    id: string;
     team_id: string;
     game_id: string;
+    game_name: string;
     time: number;
+    penalty_seconds: number;
+    status: string;
 };
 
 type SubmissionRow = {
@@ -33,14 +37,19 @@ async function fetchTeams(): Promise<TeamRow[]> {
 async function fetchTeamGameResults(): Promise<TeamGameResultRow[]> {
     const result = await pool.query<TeamGameResultRow>(`
         SELECT
+            tgr.id,
             team_id,
-            game_id,
+            tgr.game_id,
+            g.name AS game_name,
             (
-                COALESCE(EXTRACT(EPOCH FROM completion_time), 0)::integer
-                + COALESCE(penalty_seconds, 0)
-            ) AS time
-        FROM team_game_results
-        ORDER BY team_id ASC, game_id ASC;
+                COALESCE(EXTRACT(EPOCH FROM tgr.completion_time), 0)::integer
+                + COALESCE(tgr.penalty_seconds, 0)
+            ) AS time,
+            COALESCE(tgr.penalty_seconds, 0) AS penalty_seconds,
+            tgr.status
+        FROM team_game_results tgr
+        JOIN games g ON g.id = tgr.game_id
+        ORDER BY team_id ASC, tgr.game_id ASC;
     `);
 
     return result.rows;
@@ -78,19 +87,18 @@ function buildGamesByTeam(
     teamGameResults: TeamGameResultRow[],
     correctnessMap: Map<string, boolean>
 ) {
-    const gamesByTeam = new Map<
-        string,
-        {
-            time: number;
-            isCorrect: boolean;
-        }[]
-    >();
+    const gamesByTeam = new Map<string, Team["games"]>();
 
     for (const result of teamGameResults) {
         const teamGames = gamesByTeam.get(result.team_id) ?? [];
 
         teamGames.push({
+            teamGameResultId: result.id,
+            gameId: result.game_id,
+            gameName: result.game_name,
             time: result.time,
+            penaltySeconds: result.penalty_seconds,
+            status: result.status,
             isCorrect: correctnessMap.get(`${result.team_id}:${result.game_id}`) ?? false,
         });
 
