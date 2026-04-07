@@ -42,7 +42,15 @@ setInterval(() => {
     }
 }, 60000);
 
-// ─── Pure helpers (exported for testing) ───────────────────────────────────
+/**
+ * Parse and validate a generator configuration object.
+ *
+ * @param configuration - An arbitrary value expected to be an object containing `digitCount` (number >= 1) and an optional `maxResult` (number >= 1).
+ * @returns A `GeneratorConfig` containing `digitCount`, optional `maxResult`, and placeholder values for `operationCount`, `allowedOperations`, and `operandRange`.
+ * @throws Error("INVALID_CONFIGURATION") if `configuration` is not an object.
+ * @throws Error("INVALID_CONFIGURATION: digitCount missing or < 1") if `digitCount` is not a number >= 1.
+ * @throws Error("INVALID_CONFIGURATION: maxResult must be a positive number") if `maxResult` is present but not a number >= 1.
+ */
 
 export function parseConfiguration(configuration: unknown): GeneratorConfig {
     const c = configuration as Record<string, unknown>;
@@ -70,6 +78,17 @@ export function parseConfiguration(configuration: unknown): GeneratorConfig {
 /** Maximum length of a submitted answer string. No valid result exceeds this. */
 const MAX_ANSWER_LENGTH = 20;
 
+/**
+ * Validates a submitted answer string for digit-manipulation rounds.
+ *
+ * Ensures the value is non-empty (after trimming), does not exceed the configured maximum length,
+ * and represents an integer (optional leading `-` followed by digits).
+ *
+ * @param answer - The raw submitted answer string to validate
+ * @throws Error("INVALID_SUBMISSION: answer is empty") if the trimmed answer is empty
+ * @throws Error("INVALID_SUBMISSION: answer exceeds maximum length") if the trimmed answer length is greater than the allowed maximum
+ * @throws Error("INVALID_SUBMISSION: answer must be numeric") if the trimmed answer is not an integer literal (optional leading `-` and digits only)
+ */
 export function validateSubmissionAnswer(answer: string): void {
     if (!answer || answer.trim() === "") {
         throw new Error("INVALID_SUBMISSION: answer is empty");
@@ -104,13 +123,27 @@ async function assertGameActive(gameId: string): Promise<void> {
     }
 }
 
-// ─── Game lifecycle ─────────────────────────────────────────────────────────
+/**
+ * Initialize per-team round progress for the given game and activate the digit manipulation game.
+ *
+ * @returns The activated game record returned by the activation repository
+ */
 
 export async function startDigitManipulationGame(gameId: string) {
     await initializeTeamRoundProgressRepo(gameId);
     return await activateGameRepo(gameId);
 }
 
+/**
+ * Starts the first round for a team and returns the initial round context.
+ *
+ * @returns An object with the round context:
+ * - `roundId`: The created round identifier.
+ * - `roundNumber`: The sequential number of the round within the game.
+ * - `number`: The puzzle's starting number as a string.
+ * - `operations`: The puzzle operations serialized for transport.
+ * - `attemptsLeft`: How many submission attempts remain for the team in this round.
+ */
 export async function startDigitManipulationForTeam(teamId: string, gameId: string) {
     const roundId = await activateFirstRoundRepo(teamId, gameId);
     const { roundNumber, configuration } = await getRoundContextRepo(roundId);
@@ -130,7 +163,13 @@ export async function startDigitManipulationForTeam(teamId: string, gameId: stri
     };
 }
 
-// ─── Get current round ──────────────────────────────────────────────────────
+/**
+ * Fetches the current active digit-manipulation round for a team in a game.
+ *
+ * @param teamId - The team's unique identifier
+ * @param gameId - The game's unique identifier
+ * @returns An object describing the current round. If no active round exists, returns `{ status: "NO_ACTIVE_ROUND", message: string }`. Otherwise returns `{ roundId: string, roundNumber: number, number: string, operations: { type: string; operand?: string }[], attemptsLeft: number }`.
+ */
 
 export async function getDigitManipulationRound(teamId: string, gameId: string) {
     const roundProgress = await getCurrentRoundRepo(teamId, gameId);
@@ -157,7 +196,27 @@ export async function getDigitManipulationRound(teamId: string, gameId: string) 
     };
 }
 
-// ─── Submit answer ──────────────────────────────────────────────────────────
+/**
+ * Processes and records a submitted answer for a team's digit-manipulation round.
+ *
+ * Validates the submitted answer against configured bounds, consumes an attempt, checks the canonical puzzle answer, and updates round state (advance on correct, record submission and possibly fail round on exhaustion).
+ *
+ * @param teamId - Identifier of the submitting team
+ * @param roundId - Identifier of the round receiving the submission
+ * @param answer - Submitted answer string (will be trimmed and parsed as an integer)
+ * @param configuration - Round configuration object; may include `maxResult` to bound valid answers
+ * @param roundNumber - Expected round number for the submission (used when advancing the round)
+ * @param gameId - Identifier of the game; must refer to an active game
+ * @returns An object with `correct: true` when the submission matches the resolved puzzle answer (otherwise `correct: false`) and `attemptsLeft` indicating remaining attempts after this submission
+ * @throws Error("INVALID_SUBMISSION: answer is empty") when `answer` is blank
+ * @throws Error("INVALID_SUBMISSION: answer exceeds maximum length") when `answer` is too long
+ * @throws Error("INVALID_SUBMISSION: answer must be numeric") when `answer` is not an integer string
+ * @throws Error("INVALID_SUBMISSION: answer is out of bounds") when the parsed numeric value is outside allowed range
+ * @throws Error("GAME_NOT_ACTIVE: game is not live") when the referenced game is not active
+ * @throws Error("MAX_ATTEMPTS_REACHED") when no attempts remain for the round
+ * @throws Error("ROUND_ALREADY_COMPLETED") when a correct submission cannot advance because the round is already completed
+ * @throws Error("ROUND_NOT_ACTIVE") when attempting to mark a failed round that is no longer active
+ */
 
 export async function submitDigitManipulationAnswer(
     teamId: string,

@@ -14,6 +14,11 @@ import { activateGameRepo } from "@/lib/repositories/gameRepo";
 import { getRoundContextRepo } from "@/lib/repositories/roundsRepo";
 import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 
+/**
+ * Initializes team round progress for the given game and activates the game in the repository.
+ *
+ * @returns The activation result object returned by the repository layer for the game
+ */
 export async function startBlindCodeGame(gameId: string) {
 
     await initializeTeamRoundProgressRepo(gameId);
@@ -30,6 +35,12 @@ function getBlindCodeChallenge(configuration: any) {
     return configuration.expected_output;
 }
 
+/**
+ * Determine the expected answer used for judging a blind-code round.
+ *
+ * @param configuration - Challenge configuration object; may include `correct_answer` and `expected_output`
+ * @returns The expected answer: `configuration.correct_answer` if it is a non-empty string, otherwise `configuration.expected_output`
+ */
 function getBlindCodeAnswer(configuration: any) {
 
     if (typeof configuration?.correct_answer === "string" && configuration.correct_answer.length > 0) {
@@ -39,6 +50,13 @@ function getBlindCodeAnswer(configuration: any) {
     return getBlindCodeChallenge(configuration);
 }
 
+/**
+ * Starts the blind-code flow for a team within a specific game and returns the initial round metadata and challenge.
+ *
+ * @param teamId - Identifier of the team starting the blind-code flow
+ * @param gameId - Identifier of the game context to scope the first round activation
+ * @returns An object containing `roundId` (the activated round's id), `round` (the round number), and `challenge` (the round's expected output)
+ */
 export async function startBlindCodeForTeam(teamId: string, gameId: string) {
 
     const roundId = await activateFirstRoundRepo(teamId, gameId);
@@ -51,6 +69,13 @@ export async function startBlindCodeForTeam(teamId: string, gameId: string) {
     };
 }
 
+/**
+ * Returns the current blind-code round status and challenge for a team within a game.
+ *
+ * @returns An object with either:
+ * - `status: "COMPLETED"` and a `message` when no active round exists; or
+ * - `status: "ACTIVE"`, `roundId`, `round` (round number), `challenge` (expected output string), and `attemptsLeft` (number of remaining attempts, 0–3).
+ */
 export async function getBlindCodeRound(teamId: string, gameId: string) {
 
     const roundProgress = await getCurrentRoundRepo(teamId, gameId);
@@ -94,6 +119,24 @@ async function executeJudge0(sourceCode: string) {
     return response.json();
 }
 
+/**
+ * Judges a team's Java submission for a blind-code round, records the submission, updates round and game state, and returns the evaluation outcome.
+ *
+ * @param teamId - The team's identifier
+ * @param roundId - The current round identifier
+ * @param answer - The submitted Java source code to be judged
+ * @param configuration - Round configuration used to determine the expected output
+ * @param roundNumber - The current round number (1–3)
+ * @param gameId - The game identifier
+ * @returns An object describing whether the submission was correct, remaining attempts, and Judge0 output:
+ *   - `correct`: `true` if the submission's trimmed stdout exactly matches the expected output, `false` otherwise.
+ *   - `attemptsLeft`: Number of attempts remaining after this submission (0–3).
+ *   - `data`: `{ output: string | null, error: string | null }` where `output` is Judge0 `stdout` or `null`, and `error` is `stderr` or `compile_output` or `null`.
+ * @throws `MAX_ATTEMPTS_REACHED` when the team has no attempts available.
+ * @throws `JUDGE_EXECUTION_FAILED_WITH_ATTEMPT_CONSUMED` if Judge0 execution fails and refunding the consumed attempt also fails.
+ * @throws `ROUND_ALREADY_COMPLETED` if advancing the round after a correct submission fails because the round is no longer active.
+ * @throws `ROUND_NOT_ACTIVE` if failing the round when attempts are exhausted fails because the round is no longer active.
+ */
 export async function submitBlindCodeAnswer(
     teamId: string,
     roundId: string,

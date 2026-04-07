@@ -153,6 +153,14 @@ export async function restartGameService(gameId: string) {
     return restartedGame;
 }
 
+/**
+ * Resolve and return the team's current game round state, including round-specific data when the team is actively in a game.
+ *
+ * @param teamId - The team's unique identifier
+ * @returns If the resolved team state is not `"IN_PROGRESS"`, the resolved state object. If the state is `"IN_PROGRESS"`, an object containing round-specific data merged with the authoritative state fields (`teamState`, `messageCode`, etc.), where state fields override any conflicting round fields.
+ * @throws Throws an `Error` with message `"NO_ACTIVE_GAME_FOR_TEAM"` when the team has neither an active game nor a latest game result.
+ * @throws Throws an `Error` with message `UNKNOWN_GAME_TYPE: <gameName>` when there is no current-round handler for the game's type.
+ */
 export async function getCurrentRoundService(teamId: string) {
 
     let gameId: string;
@@ -196,6 +204,15 @@ export async function getCurrentRoundService(teamId: string) {
     return { ...data, ...state };
 }
 
+/**
+ * Starts a team's instance of a game: starts the team's timer, ensures round-progress rows exist, and delegates startup to the game-specific start handler.
+ *
+ * @param teamId - Identifier of the team
+ * @param gameId - Identifier of the game to start
+ * @returns The result produced by the game-specific start handler
+ * @throws Error "GAME_NOT_FOUND" if no game exists for `gameId`
+ * @throws Error `UNKNOWN_GAME_TYPE: <name>` if the game's name has no registered start handler
+ */
 export async function startTeamGameService(teamId: string, gameId: string) {
 
     const game = await getGameByIdRepo(gameId);
@@ -219,6 +236,12 @@ export async function startTeamGameService(teamId: string, gameId: string) {
     return await handler(teamId, gameId);
 }
 
+/**
+ * Retrieves a team's progress and, when available, attaches the authoritative game state for the team's active or most recent game.
+ *
+ * @param teamId - The ID of the team to fetch progress for
+ * @returns An object with `progress` (team progress data) plus any resolved game state fields (for example `teamState`, `messageCode`) when an active or recent game exists
+ */
 export async function getTeamProgressService(teamId: string) {
 
     const progress = await getTeamProgressRepo(teamId);
@@ -239,6 +262,11 @@ export async function getTeamProgressService(teamId: string) {
 
 }
 
+/**
+ * Retrieve all game records from the repository.
+ *
+ * @returns All game rows from the games repository
+ */
 export async function getAllGamesService() {
 
     return await getAllGamesRepo();

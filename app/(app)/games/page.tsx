@@ -29,6 +29,13 @@ const NoActiveGame = () => (
   </div>
 );
 
+/**
+ * Render the games dashboard, selecting an active game from the URL and conditionally showing loading, blocked, or game-specific content.
+ *
+ * Fetches team dashboard and games if they are not already loaded. If the team is blocked, renders the blocked screen. While games are loading, shows a centered loading placeholder. When loading is complete, renders the component that corresponds to the selected game's name; if no matching game is found, shows the "No active game" UI.
+ *
+ * @returns The page's JSX layout containing the game header and the appropriate body content
+ */
 function GamesPageInner() {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();

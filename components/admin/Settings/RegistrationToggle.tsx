@@ -2,6 +2,15 @@
 
 import { useEffect, useState, useCallback } from "react";
 
+/**
+ * Render a panel that displays current team registration status and allows toggling it.
+ *
+ * The component loads status from the server, shows a loading state while fetching, displays
+ * an environment-level override warning when present, and disables the toggle while a request
+ * is in flight or when the env override is active. Errors from load or toggle operations are shown below the panel.
+ *
+ * @returns A React element containing the registration status panel and toggle control
+ */
 export default function RegistrationToggle() {
     const [enabled, setEnabled] = useState<boolean | null>(null);
     const [envOverride, setEnvOverride] = useState(false);

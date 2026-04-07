@@ -249,9 +249,15 @@ function StateScreen({ children, bgGradients, className = "" }: {
     );
 }
 
-/* ═══════════════════════════════════════════════════════
-   MAIN COMPONENT
-   ═══════════════════════════════════════════════════════ */
+/**
+ * Render the Treasure Hunt game UI and orchestrate gameplay state, server interactions, and realtime updates.
+ *
+ * Manages fetching the current round, submitting answers, handling correct/incorrect/failed flows (including sounds and confetti),
+ * throttles and reacts to realtime updates, and renders conditional screens for loading, waiting, failure, completion, admin termination,
+ * or the active gameplay interface with clue, answer input, and attempts display.
+ *
+ * @returns The rendered Treasure Hunt game UI as a React element
+ */
 
 export default function TreasureHuntGame() {
     const [answer, setAnswer] = useState("");
@@ -275,6 +281,9 @@ export default function TreasureHuntGame() {
     useEffect(() => {
         failSoundRef.current = new Audio("/sounds/faaaa.mp3");
     }, []);
+    /**
+     * Plays the configured failure sound from the start, restarting playback if it is already playing.
+     */
     function playFail() {
         failSoundRef.current?.pause();
         failSoundRef.current!.currentTime = 0;
@@ -285,6 +294,11 @@ export default function TreasureHuntGame() {
     const fetchCurrentRoundRef = useRef<() => void>(() => { });
     const lastLocalSubmitRef = useRef(0);
 
+    /**
+     * Fetches the current game round from the server and updates local component state to reflect the resulting game screen and round data.
+     *
+     * Updates include: toggling `loading`, mapping the server `messageCode` to a UI screen and setting `isFinished`, `isRoundFailed`, `isGameEnded`, and `isWaiting`; clearing `currentRound`/`clue` when not in a playing state or when no roundId is returned; and, when a round is active, setting `attemptsLeft`, `currentRound` (id and number), and `clue`. Logs errors to the console on failure.
+     */
     async function fetchCurrentRound() {
         try {
             setLoading(true);
@@ -370,6 +384,13 @@ export default function TreasureHuntGame() {
         setAttemptsLeft(remaining);
     }
 
+    /**
+     * Handle the UI and state transitions after a correct submission.
+     *
+     * Clears the wrong-answer flag, shows a success state and clears the input. If the submission completes the game (`status === "COMPLETED"`), marks the game finished and enables confetti. Otherwise records a local-submit timestamp, refreshes the current round data, and then hides the transient success state.
+     *
+     * @param submitResult - Server response object for the submission; expected to include a `status` field (e.g., `"COMPLETED"`).
+     */
     async function handleCorrectFlow(submitResult: any) {
         setIsWrong(false);
         setShowSuccess(true);

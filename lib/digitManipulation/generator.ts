@@ -26,8 +26,14 @@ export interface GeneratorConfig {
 }
 
 /**
- * 🔑 ORIGINAL number generation logic (unchanged)
- * :contentReference[oaicite:0]{index=0}
+ * Create a pseudorandom integer with the specified number of decimal digits.
+ *
+ * The returned value has exactly `digitCount` decimal digits and does not start with `0`.
+ *
+ * @param rng - A function that produces pseudorandom numbers in the range [0, 1).
+ * @param digitCount - Number of decimal digits to generate; must be >= 1.
+ * @returns A `bigint` representing the generated decimal number.
+ * @throws PipelineError If `digitCount` is less than 1.
  */
 export function generateNumber(rng: () => number, digitCount: number): bigint {
     if (digitCount < 1) {
@@ -44,7 +50,14 @@ export function generateNumber(rng: () => number, digitCount: number): bigint {
 }
 
 /**
- * Generate puzzle (deterministic per team + round)
+ * Create a deterministic puzzle consisting of a numeric value and an operation sequence for a given team and round.
+ *
+ * The numeric value is generated with the specified number of decimal digits using an RNG seeded from `teamId` and `roundId`. The returned `operations` array is the module's fixed operation sequence.
+ *
+ * @param teamId - Identifier for the team used to seed the puzzle generation
+ * @param roundId - Identifier for the round used to seed the puzzle generation
+ * @param digitCount - Number of decimal digits to generate for the puzzle number (must be >= 1)
+ * @returns An object containing `number` (the generated `bigint`) and `operations` (the fixed `Operation[]` sequence)
  */
 export function generatePuzzle(
     teamId: string,

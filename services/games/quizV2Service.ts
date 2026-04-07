@@ -30,8 +30,12 @@ const WORD_POOL = [
 // ─── Pure helpers ───────────────────────────────────────────────────────────
 
 /**
- * Generate a shuffled array of ASCII codes for a given word.
- * Uppercase ASCII codes for real letters, random lowercase (97-122) for noise.
+ * Generates a shuffled sequence of ASCII codes where the letters of `word` are included as uppercase ASCII codes and remaining positions are filled with random lowercase ASCII codes.
+ *
+ * @param word - The reward word whose letters are encoded as uppercase ASCII codes
+ * @param totalRounds - Desired length of the resulting sequence; must be greater than or equal to `word.length`
+ * @returns A shuffled array of numeric ASCII codes of length `totalRounds`
+ * @throws Error("WORD_TOO_LONG_FOR_ROUNDS") if `word.length` is greater than `totalRounds`
  */
 function generateAsciiSequence(word: string, totalRounds: number): number[] {
 
@@ -56,6 +60,20 @@ function generateAsciiSequence(word: string, totalRounds: number): number[] {
     return combined;
 }
 
+/**
+ * Ensure per-round ASCII metadata exists for a team's game, initializing it from a reward word when missing.
+ *
+ * If no metadata exists for the game, this function derives an ASCII sequence from `fallbackWord` or the stored
+ * reward word and writes `metadata.ascii_number` and `metadata.revealed = false` for each round. If metadata is
+ * already fully present or partially present (some rounds have ASCII metadata), no changes are made.
+ *
+ * @param teamId - Team identifier used for metadata writes
+ * @param gameId - Game identifier whose rounds will be inspected/updated
+ * @param fallbackWord - Optional reward word to use instead of the persisted reward word
+ * @returns The game's rounds array; unchanged if metadata was already present or partially present
+ * @throws Error("REWARD_WORD_NOT_FOUND") if no reward word is available and no `fallbackWord` was provided
+ * @throws Error("WORD_TOO_LONG_FOR_ROUNDS") if the reward word's length exceeds the number of rounds
+ */
 async function ensureQuizV2Metadata(teamId: string, gameId: string, fallbackWord?: string) {
 
     const rounds = await getRoundsForGameRepo(gameId);
@@ -87,7 +105,12 @@ async function ensureQuizV2Metadata(teamId: string, gameId: string, fallbackWord
     return rounds;
 }
 
-// ─── Admin: start game ──────────────────────────────────────────────────────
+/**
+ * Initializes per-team round progress for the given game and activates the game.
+ *
+ * @param gameId - The identifier of the game to start
+ * @returns The activation result for the specified game
+ */
 
 export async function startQuizV2Game(gameId: string) {
 
@@ -96,7 +119,15 @@ export async function startQuizV2Game(gameId: string) {
     return await activateGameRepo(gameId);
 }
 
-// ─── Team: start game ───────────────────────────────────────────────────────
+/**
+ * Starts Quiz V2 for a team and returns the first round's question payload.
+ *
+ * Activates the team's first round, ensures a reward word is recorded and per-round ASCII metadata exists, and returns the initial question data.
+ *
+ * @param teamId - The team's unique identifier
+ * @param gameId - The game's unique identifier
+ * @returns An object containing `roundId`, `round` (1), `question`, and `options` for the first round
+ */
 
 export async function startQuizV2ForTeam(teamId: string, gameId: string) {
 
@@ -120,7 +151,19 @@ export async function startQuizV2ForTeam(teamId: string, gameId: string) {
     };
 }
 
-// ─── Team: get current round ────────────────────────────────────────────────
+/**
+ * Retrieve the current Quiz V2 state for a team within a game.
+ *
+ * Ensures per-round ASCII metadata exists, then returns the team's active-round payload or a final/completion status.
+ *
+ * @param teamId - The team's unique identifier
+ * @param gameId - The game's unique identifier
+ * @returns An object with `status` set to one of:
+ * - `"ACTIVE"`: includes `roundId`, `round` (number), `question`, `options`, `attemptsLeft`, and `revealedNumbers` (array of ASCII numbers).
+ * - `"NOT_STARTED"`: includes `message` explaining no active round.
+ * - `"COMPLETED"`: includes `message` and `revealedNumbers` (array of ASCII numbers) indicating all rounds finished and awaiting final submission.
+ * - `"GAME_OVER"`: includes `message` indicating the game is finished (final submission evaluated or correct).
+ */
 
 export async function getQuizV2Round(teamId: string, gameId: string) {
 
@@ -175,7 +218,24 @@ export async function getQuizV2Round(teamId: string, gameId: string) {
     };
 }
 
-// ─── Team: submit round answer ──────────────────────────────────────────────
+/**
+ * Processes a team's answer for a quiz round, updates attempts and round state, and returns the resulting status.
+ *
+ * @param teamId - The team's identifier
+ * @param roundId - The active round's identifier
+ * @param answer - The team's submitted answer
+ * @param configuration - Round configuration object (must include `correct_answer` and may include `max_attempts`)
+ * @param roundNumber - The numeric index of the round within the game
+ * @param gameId - The game identifier
+ * @returns An object describing the outcome:
+ * - `{ status: "CORRECT", asciiNumber }` when the answer is correct.
+ * - `{ status: "INCORRECT", attemptsUsed, attemptsLeft }` when incorrect and attempts remain.
+ * - `{ status: "ROUND_FAILED", message }` when attempts are exhausted and the round advances.
+ * - `{ status: "ALL_ROUNDS_COMPLETED", revealedNumbers[, asciiNumber] }` when the final round is completed; `asciiNumber` is included if the current submission revealed a number.
+ * @throws `Error("MAX_ATTEMPTS_REACHED")` if no attempts are available before submitting.
+ * @throws `Error("ROUND_ALREADY_COMPLETED")` if the round was already completed while trying to advance after a correct answer.
+ * @throws `Error("ROUND_NOT_ACTIVE")` if the round could not be advanced after exhausting attempts.
+ */
 
 export async function submitQuizV2Answer(
     teamId: string,

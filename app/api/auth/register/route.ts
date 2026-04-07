@@ -3,6 +3,15 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { teamSignupSchema } from "@/validators/team";
 import { isRegistrationEnabled } from "@/lib/repositories/settingsRepo";
 
+/**
+ * Handle team signup requests by validating input, creating a leader auth account,
+ * inserting a team record, and bulk-inserting member records.
+ *
+ * @returns A JSON HTTP response. On success returns `{ success: true, teamId, ownerId }` (status 200). Possible error responses:
+ * - 403: `{ error: "Registrations are currently closed." }`
+ * - 400: `{ error: "...", ... }` for invalid input, mismatched team size, incorrect leader selection, auth creation failures, team insertion failures, or member insertion failures
+ * - 500: `{ error: "Server error" }` on unexpected failures
+ */
 export async function POST(req: Request) {
   try {
     // Check if registration is open before processing

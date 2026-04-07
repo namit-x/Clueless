@@ -6,6 +6,14 @@ const events = [
   { title: "Event Day", date: "April 09", icon: "⚡", year: 2026, month: 3, day: 9 },
 ];
 
+/**
+ * Determine which event in `events` is currently active based on today's date.
+ *
+ * The comparison uses only calendar date (time-of-day is ignored). The active
+ * event is the last entry whose year/month/day is on or before today.
+ *
+ * @returns The index of the last event whose date is on or before today, or `-1` if none qualify.
+ */
 function getActiveIndex(): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);

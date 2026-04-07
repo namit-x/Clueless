@@ -6,6 +6,15 @@ type TeamControllerGhostProps = {
   className?: string;
 };
 
+/**
+ * Renders an inline SVG "ghost" graphic whose pupils follow the mouse cursor.
+ *
+ * The component tracks global mouse movement while mounted and updates the pupils' positions
+ * relative to the component's center; the mouse listener is removed on unmount.
+ *
+ * @param className - Optional additional class names applied to the wrapper element
+ * @returns A React element containing the ghost SVG with animated pupils
+ */
 export default function TeamControllerGhost({ className = "" }: TeamControllerGhostProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [eyeOffset, setEyeOffset] = useState({ x: 0, y: 0 });

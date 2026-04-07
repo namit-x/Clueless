@@ -2,6 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+/**
+ * Render a full-screen animated mystery box overlay that plays an open/burst sequence and notifies when finished.
+ *
+ * @param onComplete - Callback invoked once the opening sequence finishes (after the burst) to signal completion.
+ * @returns The overlay element while the animation is active; `null` after the sequence completes.
+ */
 export default function MysteryBoxOverlay({
   onComplete,
 }: {

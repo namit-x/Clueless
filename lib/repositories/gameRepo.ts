@@ -16,6 +16,12 @@ export async function getGameByIdRepo(gameId: string) {
   return result.rows[0];
 }
 
+/**
+ * Retrieves the currently active game, preferring the most recently started one.
+ *
+ * @returns The active game's record containing `id`, `name`, and `is_active`.
+ * @throws Error "ACTIVE_GAME_NOT_FOUND" when no active game exists.
+ */
 export async function getActiveGameRepo() {
   const query = `
     SELECT id, name, is_active
@@ -34,6 +40,14 @@ export async function getActiveGameRepo() {
   return result.rows[0];
 }
 
+/**
+ * Retrieves the single in-progress game result for a given team.
+ *
+ * @param teamId - The ID of the team to find an active game for.
+ * @returns The `team_game_results` row representing the team's active game.
+ * @throws Error("NO_ACTIVE_GAME_FOR_TEAM") if no in-progress game exists for the team.
+ * @throws Error("MULTIPLE_ACTIVE_GAMES_DETECTED") if more than one in-progress game exists for the team.
+ */
 export async function getTeamActiveGameRepo(teamId: string) {
   const query = `
     SELECT *
@@ -55,6 +69,13 @@ export async function getTeamActiveGameRepo(teamId: string) {
   return result.rows[0];
 }
 
+/**
+ * Mark the specified game as active, set its status to `LIVE`, and record its start time.
+ *
+ * @param gameId - The ID of the game to activate
+ * @returns The updated game row with `id`, `status`, `is_active`, and `started_at`
+ * @throws Error("GAME_NOT_FOUND") if no game exists with the provided `gameId`
+ */
 export async function activateGameRepo(gameId: string) {
 
   const query = `

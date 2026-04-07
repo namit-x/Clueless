@@ -14,6 +14,13 @@ import { useAppDispatch } from "@/store/hooks";
 import { clearUser } from "@/store/slices/authSlice";
 import { useRealtimeSubscriptions } from "@/hooks/useRealtimeSubscriptions";
 
+/**
+ * Renders the Admin Dashboard UI with a sidebar for switching between admin sections and a main area for the active panel.
+ *
+ * The component initializes realtime subscriptions for teams and progress, manages the currently active admin section (`games`, `teams`, `progress`, `leaderboard`, `logs`, or `settings`), and provides a logout action that clears the user state and navigates to the root path.
+ *
+ * @returns The rendered React element for the admin dashboard.
+ */
 export default function AdminDashboardPage() {
 
   const [activeSection, setActiveSection] = useState("games");

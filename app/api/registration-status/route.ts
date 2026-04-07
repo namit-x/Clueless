@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { isRegistrationEnabled, isEnvRegistrationBlocked } from "@/lib/repositories/settingsRepo";
 
-/** Public endpoint — no auth required. Returns whether registration is open. */
+/**
+ * Indicates whether new user registration is enabled and whether an environment-level override is active.
+ *
+ * @returns A JSON object with `registration_enabled` — `true` when registration is enabled, `false` otherwise; and `env_override` — `true` when an environment-based block is active, `false` otherwise. When the settings cannot be read, defaults to `{ registration_enabled: true, env_override: false }`.
+ */
 export async function GET() {
     try {
         const enabled = await isRegistrationEnabled();

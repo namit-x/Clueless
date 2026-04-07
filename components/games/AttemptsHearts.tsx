@@ -1,3 +1,10 @@
+/**
+ * Renders a row of heart icons representing attempts, with a subset shown as filled.
+ *
+ * @param total - Total number of hearts to render (defaults to `3`).
+ * @param remaining - Number of hearts that should be displayed as filled; the rest appear muted and slightly scaled down.
+ * @returns A JSX element containing the heart icons arranged in a horizontal row.
+ */
 export default function AttemptsHearts({ total = 3, remaining }: { total?: number; remaining: number }) {
   return (
     <div className="flex items-center gap-1">

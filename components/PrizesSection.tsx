@@ -3,6 +3,14 @@
 import { useRef, useState } from "react";
 import ScrollReveal from "./ScrollReveal"; 
 
+/**
+ * Renders a card that tilts in 3D following pointer movement and displays a dynamic glare.
+ *
+ * Pointer position drives the card's CSS transform (rotation + slight scale) and the radial-glare
+ * overlay; the transform and glare opacity reset when the pointer leaves.
+ *
+ * @returns A JSX element wrapping `children` with an interactive tilt effect and a radial glare overlay.
+ */
 function TiltCard({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState("");

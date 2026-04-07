@@ -10,6 +10,16 @@ type AdminSidebarProps = {
   onChangeSection: (section: string) => void;
 };
 
+/**
+ * Render the admin sidebar containing a Home link and buttons for each admin section.
+ *
+ * Renders a vertical list of section buttons (games, teams, progress, leaderboard, logs, settings)
+ * that call `onChangeSection` when clicked and visually indicate the `activeSection`.
+ *
+ * @param activeSection - The id of the currently active section; used to apply active styling.
+ * @param onChangeSection - Callback invoked with the section id when a menu button is clicked.
+ * @returns The sidebar JSX element
+ */
 export default function AdminSidebar({
   activeSection,
   onChangeSection,

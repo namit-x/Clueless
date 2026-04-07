@@ -6,6 +6,14 @@ export interface LeaderboardEntry {
     rank: number;
 }
 
+/**
+ * Produce up to 20 leaderboard entries for the provided teams, ranked by performance.
+ *
+ * Teams are ordered first by number of solved games (descending), then by total time (ascending), and finally by `teamId` (lexicographic) as a deterministic tie-breaker. Each returned entry includes computed `totalTime`, `gamesSolved`, and a 1-based `rank`.
+ *
+ * @param teams - Array of team records; each must include `teamId`, `teamName`, and `games` where each game has `time` (number) and `isCorrect` (boolean).
+ * @returns An array of up to 20 `LeaderboardEntry` objects sorted and assigned ranks according to the rules above.
+ */
 export function computeLeaderboard(teams: {
     teamId: string;
     teamName: string;

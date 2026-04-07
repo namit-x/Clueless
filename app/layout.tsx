@@ -19,6 +19,12 @@ export const metadata: Metadata = {
   description: "It is an application developed by Neuron and Zigbee Club to host the year's most interesting event, ClueLess.",
 };
 
+/**
+ * Defines the application's root HTML layout, applies global fonts and classes, and provides app-level state.
+ *
+ * @param children - The React nodes to render inside the app's StoreProvider.
+ * @returns The root `<html>` element containing the application layout.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
