@@ -1,5 +1,11 @@
 import { pool } from "@/lib/db";
 
+/**
+ * Retrieves the stored value for the given application setting key.
+ *
+ * @param key - The setting key to look up.
+ * @returns The setting's string value if present, `null` if no entry exists.
+ */
 export async function getSetting(key: string): Promise<string | null> {
     const { rows } = await pool.query(
         `SELECT value FROM public.app_settings WHERE key = $1`,
@@ -8,6 +14,12 @@ export async function getSetting(key: string): Promise<string | null> {
     return rows[0]?.value ?? null;
 }
 
+/**
+ * Stores or updates an application setting identified by `key` with the given `value`.
+ *
+ * @param key - Setting name to create or update
+ * @param value - Value to assign to the setting
+ */
 export async function setSetting(key: string, value: string): Promise<void> {
     await pool.query(
         `INSERT INTO public.app_settings (key, value, updated_at)
@@ -18,11 +30,15 @@ export async function setSetting(key: string, value: string): Promise<void> {
 }
 
 /**
- * Dual-check registration gate:
- * 1. REGISTRATION_ENABLED env var (hard kill switch — instant override)
- * 2. DB admin flag in app_settings (soft control — admin toggle)
+ * Determine whether user registrations are allowed.
  *
- * Both must be true for registrations to be open.
+ * Checks a hard kill switch in the environment and a soft admin flag in the database; registrations are enabled only when neither blocks them.
+ *
+ * - If `process.env.REGISTRATION_ENABLED` is exactly `"false"`, registrations are blocked.
+ * - Otherwise, the `app_settings` key `"registration_enabled"` is consulted; it blocks only when its value is exactly `"false"`.
+ * - If the DB setting is missing, registrations default to enabled.
+ *
+ * @returns `true` if registrations are enabled, `false` otherwise.
  */
 export async function isRegistrationEnabled(): Promise<boolean> {
     // Hard kill switch — env var takes priority
@@ -35,7 +51,11 @@ export async function isRegistrationEnabled(): Promise<boolean> {
     return value !== "false"; // default to true if row missing
 }
 
-/** Returns whether the env kill switch is blocking registrations. */
+/**
+ * Indicates whether registration is blocked by the environment kill switch.
+ *
+ * @returns `true` if `process.env.REGISTRATION_ENABLED` is exactly `"false"`, `false` otherwise.
+ */
 export function isEnvRegistrationBlocked(): boolean {
     return process.env.REGISTRATION_ENABLED === "false";
 }

@@ -2,6 +2,12 @@
 
 import { useSessionRealtime } from "@/hooks/useSessionRealtime";
 
+/**
+ * Mounts the session realtime hook and renders the application's base layout with a full-screen decorative grid overlay.
+ *
+ * @param children - The page content to render inside the layout
+ * @returns The layout element containing the non-interactive grid overlay and the provided `children`
+ */
 export default function AppLayout({
   children,
 }: {

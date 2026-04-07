@@ -13,6 +13,14 @@ type Props = {
   games: Game[];
 };
 
+/**
+ * Renders the "Games" section containing a responsive grid of game cards and play actions.
+ *
+ * Each card exposes a play action that starts the selected game and navigates to the game view.
+ *
+ * @param games - Array of game objects; each object should include `id`, `name`, `order_index`, and `state` (`"NOT_STARTED"` | `"ACTIVE"`).
+ * @returns A JSX element containing the games header and a responsive grid of game cards.
+ */
 export default function GamesGrid({ games }: Props) {
   const router = useRouter();
 

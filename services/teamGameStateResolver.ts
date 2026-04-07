@@ -3,16 +3,11 @@ import { getCurrentRoundRepo, getActiveOrFailedRoundRepo, areAllRoundsDoneRepo }
 import type { ResolvedTeamState } from "@/lib/types/teamGameState";
 
 /**
- * Single source of truth for a team's game state.
+ * Resolve the authoritative game state for a team in a specific game, enforcing priority: COMPLETED > FAILED > TIME_OVER > IN_PROGRESS.
  *
- * Priority (strict, no exceptions):
- *   COMPLETED > FAILED > TIME_OVER > IN_PROGRESS
+ * The resolver returns a single deterministic state and messageCode that callers should use instead of computing state independently.
  *
- * - COMPLETED / FAILED are final and must never change.
- * - TIME_OVER only if game ended AND team not finished.
- *
- * Every endpoint that needs to communicate game state to the frontend
- * MUST call this resolver instead of computing state independently.
+ * @returns The authoritative `ResolvedTeamState` for the given team and game (one of `COMPLETED`, `FAILED`, `TIME_OVER`, or `IN_PROGRESS` with the corresponding `messageCode`).
  */
 export async function resolveTeamGameState(
   teamId: string,

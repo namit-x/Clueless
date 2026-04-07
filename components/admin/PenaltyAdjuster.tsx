@@ -9,6 +9,15 @@ type PenaltyAdjusterProps = {
   onUpdated?: (nextPenalty: number) => void;
 };
 
+/**
+ * Renders an admin UI that increments a team's penalty by a user-provided whole number of seconds.
+ *
+ * @param teamGameResultId - Identifier used in the API request URL for the target team game result.
+ * @param currentPenalty - Current penalty (in seconds) displayed and used as the initial state.
+ * @param teamName - Optional team name shown in the header and included in success messages.
+ * @param onUpdated - Optional callback invoked with the new penalty after a successful update.
+ * @returns The rendered PenaltyAdjuster component.
+ */
 export default function PenaltyAdjuster({
   teamGameResultId,
   currentPenalty,

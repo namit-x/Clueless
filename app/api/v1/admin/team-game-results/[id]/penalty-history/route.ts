@@ -3,6 +3,14 @@ import { getPenaltyHistoryController } from "@/controllers/adminPenaltyControlle
 import { verifyToken } from "@/middleware/verifyToken";
 import { validateAdmin } from "@/middleware/validateAdmin";
 
+/**
+ * Normalize an unknown error into a concise message string.
+ *
+ * If `error` is an `Error`, returns the last segment of its message after splitting on `": "`, or the full message if no segment is found; if `error` is not an `Error`, returns `"INTERNAL_SERVER_ERROR"`.
+ *
+ * @param error - The value to normalize into an error message (may be any type)
+ * @returns A normalized error message string (`"INTERNAL_SERVER_ERROR"` for non-Error inputs)
+ */
 function unwrapErrorMessage(error: unknown) {
     if (!(error instanceof Error)) {
         return "INTERNAL_SERVER_ERROR";
@@ -12,6 +20,12 @@ function unwrapErrorMessage(error: unknown) {
     return parts[parts.length - 1] || error.message;
 }
 
+/**
+ * Map an error message to the corresponding HTTP status code.
+ *
+ * @param message - The error message or identifier used to determine the HTTP status
+ * @returns The HTTP status code: `401` for "Unauthorized" or "Invalid token", `403` for "Forbidden", `404` for "TEAM_GAME_RESULT_NOT_FOUND", `500` otherwise
+ */
 function getStatusCode(message: string) {
     switch (message) {
         case "Unauthorized":
@@ -26,6 +40,13 @@ function getStatusCode(message: string) {
     }
 }
 
+/**
+ * Handle GET requests to return the admin penalty history for the specified team game result ID.
+ *
+ * @param req - The incoming Next.js request object
+ * @param params - An object promise that resolves to route parameters; expects `{ id }` identifying the team game result
+ * @returns A NextResponse containing JSON: on success `{ success: true, data: history }`; on error `{ success: false, error: message }` with an HTTP status mapped from the error message
+ */
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> }

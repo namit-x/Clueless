@@ -20,6 +20,15 @@ export async function initializeTeamRoundProgressRepo(gameId: string) {
   const result = await pool.query(query, [gameId]);
 }
 
+/**
+ * Inserts a locked progress row for the given team for every round that belongs to the specified game.
+ *
+ * Initializes each inserted row with `status = 'LOCKED'` and `attempt_count = 0`. The operation is idempotent — existing rows for the same team and round are not modified.
+ *
+ * @param teamId - The ID of the team to initialize progress for
+ * @param gameId - The ID of the game whose rounds should be used for initialization
+ * @throws Error("NO_ROUNDS_CONFIGURED") if the game has no rounds
+ */
 export async function initializeTeamRoundProgressForTeamRepo(teamId: string, gameId: string) {
 
   const roundsResult = await pool.query(
@@ -42,6 +51,14 @@ export async function initializeTeamRoundProgressForTeamRepo(teamId: string, gam
   await pool.query(query, [teamId, gameId]);
 }
 
+/**
+ * Activate the team's round 1 progress for the specified game.
+ *
+ * @param teamId - The team's id
+ * @param gameId - The game's id
+ * @returns The `round_id` of the activated round
+ * @throws Error("ROUND_ACTIVATION_FAILED") if round 1 could not be activated or found active
+ */
 export async function activateFirstRoundRepo(teamId: string, gameId: string) {
 
   // Try to activate round 1 (LOCKED → ACTIVE)
@@ -84,6 +101,11 @@ export async function activateFirstRoundRepo(teamId: string, gameId: string) {
   return fallback.rows[0].round_id;
 }
 
+/**
+ * Fetches the currently active round for a team within a game.
+ *
+ * @returns `{ roundId, roundNumber }` for the active round, or `null` if the team has no active round in the specified game
+ */
 export async function getCurrentRoundRepo(teamId: string, gameId: string) {
 
   const query = `
@@ -108,6 +130,15 @@ export async function getCurrentRoundRepo(teamId: string, gameId: string) {
   };
 }
 
+/**
+ * Retrieves one round for the team in the specified game that is either ACTIVE or FAILED.
+ *
+ * @returns An object with `{ roundId, roundNumber, status, attemptCount }` when a matching row exists, or `null` if none.
+ * - `roundId` — the round's id
+ * - `roundNumber` — the round's numeric order within the game
+ * - `status` — the progress status (`'ACTIVE'` or `'FAILED'`)
+ * - `attemptCount` — the number of attempts consumed for the round
+ */
 export async function getActiveOrFailedRoundRepo(teamId: string, gameId: string) {
 
   const query = `
@@ -153,6 +184,12 @@ export async function getRoundAttemptStatusRepo(teamId: string, roundId: string)
   };
 }
 
+/**
+ * Increment the attempt count for an active team round and mark the round as failed when the count reaches 3.
+ *
+ * @returns The updated attempt count.
+ * @throws Error with message "MAX_ATTEMPTS_REACHED" if the round is not active or the maximum attempts have already been reached.
+ */
 export async function decreaseAttemptRepo(teamId: string, roundId: string): Promise<number> {
 
   const query = `
@@ -176,6 +213,14 @@ export async function decreaseAttemptRepo(teamId: string, roundId: string): Prom
   return result.rows[0].attempt_count;
 }
 
+/**
+ * Decrements the active round's attempt count for a team when the stored attempt count matches the provided value.
+ *
+ * @param teamId - ID of the team whose progress should be updated
+ * @param roundId - ID of the round to refund an attempt for
+ * @param consumedAttemptCount - The expected current `attempt_count`; the refund only occurs if the stored `attempt_count` equals this value and is greater than zero
+ * @returns `true` if a row was updated (attempt refunded), `false` otherwise
+ */
 export async function refundAttemptRepo(
   teamId: string,
   roundId: string,
@@ -195,6 +240,16 @@ export async function refundAttemptRepo(
   return (result.rowCount ?? 0) > 0;
 }
 
+/**
+ * Mark the specified team's round progress as completed.
+ *
+ * Updates the `team_round_progress` row for the given `teamId` and `roundId` by setting
+ * `status` to `'COMPLETED'` and `completed_at` to the current time. This operation does
+ * not check or enforce the row's prior status and does not return a value.
+ *
+ * @param teamId - The ID of the team whose progress should be completed
+ * @param roundId - The ID of the round to mark as completed
+ */
 export async function completeRoundRepo(teamId: string, roundId: string) {
 
   const query = `
@@ -207,6 +262,11 @@ export async function completeRoundRepo(teamId: string, roundId: string) {
   await pool.query(query, [teamId, roundId]);
 }
 
+/**
+ * Marks the team's active progress for a round as failed and records the failure time.
+ *
+ * @returns `true` if an ACTIVE progress row was updated to `FAILED`, `false` otherwise.
+ */
 export async function failRoundRepo(teamId: string, roundId: string): Promise<boolean> {
   const result = await pool.query(
     `UPDATE team_round_progress
@@ -284,6 +344,15 @@ export async function completeAndAdvanceRoundRepo(
   }
 }
 
+/**
+ * Activates the next round for a team in a specific game by setting its status to `ACTIVE` and recording the start time.
+ *
+ * This targets the round whose `round_number` is `roundNumber + 1` for the given `gameId`; if no such round exists the update is a no-op.
+ *
+ * @param teamId - The team identifier
+ * @param roundNumber - The current round number; the function activates the subsequent round (`roundNumber + 1`)
+ * @param gameId - The game identifier used to scope the next round lookup
+ */
 export async function activateNextRoundRepo(teamId: string, roundNumber: number, gameId: string) {
 
   const updateQuery = `
@@ -303,6 +372,15 @@ export async function activateNextRoundRepo(teamId: string, roundNumber: number,
   await pool.query(updateQuery, [teamId, gameId, roundNumber + 1]);
 }
 
+/**
+ * Atomically marks the specified active round as `FAILED` for a team and attempts to activate the next round.
+ *
+ * @param teamId - The team's id
+ * @param roundId - The id of the round to mark as failed
+ * @param roundNumber - The numeric position of the current round; the function activates the round with `round_number = roundNumber + 1`
+ * @param gameId - The game id used to scope selection of the next round
+ * @returns `true` if the current round was transitioned from `ACTIVE` to `FAILED` and the transaction committed, `false` if the current round was not `ACTIVE` (no changes were made)
+ */
 export async function failAndAdvanceRoundRepo(
   teamId: string,
   roundId: string,
@@ -353,9 +431,11 @@ export async function failAndAdvanceRoundRepo(
 }
 
 /**
- * Atomically: insert submission + complete round + advance to next round.
- * All in one transaction so submission and progress are always consistent.
- * Returns { advanced: boolean } — false means a concurrent request already completed this round.
+ * Record a submission, mark the current round as completed, and activate the next round within a single transaction.
+ *
+ * If there is no next round, the team's game result is marked completed. If the current round is already no longer `ACTIVE` (e.g., due to a concurrent request), the function rolls back and reports no advancement.
+ *
+ * @returns An object with `advanced: true` if the round was completed and advancement was attempted, or `advanced: false` if the round was already completed by a concurrent request.
  */
 export async function submitAndAdvanceRoundRepo(
   teamId: string,
@@ -443,10 +523,10 @@ export async function submitAndAdvanceRoundRepo(
 }
 
 /**
- * Atomically consume an attempt for a valid submission.
- * The UPDATE uses WHERE status='ACTIVE' AND attempt_count < maxAttempts to prevent
- * races with concurrent submissions.
- * Returns { attemptCount } or null if the round was no longer active/attempts exhausted.
+ * Increment the attempt count for an active round when the current count is below the allowed maximum.
+ *
+ * @param maxAttempts - The maximum allowed attempts for the round (default: `3`)
+ * @returns `{ attemptCount }` with the updated attempt count, or `null` if the round is not `ACTIVE` or attempts are exhausted
  */
 export async function submitAndDecrementAttemptRepo(
   teamId: string,
@@ -472,6 +552,14 @@ export async function submitAndDecrementAttemptRepo(
   return { attemptCount: result.rows[0].attempt_count };
 }
 
+/**
+ * Set a team's final game status and record completion timestamps and time.
+ *
+ * @param teamId - The team's identifier
+ * @param gameId - The game's identifier
+ * @param status - Final status to apply (`"COMPLETED"` or `"FAILED"`)
+ * @returns The updated row `{ id, status, completed_at, completion_time }` or `null` if no row was updated
+ */
 export async function completeGameResultRepo(
   teamId: string,
   gameId: string,
@@ -493,6 +581,13 @@ export async function completeGameResultRepo(
   return result.rows[0] ?? null;
 }
 
+/**
+ * Marks all currently active rounds for the given team as failed.
+ *
+ * Updates matching `team_round_progress` rows to set `status` to `'FAILED'` and `failed_at` to the current timestamp.
+ *
+ * @param teamId - The ID of the team whose active rounds should be marked failed
+ */
 export async function cleanupActiveRoundsRepo(teamId: string) {
   await pool.query(
     `UPDATE team_round_progress
@@ -507,9 +602,11 @@ export async function cleanupActiveRoundsRepo(teamId: string) {
 // ─── Quiz V2: metadata + configurable attempt limit ─────────────────────────
 
 /**
- * Bulk-set metadata on team_round_progress rows (used during Quiz V2 team start
- * to assign per-team ASCII numbers to each round).
- * Only sets metadata where it is currently NULL (idempotent on retry).
+ * Atomically sets JSON metadata for multiple team-round progress rows, writing values only when a row's metadata is null or lacks an `ascii_number` key.
+ *
+ * Executes all updates in a single transaction so either all provided metadata changes are applied or none are.
+ *
+ * @param updates - Array of updates, each with `teamId`, `roundId`, and a `metadata` object to store as JSONB
  */
 export async function bulkSetMetadataRepo(
   updates: Array<{ teamId: string; roundId: string; metadata: object }>
@@ -539,6 +636,11 @@ export async function bulkSetMetadataRepo(
   }
 }
 
+/**
+ * Fetches metadata for a team's round and, when available, returns parsed ASCII metadata.
+ *
+ * @returns `null` if no progress row exists; the raw `metadata` value when `ascii_number` is missing; otherwise an object `{ ascii_number: number, revealed: boolean }`.
+ */
 export async function getRoundMetadataRepo(teamId: string, roundId: string) {
   const result = await pool.query(
     `SELECT
@@ -564,6 +666,11 @@ export async function getRoundMetadataRepo(teamId: string, roundId: string) {
   };
 }
 
+/**
+ * Compute counts of team rounds for a game and how many include an `ascii_number` in their metadata.
+ *
+ * @returns An object with `total` — the number of team round rows for the given game, and `withAscii` — the count of those rows whose `metadata` contains the `ascii_number` key
+ */
 export async function getMetadataCoverageRepo(teamId: string, gameId: string) {
   const result = await pool.query(
     `SELECT
@@ -585,6 +692,12 @@ export async function getMetadataCoverageRepo(teamId: string, gameId: string) {
   };
 }
 
+/**
+ * Marks the round's metadata as revealed for a team's progress.
+ *
+ * Sets or overwrites the `revealed` key to `true` inside the `metadata` JSONB for the given team and round.
+ * If `metadata` is null, an empty object is created before setting `revealed`.
+ */
 export async function updateMetadataRevealedRepo(teamId: string, roundId: string) {
   await pool.query(
     `UPDATE team_round_progress
@@ -595,8 +708,11 @@ export async function updateMetadataRevealedRepo(teamId: string, roundId: string
 }
 
 /**
- * Get all revealed ASCII numbers for a team in a game (rounds where the team
- * answered correctly and metadata.revealed = true).
+ * Retrieve revealed ASCII numbers for a team's completed rounds in a game.
+ *
+ * Only rounds with `metadata` containing `ascii_number` and `metadata.revealed = true` are included; results are ordered by round number.
+ *
+ * @returns An array of objects each containing `roundNumber` (the round's number) and `asciiNumber` (the revealed ASCII number)
  */
 export async function getRevealedNumbersRepo(teamId: string, gameId: string) {
   const result = await pool.query(
@@ -621,7 +737,9 @@ export async function getRevealedNumbersRepo(teamId: string, gameId: string) {
 }
 
 /**
- * Check whether every round for a team in a game is COMPLETED or FAILED.
+ * Determines whether all rounds for a team in a game are finished (either `COMPLETED` or `FAILED`).
+ *
+ * @returns `true` if every round for the team in the game has status `COMPLETED` or `FAILED` and there is at least one round, `false` otherwise.
  */
 export async function areAllRoundsDoneRepo(teamId: string, gameId: string): Promise<boolean> {
   const result = await pool.query(

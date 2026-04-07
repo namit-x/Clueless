@@ -2,6 +2,11 @@
 
 import { useEffect } from "react";
 
+/**
+ * Installs global handlers that disable the right-click context menu and a set of common developer-tools keyboard shortcuts, and removes those handlers when the component unmounts.
+ *
+ * @returns `null` — the component renders nothing
+ */
 export default function DisableDevTools() {
   useEffect(() => {
     document.oncontextmenu = () => false;

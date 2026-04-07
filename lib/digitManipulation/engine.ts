@@ -12,7 +12,13 @@ export const MIN_RESULT = BigInt(0);
 /** Default maximum allowed result after any operation step. */
 export const DEFAULT_MAX_RESULT = BigInt(1_000_000_000);
 
-// ─── Digit operation helpers (pure string transforms) ────────────────────────
+/**
+ * Rotate a string's characters left by a specified number of positions.
+ *
+ * @param str - The input string to rotate
+ * @param k - The number of positions to rotate left; values outside the string length (including negatives) are normalized into the valid range
+ * @returns The rotated string; if `str.length <= 1`, returns `str`
+ */
 
 function rotateLeft(str: string, k: number): string {
     if (str.length <= 1) return str;
@@ -20,6 +26,15 @@ function rotateLeft(str: string, k: number): string {
     return str.slice(k) + str.slice(0, k);
 }
 
+/**
+ * Rotates the characters of `str` to the right by `k` positions.
+ *
+ * If `str` has length 0 or 1, it is returned unchanged. The value of `k` may be any integer (negative values rotate left; values greater than the string length wrap around).
+ *
+ * @param str - The input string to rotate
+ * @param k - Number of positions to rotate to the right; negative rotates left
+ * @returns The resulting string after the rotation
+ */
 function rotateRight(str: string, k: number): string {
     if (str.length <= 1) return str;
     k = ((k % str.length) + str.length) % str.length;
@@ -27,15 +42,25 @@ function rotateRight(str: string, k: number): string {
     return str.slice(-k) + str.slice(0, -k);
 }
 
+/**
+ * Reverses the characters in a string.
+ *
+ * @returns The input string with characters in reverse order.
+ */
 function reverse(str: string): string {
     // console.log(str.split("").reverse().join(""));
     return str.split("").reverse().join("");
 }
 
 /**
- * Apply a digit-manipulation operation. These are pure transforms on the
- * decimal digit string — they cannot cause overflow or produce negative results
- * from positive inputs.
+ * Transforms the decimal digits of an integer using the specified digit operation.
+ *
+ * Operates on the absolute value's decimal string, reapplies the original sign, and returns the resulting bigint. If `n` is 0, returns 0. Supported `type` values: "SHIFT_LEFT", "SHIFT_RIGHT", "REVERSE".
+ *
+ * @param n - The integer whose decimal digits are transformed
+ * @param type - The digit operation to apply
+ * @returns The bigint produced by applying the digit transformation, preserving the input sign
+ * @throws PipelineError when `type` is not a recognized digit operation
  */
 function applyDigitOperation(n: bigint, type: OperationType): bigint {
     if (n === BigInt(0)) return BigInt(0);
@@ -68,11 +93,13 @@ function applyDigitOperation(n: bigint, type: OperationType): bigint {
 // ─── Arithmetic operation ────────────────────────────────────────────────────
 
 /**
- * Apply a single arithmetic operation.
+ * Perform the specified arithmetic operation on `n` using `operand`.
  *
- * Division uses **BigInt truncation toward zero** (standard ECMAScript BigInt
- * semantics): 7n / 2n = 3n, -7n / 2n = -3n. This matches mathematical
- * truncation, NOT floor division.
+ * @param n - The input value to operate on
+ * @param type - The arithmetic operation to apply: `"MULTIPLY"`, `"DIVIDE"`, `"ADD"`, or `"SUBTRACT"`
+ * @param operand - The operand used by the arithmetic operation
+ * @returns The result of applying `type` with `operand` to `n`. For `"DIVIDE"`, division uses BigInt truncation toward zero (e.g., `7n / 2n === 3n`, `-7n / 2n === -3n`)
+ * @throws PipelineError if `type` is not a recognized arithmetic operation
  */
 function applyArithmeticOperation(n: bigint, type: OperationType, operand: bigint): bigint {
     switch (type) {
@@ -97,9 +124,13 @@ function applyArithmeticOperation(n: bigint, type: OperationType, operand: bigin
 // ─── Validation ──────────────────────────────────────────────────────────────
 
 /**
- * Validate a single operation before execution.
- * Arithmetic ops: must have operand, division must not be by zero.
- * Digit ops: must NOT have operand.
+ * Validate that an operation is well-formed for execution.
+ *
+ * @param op - The operation to validate (type and optional operand)
+ * @throws {PipelineError} "INVALID_OPERATION" if `op.type` is not allowed
+ * @throws {PipelineError} "MISSING_OPERAND" if an arithmetic operation is missing its operand
+ * @throws {PipelineError} "DIVISION_BY_ZERO" if a `DIVIDE` operation has an operand of `0`
+ * @throws {PipelineError} "UNEXPECTED_OPERAND" if a digit operation includes an operand
  */
 function validateOperation(op: Operation): void {
     if (!VALID_OPERATION_TYPES.has(op.type)) {
@@ -135,7 +166,12 @@ function validateOperation(op: Operation): void {
 }
 
 /**
- * Assert that a result is within [MIN_RESULT, maxResult].
+ * Ensure a numeric operation result falls between the module's minimum and the provided maximum.
+ *
+ * @param result - The value to validate
+ * @param step - 1-based index of the operation step that produced `result`
+ * @param maxResult - Upper bound (inclusive) allowed for `result`
+ * @throws PipelineError with code `RESULT_OUT_OF_BOUNDS` if `result` is less than `MIN_RESULT` or greater than `maxResult`
  */
 function assertBounds(result: bigint, step: number, maxResult: bigint): void {
     if (result < MIN_RESULT) {
@@ -155,19 +191,15 @@ function assertBounds(result: bigint, step: number, maxResult: bigint): void {
 // ─── Main pipeline ───────────────────────────────────────────────────────────
 
 /**
- * Execute a fixed sequence of operations on an initial value.
+ * Apply a sequence of operations to an initial bigint, returning the result after all steps.
  *
- * Pure function: no side effects, no external state.
- * Deterministic: same (initial, operations, maxResult) → same result, always.
+ * Each operation is validated and applied in order; the intermediate result is checked after every step to be within [MIN_RESULT, maxResult]. Division uses BigInt truncation toward zero.
  *
- * After each step, the result is bounds-checked against [MIN_RESULT, maxResult].
- * Division uses BigInt truncation toward zero (not floor).
- *
- * @param initial    Starting number
- * @param operations Ordered list of operations to apply
- * @param maxResult  Upper bound for intermediate/final results (default: 1,000,000)
- * @returns Final result after all operations
- * @throws PipelineError on invalid operation, division by zero, or bounds violation
+ * @param initial - The starting bigint value
+ * @param operations - Ordered list of operations to apply
+ * @param maxResult - Upper bound for intermediate and final results (defaults to DEFAULT_MAX_RESULT)
+ * @returns The final bigint result after applying all operations
+ * @throws PipelineError if an operation is invalid, division by zero occurs, or a result falls outside [MIN_RESULT, maxResult]
  */
 export function executeOperations(
     initial: bigint,

@@ -3,6 +3,11 @@ import { getLeaderboardService } from "@/services/leaderboardService";
 import { validateAdmin } from "@/middleware/validateAdmin";
 import { verifyToken } from "@/middleware/verifyToken";
 
+/**
+ * Handle GET requests to retrieve the admin leaderboard after authenticating and authorizing the requester.
+ *
+ * @returns A NextResponse containing `{ success: true, leaderboard }` when the authenticated user is an admin and the leaderboard is fetched successfully; otherwise a NextResponse with `{ success: false, error }` and status 400.
+ */
 export async function GET(req: NextRequest) {
     try {
         const user = await verifyToken(req);

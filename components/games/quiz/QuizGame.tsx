@@ -7,6 +7,13 @@ import AttemptsHearts from "@/components/games/AttemptsHearts";
 import { getGameScreen } from "@/lib/gameMessages";
 import type { MessageCode } from "@/lib/types/teamGameState";
 
+/**
+ * Interactive quiz game component that manages round state, realtime updates, answer submissions, and the final decode phase UI.
+ *
+ * This component reads `gameId` from the URL, subscribes to realtime updates, fetches and debounces current-round data, handles per-round and final answer submissions (including attempt tracking and reveal synchronization), plays failure audio, and renders the appropriate screen for loading, waiting, active rounds, final decoding, finished, or admin-ended states.
+ *
+ * @returns The React element rendering the full quiz UI (loading/waiting/finished/ended screens, active round interface with question/options/progress/reveals, and the final decode input and feedback).
+ */
 export default function QuizGame() {
   const router = useRouter();
   const searchParams = useSearchParams();

@@ -8,6 +8,13 @@ import { getGameScreen } from "@/lib/gameMessages";
 import type { MessageCode } from "@/lib/types/teamGameState";
 import CoderGhost from "@/components/CoderGhost";
 
+/**
+ * Renders the Blind Code game UI and manages its local game, editor, and submission state.
+ *
+ * Manages editor content and a virtual cursor, plays typing/failure sounds, fetches and reacts to current round state, handles realtime updates and submissions, and renders the appropriate game screens (playing, waiting, finished, failed, or ended).
+ *
+ * @returns The rendered BlindCode game UI as a React element.
+ */
 export default function BlindCodeGame() {
   const router = useRouter();
   const [code, setCode] = useState("");

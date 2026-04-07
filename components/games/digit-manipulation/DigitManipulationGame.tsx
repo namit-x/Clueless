@@ -12,6 +12,18 @@ type Operation = {
   operand?: number;
 };
 
+/**
+ * Render the Digit Manipulation game interface and manage its lifecycle.
+ *
+ * Displays the current round, a digit display, an operations carousel (one operation visible at a time),
+ * and the final-answer input. Manages fetching and syncing the current round from the server,
+ * submitting answers and handling attempt/result state, subscribing to realtime updates, playing a fail
+ * sound on incorrect submissions, and showing waiting/failed/finished/admin-ended screens.
+ *
+ * The input and submit controls are locked until the user has progressed through all operations.
+ *
+ * @returns The component's JSX element representing the full game UI.
+ */
 export default function DigitManipulationGame() {
   const router = useRouter();
   const [answer, setAnswer] = useState("");

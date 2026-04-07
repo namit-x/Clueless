@@ -8,10 +8,9 @@ import { supabase } from "@/lib/supabase/client";
 const POLL_INTERVAL_MS = 15_000;
 
 /**
- * Subscribes to Supabase Realtime on the sessions table.
- * On any change, verifies the current session still exists in DB.
- * Falls back to periodic polling in case realtime events are missed.
- * Forces logout if session was replaced or deleted.
+ * Monitor the authenticated user's session in Supabase and force a logout if the session is replaced or removed.
+ *
+ * Subscribes to realtime changes on the `sessions` table filtered by the current user and uses periodic polling as a fallback to detect session replacement or deletion; triggers a one-time forced logout when the stored session no longer matches the current session ID.
  */
 export function useSessionRealtime() {
     const dispatch = useAppDispatch();
@@ -27,6 +26,11 @@ export function useSessionRealtime() {
         const ownerId = user.id;
         const currentSessionId = user.sessionId;
 
+        /**
+         * Verifies that the stored session for the current owner still matches the hook's tracked session and triggers logout if it has been replaced or removed.
+         *
+         * If the session is missing or its `session_id` differs from the tracked `currentSessionId`, marks the logout as performed, shows an alert to the user, and dispatches a forced logout action. No action is taken if logout has already been performed.
+         */
         async function verifySession() {
             if (hasLoggedOutRef.current) return;
 

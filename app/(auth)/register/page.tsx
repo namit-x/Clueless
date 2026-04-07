@@ -229,6 +229,13 @@ const MemberInputCard = ({
     );
 };
 
+/**
+ * Renders the two-step team registration UI including team details, member entry, live team-name availability checking, validation, submission, and a success summary.
+ *
+ * The component manages form state, per-field validation, a backend "registration open" gate, debounced team-name availability checks, member list initialization based on selected team size, and submission to the registration API. On successful submission it shows a summary of the registered team and provides a reset action to register another team.
+ *
+ * @returns The React element for the team registration page
+ */
 export default function TeamRegistrationPage() {
     const router = useRouter();
     const [teamData, setTeamData] = useState<TeamData>({

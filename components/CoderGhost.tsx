@@ -7,6 +7,15 @@ type CoderGhostProps = {
   className?: string;
 };
 
+/**
+ * Renders an animated ghost SVG that reacts to typing state.
+ *
+ * Animates eyes, mouth, arms, and a blinking cursor using requestAnimationFrame; animation is cleaned up on unmount or when `isTyping` changes.
+ *
+ * @param isTyping - When `true`, the ghost displays typing animations (arm wave, mouth and eye adjustments, cursor activity); when `false`, the ghost returns to idle poses.
+ * @param className - Optional additional CSS class names applied to the wrapper element.
+ * @returns The CoderGhost React element.
+ */
 export default function CoderGhost({
   isTyping,
   className = "",

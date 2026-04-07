@@ -6,6 +6,18 @@ type Props = {
   onPlay?: () => void;
 };
 
+/**
+ * Render a game card that displays the game's name and status, and shows a Play button when the game is active.
+ *
+ * The component visually differentiates active and inactive states: active cards present a "Live" status indicator,
+ * a decorative corner glow, and a Play button; inactive cards use muted styling. If provided, `onPlay` is called when
+ * the Play button is clicked.
+ *
+ * @param name - The display name of the game
+ * @param state - The current game state; determines whether the card is active (`"ACTIVE"`) or not
+ * @param onPlay - Optional click handler invoked when the Play button is pressed (only available when `state` is `"ACTIVE"`)
+ * @returns The rendered game card element
+ */
 export default function GameCard({ name, state, onPlay }: Props) {
   const isActive = state === "ACTIVE";
 

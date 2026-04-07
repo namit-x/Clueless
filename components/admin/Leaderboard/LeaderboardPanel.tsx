@@ -23,6 +23,17 @@ type LeaderboardEntry = {
   games: LeaderboardGameEntry[];
 };
 
+/**
+ * Format a duration given in seconds into a human-readable hours/minutes/seconds string.
+ *
+ * @param seconds - Duration in seconds.
+ * @returns A formatted string using one of these forms:
+ * - `"{H}h {M}m {S}s"` when hours > 0
+ * - `"{M}m {S}s"` when hours == 0 and minutes > 0
+ * - `"{S}s"` otherwise
+ *
+ * Hours and minutes are whole numbers (floored); seconds is the remaining value and may include a fractional part.
+ */
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -38,6 +49,15 @@ const RANK_STYLES: Record<number, string> = {
   3: "text-amber-600 font-bold",
 };
 
+/**
+ * Render an admin leaderboard panel with per-team penalty management controls.
+ *
+ * The component loads leaderboard data from the admin API on mount, shows loading and error states,
+ * allows manual refresh and retry, and lets admins expand a team to view and adjust per-game penalties.
+ * After penalties are updated it refreshes the leaderboard to reflect changes.
+ *
+ * @returns The rendered leaderboard panel element
+ */
 export default function LeaderboardPanel() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");

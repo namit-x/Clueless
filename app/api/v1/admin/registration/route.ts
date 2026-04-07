@@ -3,7 +3,11 @@ import { verifyToken } from "@/middleware/verifyToken";
 import { validateAdmin } from "@/middleware/validateAdmin";
 import { isRegistrationEnabled, isEnvRegistrationBlocked, setSetting } from "@/lib/repositories/settingsRepo";
 
-/** GET  — return current registration status */
+/**
+ * Return the current registration status and whether registration is blocked by environment configuration.
+ *
+ * @returns On success, a JSON response containing `registration_enabled` (boolean) and `env_override` (boolean). On error, a JSON response `{ error: string }` with status `401` when the request is unauthorized, otherwise `403`.
+ */
 export async function GET(req: NextRequest) {
     try {
         const user = await verifyToken(req);
@@ -21,7 +25,17 @@ export async function GET(req: NextRequest) {
     }
 }
 
-/** PATCH — toggle registration on/off */
+/**
+ * Toggle the application's registration setting using the request body.
+ *
+ * This endpoint requires an authenticated admin user. It reads a JSON body
+ * with an `enabled` boolean and persists the new registration setting.
+ *
+ * @param req - Incoming NextRequest whose JSON body must include `enabled` (boolean)
+ * @returns On success, `{ success: true, registration_enabled: <boolean> }`. On error,
+ * `{ error: <message> }`; returns HTTP 400 for malformed body, 401 when unauthorized,
+ * and 403 for other access-related errors.
+ */
 export async function PATCH(req: NextRequest) {
     try {
         const user = await verifyToken(req);

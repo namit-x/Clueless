@@ -21,6 +21,12 @@ export type LeaderboardEntry = {
     games: Team["games"];
 };
 
+/**
+ * Builds a leaderboard entry (without `rank`) for a team by aggregating its game results.
+ *
+ * @param team - Team whose game results will be aggregated into a leaderboard entry
+ * @returns An object containing `teamId`, `teamName`, `totalTime` (sum of all game `time` values), `gamesSolved` (count of games with `isCorrect === true`), and the original `games` array
+ */
 function toLeaderboardEntry(team: Team): Omit<LeaderboardEntry, "rank"> {
     const totalTime = team.games.reduce((sum, game) => sum + game.time, 0);
     const gamesSolved = team.games.reduce(
@@ -37,6 +43,13 @@ function toLeaderboardEntry(team: Team): Omit<LeaderboardEntry, "rank"> {
     };
 }
 
+/**
+ * Determine ordering between two leaderboard entries by games solved, total time, then teamId.
+ *
+ * @param left - The first leaderboard entry to compare
+ * @param right - The second leaderboard entry to compare
+ * @returns A negative number if `left` should come before `right`, a positive number if `left` should come after `right`, or `0` if they are equivalent
+ */
 function compareEntries(
     left: Omit<LeaderboardEntry, "rank">,
     right: Omit<LeaderboardEntry, "rank">
@@ -60,6 +73,12 @@ function compareEntries(
     return 0;
 }
 
+/**
+ * Generate a ranked leaderboard from an array of teams.
+ *
+ * @param teams - The teams to include in the leaderboard
+ * @returns The top 20 leaderboard entries, each augmented with a `rank` starting at 1. Entries are sorted by: higher `gamesSolved` first, lower `totalTime` next, then `teamId` lexicographically as a final tie-breaker.
+ */
 export function computeLeaderboard(teams: Team[]): LeaderboardEntry[] {
     return teams
         .map(toLeaderboardEntry)

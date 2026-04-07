@@ -22,6 +22,12 @@ export interface CreateSessionResult {
 
 export interface ValidateSessionInput extends ValidateSessionParams { }
 
+/**
+ * Creates or replaces a session for the specified owner and returns the new session metadata.
+ *
+ * @param input - Object containing `ownerType`, `ownerId`, and `ttlMs` (time-to-live in milliseconds)
+ * @returns The created session information: `sessionId`, `expiresAt`, and `previousSessionId` if a prior session was replaced
+ */
 export async function createOrReplaceSession(
     input: CreateSessionInput
 ): Promise<CreateSessionResult> {

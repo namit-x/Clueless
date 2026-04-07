@@ -72,6 +72,14 @@ const LESS = ["L", "e", "s", "s"];
 
 
 
+/**
+ * Render the dashboard header containing a per-letter tilt wordmark, a typed display of the provided team name, and a logout control.
+ *
+ * The component types the `teamName` one character at a time, manages logout (clears user state and navigates to root), and includes a decorative team controller graphic.
+ *
+ * @param teamName - The team name to reveal in the header
+ * @returns The header JSX element
+ */
 export default function DashboardHeader({ teamName }: Props) {
   const dispatch = useAppDispatch();
   const router = useRouter();

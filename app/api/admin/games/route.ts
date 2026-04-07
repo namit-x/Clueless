@@ -4,6 +4,12 @@ import { validateAdmin } from "@/middleware/validateAdmin";
 import { gameSchema } from "@/validators/gameSchema";
 import { createGameController } from "@/controllers/gameController";
 
+/**
+ * Create a new game from the request body after authenticating and authorizing the caller.
+ *
+ * @param req - Incoming request whose JSON body must conform to `gameSchema`
+ * @returns On success, an object `{ success: true, game }` containing the created game; on failure, `{ success: false, error }` with an error message (response status 400)
+ */
 export async function POST(req: NextRequest) {
     try {
         // authenticate

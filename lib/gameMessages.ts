@@ -27,6 +27,12 @@ export const GAME_MESSAGE_MAP: Record<MessageCode, string> = {
  */
 export type GameScreen = "playing" | "finished" | "failed" | "time_over" | "rounds_done" | "waiting";
 
+/**
+ * Map an optional `MessageCode` to the UI game screen identifier.
+ *
+ * @param messageCode - The message code to map; may be `undefined`.
+ * @returns The corresponding `GameScreen`: `finished` for `GAME_COMPLETED`, `failed` for `GAME_FAILED`, `time_over` for `GAME_TIME_OVER`, `playing` for `ROUND_ACTIVE`, `rounds_done` for `ROUND_COMPLETED`, or `waiting` for `GAME_IN_PROGRESS`. Returns `waiting` when `messageCode` is `undefined` or unrecognized.
+ */
 export function getGameScreen(messageCode: MessageCode | undefined): GameScreen {
   switch (messageCode) {
     case "GAME_COMPLETED":

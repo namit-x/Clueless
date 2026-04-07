@@ -24,6 +24,16 @@ setInterval(() => {
     }
 }, 60000);
 
+/**
+ * Process a team's submission for a round by routing it to the appropriate game handler.
+ *
+ * May enforce global per-team rate limiting and throw `Error("RATE_LIMITED: too many submissions, wait a few seconds")`
+ * if submissions are too frequent. Fetches the round context and dispatches to the handler registered for the round's game.
+ *
+ * @throws Error("RATE_LIMITED: too many submissions, wait a few seconds") if the team is rate-limited
+ * @throws Error("UNKNOWN_GAME_TYPE: <gameName>") if no handler exists for the round's game
+ * @returns The value returned by the selected submission handler
+ */
 export async function submitAnswerService(
     teamId: string,
     roundId: string,

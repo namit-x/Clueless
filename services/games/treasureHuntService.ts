@@ -13,6 +13,13 @@ import { getClueAndAnswerForRoundRepo, getClueForRoundRepo, getRoundClueRepo } f
 import { completeTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
 import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 
+/**
+ * Starts a treasure hunt game by assigning each approved team a unique route, initializing round progress, and activating the game.
+ *
+ * @param gameId - The identifier of the game to start
+ * @returns The activation result returned by the game activation repository
+ * @throws Error("INSUFFICIENT_ROUTES") - If there are fewer routes available than approved teams
+ */
 export async function startTreasureHuntGame(gameId: string) {
 
     // Parallelize independent fetches: teams and routes can be fetched simultaneously
@@ -39,6 +46,13 @@ export async function startTreasureHuntGame(gameId: string) {
     return await activateGameRepo(gameId);
 }
 
+/**
+ * Starts a team's treasure hunt by activating their first round and returning the first clue.
+ *
+ * @param teamId - The identifier of the team to start
+ * @param gameId - The identifier of the game instance
+ * @returns An object with `round` set to 1 and `clue` containing the round 1 clue for the team's assigned route
+ */
 export async function startTreasureHuntForTeam(teamId: string, gameId: string) {
 
     console.log(`[TreasureHuntService] Starting Treasure Hunt for team ${teamId}`);
@@ -56,6 +70,16 @@ export async function startTreasureHuntForTeam(teamId: string, gameId: string) {
     };
 }
 
+/**
+ * Retrieve the current treasure hunt round state for a team within a game.
+ *
+ * @param teamId - The identifier of the team
+ * @param gameId - The identifier of the game
+ * @returns An object describing the team's round state:
+ * - If no active round exists: `{ status: "COMPLETED", message: string }`
+ * - If the active round has been failed: `{ status: "FAILED", message: string }`
+ * - If there is an active round: `{ status: "ACTIVE", roundId: string, round: number, clue: string, attemptsLeft: number }`
+ */
 export async function getTreasureHuntRound(teamId: string, gameId: string) {
 
     const [routeId, roundProgress] = await Promise.all([
@@ -88,6 +112,25 @@ export async function getTreasureHuntRound(teamId: string, gameId: string) {
     };
 }
 
+/**
+ * Processes a team's answer for a treasure-hunt round, updates attempts and round state, and returns the resulting outcome.
+ *
+ * @param teamId - ID of the team submitting the answer
+ * @param roundId - ID of the active round attempt record
+ * @param answer - Submitted answer text
+ * @param roundNumber - Current round number being answered
+ * @param gameId - ID of the game instance containing the round
+ * @returns An object describing the outcome:
+ * - `{ status: "COMPLETED" }` when the final round is correctly answered and the team completes the game.
+ * - `{ status: "CORRECT" }` when the answer is correct and the team advances to the next round.
+ * - `{ status: "INCORRECT", attemptsUsed, attemptsLeft }` when the answer is incorrect but attempts remain.
+ * - `{ status: "FAILED", reason: "MAX_ATTEMPTS_EXHAUSTED", attemptsUsed: 3, attemptsLeft: 0, message }` when the team exhausts all attempts for the round.
+ *
+ * Errors thrown by the function:
+ * - `Error("MAX_ATTEMPTS_REACHED")` if the team has no attempts available before submission.
+ * - `Error("ROUND_ALREADY_COMPLETED")` if a correct submission could not advance because the round was already finalized.
+ * - `Error("ROUND_NOT_ACTIVE")` if attempting to mark the round failed when attempts were exhausted.
+ */
 export async function submitTreasureHuntAnswer(
     teamId: string,
     roundId: string,

@@ -12,6 +12,13 @@ import GamesGrid from "@/components/dashboard/GameGrid";
 import TeamBlockedScreen from "@/components/game/TeamBlockedScreen";
 import { useTeamRealtimeSubscriptions } from "@/hooks/useTeamRealtimeSubscriptions";
 
+/**
+ * Renders the team dashboard page, hydrates authentication on mount, subscribes to realtime team updates, and fetches team and games data when needed.
+ *
+ * When either data slice is loading, displays a full-screen loading indicator; if the team is blocked, displays the TeamBlockedScreen; otherwise renders the DashboardHeader and GamesGrid with the current user and games.
+ *
+ * @returns The dashboard UI element described above.
+ */
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
