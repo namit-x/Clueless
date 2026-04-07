@@ -1,5 +1,6 @@
 import {
     activateFirstRoundRepo,
+    cleanupActiveRoundsRepo,
     completeGameResultRepo,
     getCurrentRoundRepo,
     getRoundAttemptStatusRepo,
@@ -128,6 +129,7 @@ export async function submitBlindCodeAnswer(
 
         if (roundNumber === 3) {
             await completeGameResultRepo(teamId, gameId, "COMPLETED");
+            await cleanupActiveRoundsRepo(teamId);
         }
 
         return {
@@ -153,6 +155,7 @@ export async function submitBlindCodeAnswer(
 
     if (attemptsExhausted) {
         await completeGameResultRepo(teamId, gameId, "FAILED");
+        await cleanupActiveRoundsRepo(teamId);
     }
 
     return {

@@ -438,6 +438,17 @@ export async function completeGameResultRepo(
   return result.rows[0] ?? null;
 }
 
+export async function cleanupActiveRoundsRepo(teamId: string) {
+  await pool.query(
+    `UPDATE team_round_progress
+     SET status = 'FAILED',
+         failed_at = NOW()
+     WHERE team_id = $1
+       AND status = 'ACTIVE'`,
+    [teamId]
+  );
+}
+
 // ─── Quiz V2: metadata + configurable attempt limit ─────────────────────────
 
 /**
