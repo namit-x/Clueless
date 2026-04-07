@@ -1,5 +1,6 @@
 import {
     activateFirstRoundRepo,
+    completeGameResultRepo,
     getCurrentRoundRepo,
     getRoundAttemptStatusRepo,
     initializeTeamRoundProgressRepo,
@@ -97,7 +98,6 @@ export async function submitBlindCodeAnswer(
     roundNumber: number,
     gameId: string
 ) {
-
     // Pre-check: reject if round is not active
     const progress = await getRoundAttemptStatusRepo(teamId, roundId);
     if (progress.status !== 'ACTIVE' || progress.attemptCount >= 3) {
@@ -126,6 +126,10 @@ export async function submitBlindCodeAnswer(
         );
         if (!advanced) throw new Error("ROUND_ALREADY_COMPLETED");
 
+        if (roundNumber === 3) {
+            await completeGameResultRepo(teamId, gameId, "COMPLETED");
+        }
+
         return {
             correct: true,
             attemptsLeft: 0,
@@ -143,6 +147,12 @@ export async function submitBlindCodeAnswer(
 
     if (!result) {
         throw new Error("MAX_ATTEMPTS_REACHED");
+    }
+
+    const attemptsExhausted = result.attemptCount >= 3;
+
+    if (attemptsExhausted) {
+        await completeGameResultRepo(teamId, gameId, "FAILED");
     }
 
     return {

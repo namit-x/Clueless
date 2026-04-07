@@ -40,8 +40,12 @@ export async function getTeamActiveGameRepo(teamId: string) {
     FROM team_round_progress trp
     JOIN rounds r ON trp.round_id = r.id
     JOIN games g ON r.game_id = g.id
+    LEFT JOIN team_game_results tgr
+      ON tgr.team_id = trp.team_id
+     AND tgr.game_id = g.id
     WHERE trp.team_id = $1
       AND trp.status IN ('ACTIVE', 'FAILED')
+      AND (tgr.status IS NULL OR tgr.status = 'IN_PROGRESS')
     ORDER BY trp.started_at DESC NULLS LAST
     LIMIT 1;
   `;
@@ -58,8 +62,12 @@ export async function getTeamActiveGameRepo(teamId: string) {
     FROM team_round_progress trp
     JOIN rounds r ON trp.round_id = r.id
     JOIN games g ON r.game_id = g.id
+    LEFT JOIN team_game_results tgr
+      ON tgr.team_id = trp.team_id
+     AND tgr.game_id = g.id
     WHERE trp.team_id = $1
-      AND trp.status IN ('ACTIVE', 'FAILED');
+      AND trp.status IN ('ACTIVE', 'FAILED')
+      AND (tgr.status IS NULL OR tgr.status = 'IN_PROGRESS');
   `;
 
   const checkResult = await pool.query(checkQuery, [teamId]);

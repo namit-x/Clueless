@@ -417,6 +417,27 @@ export async function submitAndDecrementAttemptRepo(
   }
 }
 
+export async function completeGameResultRepo(
+  teamId: string,
+  gameId: string,
+  status: "COMPLETED" | "FAILED"
+) {
+  const result = await pool.query(
+    `UPDATE team_game_results
+     SET
+       status = $3,
+       completed_at = NOW(),
+       completion_time = EXTRACT(EPOCH FROM (NOW() - started_at)) + COALESCE(penalty_seconds, 0)
+     WHERE team_id = $1
+       AND game_id = $2
+       AND completed_at IS NULL
+     RETURNING id, status, completed_at, completion_time`,
+    [teamId, gameId, status]
+  );
+
+  return result.rows[0] ?? null;
+}
+
 // ─── Quiz V2: metadata + configurable attempt limit ─────────────────────────
 
 /**
