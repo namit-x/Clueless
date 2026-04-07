@@ -1,5 +1,6 @@
 import {
     activateFirstRoundRepo,
+    failRoundRepo,
     getCurrentRoundRepo,
     getRoundAttemptStatusRepo,
     initializeTeamRoundProgressRepo,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/repositories/teamRoundProgressRepo";
 import { activateGameRepo, getGameByIdRepo } from "@/lib/repositories/gameRepo";
 import { getRoundContextRepo } from "@/lib/repositories/roundsRepo";
+import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 import { getOrResolvePuzzle } from "@/lib/digitManipulation/cache";
 import { resolvePuzzle } from "@/lib/digitManipulation/resolver";
 import { MIN_RESULT, DEFAULT_MAX_RESULT } from "@/lib/digitManipulation/engine";
@@ -184,27 +186,12 @@ export async function submitDigitManipulationAnswer(
     // 3. Game must be active
     await assertGameActive(gameId);
 
-    // 4. Round state (source of truth)
-    const { status, attemptCount } = await getRoundAttemptStatusRepo(teamId, roundId);
-
-    if (status === "LOCKED") {
-        throw new Error("ROUND_LOCKED");
-    }
-
-    if (status === "FAILED" || attemptCount >= MAX_ATTEMPTS) {
+    const attempt = await submitAndDecrementAttemptRepo(teamId, roundId, MAX_ATTEMPTS);
+    if (!attempt) {
         throw new Error("MAX_ATTEMPTS_REACHED");
     }
 
-    if (status === "COMPLETED") {
-        // Idempotent
-        return { correct: true, attemptsLeft: MAX_ATTEMPTS };
-    }
-
-    if (status !== "ACTIVE") {
-        throw new Error("ROUND_NOT_ACTIVE");
-    }
-
-    // 5. Compute correct answer (single source of truth)
+    // 4. Compute correct answer (single source of truth)
     const { answer: correctAnswer } = resolvePuzzle(
         teamId,
         roundId,
@@ -213,7 +200,7 @@ export async function submitDigitManipulationAnswer(
 
     const isCorrect = submittedValue === correctAnswer;
 
-    // 6. Atomic DB update
+    // 5. Atomic DB update
     if (isCorrect) {
         const { advanced } = await submitAndAdvanceRoundRepo(
             teamId,
@@ -225,28 +212,24 @@ export async function submitDigitManipulationAnswer(
             "CORRECT"
         );
 
-        // Idempotency / concurrent request safety
         if (!advanced) {
-            return { correct: true, attemptsLeft: MAX_ATTEMPTS };
+            throw new Error("ROUND_ALREADY_COMPLETED");
         }
 
-        return { correct: true, attemptsLeft: MAX_ATTEMPTS };
+        return { correct: true, attemptsLeft: computeAttemptsLeft(attempt.attemptCount) };
     }
 
-    // Wrong answer
-    const result = await submitAndDecrementAttemptRepo(
-        teamId,
-        roundId,
-        answer.trim(),
-        "WRONG"
-    );
+    await insertSubmissionRepo(teamId, roundId, answer.trim(), false, "WRONG");
 
-    if (!result) {
-        throw new Error("MAX_ATTEMPTS_REACHED");
+    if (attempt.attemptCount >= MAX_ATTEMPTS) {
+        const failed = await failRoundRepo(teamId, roundId);
+        if (!failed) {
+            throw new Error("ROUND_NOT_ACTIVE");
+        }
     }
 
     return {
         correct: false,
-        attemptsLeft: computeAttemptsLeft(result.attemptCount)
+        attemptsLeft: computeAttemptsLeft(attempt.attemptCount)
     };
 }

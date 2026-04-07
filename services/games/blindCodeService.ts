@@ -2,14 +2,17 @@ import {
     activateFirstRoundRepo,
     cleanupActiveRoundsRepo,
     completeGameResultRepo,
+    failRoundRepo,
     getCurrentRoundRepo,
     getRoundAttemptStatusRepo,
     initializeTeamRoundProgressRepo,
+    refundAttemptRepo,
     submitAndAdvanceRoundRepo,
     submitAndDecrementAttemptRepo
 } from "@/lib/repositories/teamRoundProgressRepo";
 import { activateGameRepo } from "@/lib/repositories/gameRepo";
 import { getRoundContextRepo } from "@/lib/repositories/roundsRepo";
+import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 
 export async function startBlindCodeGame(gameId: string) {
 
@@ -99,15 +102,23 @@ export async function submitBlindCodeAnswer(
     roundNumber: number,
     gameId: string
 ) {
-    // Pre-check: reject if round is not active
-    const progress = await getRoundAttemptStatusRepo(teamId, roundId);
-    if (progress.status !== 'ACTIVE' || progress.attemptCount >= 3) {
+    const attempt = await submitAndDecrementAttemptRepo(teamId, roundId, 3);
+    if (!attempt) {
         throw new Error("MAX_ATTEMPTS_REACHED");
     }
 
     const expectedOutput = getBlindCodeAnswer(configuration).trim();
 
-    const judgeResult = await executeJudge0(answer);
+    let judgeResult: any;
+    try {
+        judgeResult = await executeJudge0(answer);
+    } catch (error) {
+        const refunded = await refundAttemptRepo(teamId, roundId, attempt.attemptCount);
+        if (!refunded) {
+            throw new Error("JUDGE_EXECUTION_FAILED_WITH_ATTEMPT_CONSUMED");
+        }
+        throw error;
+    }
 
     const output = (judgeResult.stdout || "").trim();
 
@@ -134,7 +145,7 @@ export async function submitBlindCodeAnswer(
 
         return {
             correct: true,
-            attemptsLeft: 0,
+            attemptsLeft: Math.max(0, 3 - attempt.attemptCount),
             data: {
                 output: judgeResult.stdout ?? null,
                 error: judgeResult.stderr ?? judgeResult.compile_output ?? null
@@ -142,25 +153,22 @@ export async function submitBlindCodeAnswer(
         };
     }
 
-    // Atomic: insert wrong submission + decrement attempts
-    const result = await submitAndDecrementAttemptRepo(
-        teamId, roundId, answer, evaluation
-    );
+    await insertSubmissionRepo(teamId, roundId, answer, false, evaluation);
 
-    if (!result) {
-        throw new Error("MAX_ATTEMPTS_REACHED");
-    }
-
-    const attemptsExhausted = result.attemptCount >= 3;
+    const attemptsExhausted = attempt.attemptCount >= 3;
 
     if (attemptsExhausted) {
+        const failed = await failRoundRepo(teamId, roundId);
+        if (!failed) {
+            throw new Error("ROUND_NOT_ACTIVE");
+        }
         await completeGameResultRepo(teamId, gameId, "FAILED");
         await cleanupActiveRoundsRepo(teamId);
     }
 
     return {
         correct: false,
-        attemptsLeft: Math.max(0, 3 - result.attemptCount),
+        attemptsLeft: Math.max(0, 3 - attempt.attemptCount),
         data: {
             output: judgeResult.stdout ?? null,
             error: judgeResult.stderr ?? judgeResult.compile_output ?? null

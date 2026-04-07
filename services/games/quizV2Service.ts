@@ -1,22 +1,24 @@
 import {
     activateFirstRoundRepo,
+    failAndAdvanceRoundRepo,
     getCurrentRoundRepo,
     getRoundAttemptStatusRepo,
     initializeTeamRoundProgressRepo,
     submitAndAdvanceRoundRepo,
-    submitDecrementAndAdvanceRepo,
     bulkSetMetadataRepo,
     getRoundMetadataRepo,
     getMetadataCoverageRepo,
     updateMetadataRevealedRepo,
     getRevealedNumbersRepo,
     areAllRoundsDoneRepo,
+    submitAndDecrementAttemptRepo,
 } from "@/lib/repositories/teamRoundProgressRepo";
 import { activateGameRepo } from "@/lib/repositories/gameRepo";
 import { getRoundContextRepo, getRoundsForGameRepo } from "@/lib/repositories/roundsRepo";
 import { insertRewardWordRepo, getRewardWordRepo } from "@/lib/repositories/rewardWordsRepo";
 import { getFinalSubmissionRepo, insertFinalSubmissionRepo, updateFinalSubmissionRepo } from "@/lib/repositories/finalSubmissionsRepo";
 import { completeTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
+import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -188,13 +190,9 @@ export async function submitQuizV2Answer(
 
     const maxAttempts = configuration.max_attempts ?? 2;
 
-    // Pre-check: reject if round is not active or attempts exhausted
-    const progress = await getRoundAttemptStatusRepo(teamId, roundId);
-    if (progress.status !== "ACTIVE" || progress.attemptCount >= maxAttempts) {
-        return {
-            status: "FAILED",
-            message: "No attempts remaining for this round.",
-        };
+    const attempt = await submitAndDecrementAttemptRepo(teamId, roundId, maxAttempts);
+    if (!attempt) {
+        throw new Error("MAX_ATTEMPTS_REACHED");
     }
 
     const isCorrect =
@@ -208,7 +206,7 @@ export async function submitQuizV2Answer(
         );
 
         if (!advanced) {
-            return { status: "FAILED", message: "Round already completed." };
+            throw new Error("ROUND_ALREADY_COMPLETED");
         }
 
         // Reveal ASCII number for this round
@@ -233,17 +231,14 @@ export async function submitQuizV2Answer(
         };
     }
 
-    // Wrong answer — decrement and maybe advance (fail-and-advance)
-    const result = await submitDecrementAndAdvanceRepo(
-        teamId, roundId, answer, "Quiz V2 — Incorrect",
-        maxAttempts, roundNumber, gameId
-    );
+    await insertSubmissionRepo(teamId, roundId, answer, false, "Quiz V2 — Incorrect");
 
-    if (!result) {
-        return { status: "FAILED", message: "No attempts remaining." };
-    }
+    if (attempt.attemptCount >= maxAttempts) {
+        const advanced = await failAndAdvanceRoundRepo(teamId, roundId, roundNumber, gameId);
+        if (!advanced) {
+            throw new Error("ROUND_NOT_ACTIVE");
+        }
 
-    if (result.failed) {
         const allDone = await areAllRoundsDoneRepo(teamId, gameId);
 
         if (allDone) {
@@ -262,8 +257,8 @@ export async function submitQuizV2Answer(
 
     return {
         status: "INCORRECT",
-        attemptsUsed: result.attemptCount,
-        attemptsLeft: maxAttempts - result.attemptCount,
+        attemptsUsed: attempt.attemptCount,
+        attemptsLeft: maxAttempts - attempt.attemptCount,
     };
 }
 
