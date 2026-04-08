@@ -228,7 +228,15 @@ export async function getTeamProgressService(teamId: string) {
     try {
         const game = await getTeamActiveGameRepo(teamId);
         state = await resolveTeamGameState(teamId, game.game_id);
-    } catch {
+    } catch (error: any) {
+        if (error?.message !== "NO_ACTIVE_GAME_FOR_TEAM") {
+            console.error("[GameService][getTeamProgressService] Failed to resolve active game state", {
+                teamId,
+                error: error?.message ?? "UNKNOWN_ERROR"
+            });
+            throw error;
+        }
+
         const result = await getTeamLatestGameResultRepo(teamId);
         if (result) {
             state = await resolveTeamGameState(teamId, result.game_id);

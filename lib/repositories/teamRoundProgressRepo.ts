@@ -117,6 +117,13 @@ export async function getActiveOrFailedRoundRepo(teamId: string, gameId: string)
     WHERE trp.team_id = $1
       AND r.game_id = $2
       AND trp.status IN ('ACTIVE', 'FAILED')
+    ORDER BY
+      CASE trp.status
+        WHEN 'ACTIVE' THEN 0
+        WHEN 'FAILED' THEN 1
+        ELSE 2
+      END,
+      r.round_number ASC
     LIMIT 1
   `;
 
@@ -422,11 +429,13 @@ export async function submitAndAdvanceRoundRepo(
       // no next round → this was last round
       await client.query(
         `UPDATE team_game_results
-     SET 
+     SET
+       status = 'COMPLETED',
        completed_at = NOW(),
-       completion_time = NOW() - started_at
+       completion_time = (NOW() - started_at) + make_interval(secs => COALESCE(penalty_seconds, 0))
      WHERE team_id = $1 
-       AND game_id = $2`,
+       AND game_id = $2
+       AND completed_at IS NULL`,
         [teamId, gameId]
       );
     }
@@ -482,7 +491,7 @@ export async function completeGameResultRepo(
      SET
        status = $3,
        completed_at = NOW(),
-       completion_time = EXTRACT(EPOCH FROM (NOW() - started_at)) + COALESCE(penalty_seconds, 0)
+       completion_time = (NOW() - started_at) + make_interval(secs => COALESCE(penalty_seconds, 0))
      WHERE team_id = $1
        AND game_id = $2
        AND completed_at IS NULL

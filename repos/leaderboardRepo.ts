@@ -16,12 +16,6 @@ type TeamGameResultRow = {
     status: string;
 };
 
-type SubmissionRow = {
-    team_id: string;
-    game_id: string;
-    is_correct: boolean;
-};
-
 async function fetchTeams(): Promise<TeamRow[]> {
     const result = await pool.query<TeamRow>(`
         SELECT
@@ -55,38 +49,7 @@ async function fetchTeamGameResults(): Promise<TeamGameResultRow[]> {
     return result.rows;
 }
 
-async function fetchSubmissions(): Promise<SubmissionRow[]> {
-    const result = await pool.query<SubmissionRow>(`
-        SELECT
-            s.team_id,
-            r.game_id,
-            BOOL_OR(s.is_correct) AS is_correct
-        FROM submissions s
-        JOIN rounds r ON r.id = s.round_id
-        GROUP BY s.team_id, r.game_id
-        ORDER BY s.team_id ASC, r.game_id ASC;
-    `);
-
-    return result.rows;
-}
-
-function buildCorrectnessMap(submissions: SubmissionRow[]) {
-    const correctnessMap = new Map<string, boolean>();
-
-    for (const submission of submissions) {
-        correctnessMap.set(
-            `${submission.team_id}:${submission.game_id}`,
-            submission.is_correct
-        );
-    }
-
-    return correctnessMap;
-}
-
-function buildGamesByTeam(
-    teamGameResults: TeamGameResultRow[],
-    correctnessMap: Map<string, boolean>
-) {
+function buildGamesByTeam(teamGameResults: TeamGameResultRow[]) {
     const gamesByTeam = new Map<string, Team["games"]>();
 
     for (const result of teamGameResults) {
@@ -99,7 +62,7 @@ function buildGamesByTeam(
             time: result.time,
             penaltySeconds: result.penalty_seconds,
             status: result.status,
-            isCorrect: correctnessMap.get(`${result.team_id}:${result.game_id}`) ?? false,
+            isCorrect: result.status === "COMPLETED",
         });
 
         gamesByTeam.set(result.team_id, teamGames);
@@ -110,11 +73,9 @@ function buildGamesByTeam(
 
 function toTeams(
     teams: TeamRow[],
-    teamGameResults: TeamGameResultRow[],
-    submissions: SubmissionRow[]
+    teamGameResults: TeamGameResultRow[]
 ): Team[] {
-    const correctnessMap = buildCorrectnessMap(submissions);
-    const gamesByTeam = buildGamesByTeam(teamGameResults, correctnessMap);
+    const gamesByTeam = buildGamesByTeam(teamGameResults);
 
     return teams.map((team) => ({
         teamId: team.team_id,
@@ -124,11 +85,10 @@ function toTeams(
 }
 
 export async function getLeaderboardTeamsRepo(): Promise<Team[]> {
-    const [teams, teamGameResults, submissions] = await Promise.all([
+    const [teams, teamGameResults] = await Promise.all([
         fetchTeams(),
         fetchTeamGameResults(),
-        fetchSubmissions(),
     ]);
 
-    return toTeams(teams, teamGameResults, submissions);
+    return toTeams(teams, teamGameResults);
 }

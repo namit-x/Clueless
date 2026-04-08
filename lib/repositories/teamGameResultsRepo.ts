@@ -59,10 +59,11 @@ export async function completeTeamGameResult(teamId: string, gameId: string) {
         UPDATE team_game_results
         SET
             completed_at = NOW(),
-            completion_time = NOW() - started_at,
+            completion_time = (NOW() - started_at) + make_interval(secs => COALESCE(penalty_seconds, 0)),
             status = 'COMPLETED'
         WHERE team_id = $1
           AND game_id = $2
+          AND completed_at IS NULL
         RETURNING
             id,
             team_id,
