@@ -398,7 +398,7 @@ export default function QuizGame() {
 
         {/* Revealed ASCII Numbers */}
         <section className="qz-revealed-section">
-          <p className="qz-label">REVEALED ASCII NUMBERS</p>
+          <p className="qz-label">USE YOUR SCORE TO FIND THE WORD</p>
           <div className="qz-revealed-numbers">
             {revealedNumbers.map((num, i) => (
               <div
@@ -413,14 +413,6 @@ export default function QuizGame() {
           {revealedNumbers.length === 0 && (
             <p className="qz-hint">No numbers were revealed.</p>
           )}
-        </section>
-
-        {/* Hint */}
-        <section className="qz-hint-section">
-          <p className="qz-hint">
-            Uppercase ASCII codes (65-90) are real letters. Lowercase codes (97-122) are noise.
-            Decode the hidden word from the uppercase letters.
-          </p>
         </section>
 
         {/* Final Answer Input */}
