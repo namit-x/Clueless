@@ -669,3 +669,7 @@ export async function areAllRoundsTerminalRepo(teamId: string, gameId: string): 
   const { done, total } = result.rows[0];
   return parseInt(done) === parseInt(total) && parseInt(total) > 0;
 }
+
+export async function areAllRoundsDoneRepo(teamId: string, gameId: string): Promise<boolean> {
+  return await areAllRoundsTerminalRepo(teamId, gameId);
+}

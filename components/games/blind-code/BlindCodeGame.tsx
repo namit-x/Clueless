@@ -12,7 +12,6 @@ import GameStatusScreen, { FloatingLoadingGhost } from "@/components/games/GameS
 export default function BlindCodeGame() {
   const router = useRouter();
   const [code, setCode] = useState("");
-  const [cursorPosition, setCursorPosition] = useState(0);
   const [lineCount, setLineCount] = useState(10);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -83,7 +82,7 @@ export default function BlindCodeGame() {
     ghostTimeoutRef.current = setTimeout(() => setGhostTyping(false), 1200);
   }
 
-  const fetchCurrentRoundRef = useRef<() => void>(() => {});
+  const fetchCurrentRoundRef = useRef<() => void>(() => { });
   const lastLocalSubmitRef = useRef(0);
   const maskedCode = code.replace(/[^\n]/g, "_");
 
@@ -148,7 +147,6 @@ export default function BlindCodeGame() {
       if (json.correct) {
         setResult("correct");
         setCode("");
-        setCursorPosition(0);
         setLineCount(10);
 
         // Re-fetch to load the next round (resolver handles terminal states)
@@ -206,181 +204,48 @@ export default function BlindCodeGame() {
     };
   }, []);
 
-  // Keep the textarea caret aligned with our virtual cursor state.
-  useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-
-    const nextCursorPosition = Math.min(cursorPosition, code.length);
-    if (nextCursorPosition !== cursorPosition) {
-      setCursorPosition(nextCursorPosition);
-      return;
-    }
-
-    ta.selectionStart = nextCursorPosition;
-    ta.selectionEnd = nextCursorPosition;
-  }, [code, cursorPosition]);
-
   // Recalculate line count whenever code changes
   useEffect(() => {
     const lines = code.split("\n").length;
     setLineCount(Math.max(10, lines + 2));
   }, [code]);
 
-  // No-op: all input is handled in onKeyDown; onChange is required by React for controlled inputs
-  const handleChange = () => { };
-
-  const insertAtCursor = (text: string) => {
-    setCode(prev => `${prev.slice(0, cursorPosition)}${text}${prev.slice(cursorPosition)}`);
-    setCursorPosition(prev => prev + text.length);
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCode(e.target.value);
     setResult(null);
   };
 
-  const moveCursorVertically = (direction: -1 | 1) => {
-    const lineStarts = [0];
-    for (let i = 0; i < code.length; i++) {
-      if (code[i] === "\n") {
-        lineStarts.push(i + 1);
-      }
-    }
-
-    let currentLine = 0;
-    for (let i = 0; i < lineStarts.length; i++) {
-      if (lineStarts[i] <= cursorPosition) {
-        currentLine = i;
-      } else {
-        break;
-      }
-    }
-
-    const targetLine = currentLine + direction;
-    if (targetLine < 0 || targetLine >= lineStarts.length) {
-      return cursorPosition;
-    }
-
-    const column = cursorPosition - lineStarts[currentLine];
-    const targetLineStart = lineStarts[targetLine];
-    const targetLineEnd =
-      targetLine + 1 < lineStarts.length ? lineStarts[targetLine + 1] - 1 : code.length;
-    const targetLineLength = targetLineEnd - targetLineStart;
-
-    return targetLineStart + Math.min(column, targetLineLength);
-  };
-
-  const syncCursorFromTextarea = () => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    setCursorPosition(ta.selectionStart ?? 0);
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Ctrl + Enter --> Run & Submit (no ghost trigger)
+    // Ctrl/Cmd + Enter → submit
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();
       return;
     }
 
-    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        setCursorPosition(prev => Math.max(0, prev - 1));
-        playTypingSound(e.key);
-        return;
-      }
-
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        setCursorPosition(prev => Math.min(code.length, prev + 1));
-        playTypingSound(e.key);
-        return;
-      }
-
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setCursorPosition(moveCursorVertically(-1));
-        playTypingSound(e.key);
-        return;
-      }
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setCursorPosition(moveCursorVertically(1));
-        playTypingSound(e.key);
-        return;
-      }
-
-      if (e.key === "Home") {
-        e.preventDefault();
-        const lineStart = code.lastIndexOf("\n", Math.max(cursorPosition - 1, 0)) + 1;
-        setCursorPosition(lineStart);
-        return;
-      }
-
-      if (e.key === "End") {
-        e.preventDefault();
-        const nextNewline = code.indexOf("\n", cursorPosition);
-        setCursorPosition(nextNewline === -1 ? code.length : nextNewline);
-        return;
-      }
-    }
-
-    if (e.key === "CapsLock" || e.key === "Shift") {
-      playTypingSound(e.key);
-      return;
-    }
-
-    // Tab --> insert 4 spaces
+    // Tab → insert 4 spaces at current selection
     if (e.key === "Tab") {
       e.preventDefault();
-      insertAtCursor("    ");
+      const ta = textareaRef.current!;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const newCode = code.slice(0, start) + "    " + code.slice(end);
+      setCode(newCode);
+      requestAnimationFrame(() => {
+        ta.selectionStart = ta.selectionEnd = start + 4;
+      });
       playTypingSound(e.key);
       triggerGhostTyping();
       return;
     }
 
-    // Enter --> insert newline
-    if (e.key === "Enter") {
-      e.preventDefault();
-      insertAtCursor("\n");
+    // Typing sounds — let browser handle all other keys natively
+    if (e.key === "CapsLock" || e.key === "Shift" || e.key.startsWith("Arrow")) {
+      playTypingSound(e.key);
+    } else if (["Backspace", "Delete", "Enter"].includes(e.key)) {
       playTypingSound(e.key);
       triggerGhostTyping();
-      return;
-    }
-
-    // Backspace --> remove previous character
-    if (e.key === "Backspace") {
-      e.preventDefault();
-      if (cursorPosition === 0) {
-        playTypingSound(e.key);
-        return;
-      }
-      setCode(prev => `${prev.slice(0, cursorPosition - 1)}${prev.slice(cursorPosition)}`);
-      setCursorPosition(prev => Math.max(0, prev - 1));
-      setResult(null);
-      playTypingSound(e.key);
-      triggerGhostTyping();
-      return;
-    }
-
-    // Delete --> remove current character
-    if (e.key === "Delete") {
-      e.preventDefault();
-      if (cursorPosition >= code.length) {
-        playTypingSound(e.key);
-        return;
-      }
-      setCode(prev => `${prev.slice(0, cursorPosition)}${prev.slice(cursorPosition + 1)}`);
-      setResult(null);
-      playTypingSound(e.key);
-      triggerGhostTyping();
-      return;
-    }
-
-    // Printable character (exclude ctrl/meta combos like Ctrl+A, Ctrl+C)
-    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-      e.preventDefault();
-      insertAtCursor(e.key);
+    } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
       playTypingSound(e.key);
       triggerGhostTyping();
     }
@@ -466,7 +331,8 @@ export default function BlindCodeGame() {
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 m-0 overflow-hidden whitespace-pre-wrap break-words p-4 text-[13px] leading-[21px] text-muted-foreground"
               >
-                {maskedCode}
+                {/* {maskedCode} */}
+                {code}
               </pre>
             )}
             <textarea
@@ -474,10 +340,8 @@ export default function BlindCodeGame() {
               value={code}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
-              onClick={syncCursorFromTextarea}
-              onFocus={() => { syncCursorFromTextarea(); setIsFocused(true); }}
+              onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              onSelect={syncCursorFromTextarea}
               spellCheck={false}
               disabled={submitting}
               placeholder={`// write your Java code here\npublic class Main {\n    public static void main(String[] args) {\n        // your code\n    }\n}`}
@@ -534,10 +398,10 @@ export default function BlindCodeGame() {
             onClick={handleSubmit}
             disabled={!code.trim() || submitting}
             className="relative group flex items-center gap-2 px-4 py-1.5 text-xs font-mono rounded-md border transition-all duration-200
-    bg-success/5 border-success/20 text-success
-    hover:bg-success/10 hover:border-success/40 hover:shadow-[0_0_12px_rgba(var(--color-success),0.15)]
-    active:scale-[0.97]
-    disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:bg-success/5 disabled:hover:border-success/20"
+      bg-success/5 border-success/20 text-success
+      hover:bg-success/10 hover:border-success/40 hover:shadow-[0_0_12px_rgba(var(--color-success),0.15)]
+      active:scale-[0.97]
+      disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:bg-success/5 disabled:hover:border-success/20"
           >
             {/* left accent bar */}
             <span className="w-[2px] h-3 rounded-full bg-success/60 group-hover:bg-success transition-colors duration-200" />
