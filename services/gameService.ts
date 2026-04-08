@@ -178,8 +178,8 @@ export async function getCurrentRoundService(teamId: string) {
 
     const state = await resolveTeamGameState(teamId, gameId);
 
-    // Terminal states — no round data needed
-    if (state.teamState !== "IN_PROGRESS") {
+    // Only fetch round data when the resolver says an active round is playable.
+    if (state.teamState !== "IN_PROGRESS" || state.messageCode !== "ROUND_ACTIVE") {
         return state;
     }
 

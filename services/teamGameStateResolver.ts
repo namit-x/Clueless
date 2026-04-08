@@ -1,5 +1,10 @@
 import { getTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
-import { getCurrentRoundRepo, getActiveOrFailedRoundRepo, areAllRoundsDoneRepo } from "@/lib/repositories/teamRoundProgressRepo";
+import {
+  getCurrentRoundRepo,
+  getActiveOrFailedRoundRepo,
+  areAllRoundsCompletedRepo,
+  areAllRoundsTerminalRepo
+} from "@/lib/repositories/teamRoundProgressRepo";
 import type { ResolvedTeamState } from "@/lib/types/teamGameState";
 
 /**
@@ -31,13 +36,19 @@ export async function resolveTeamGameState(
 
   // 2. No active round → deeper checks
   if (!activeRound) {
-    const [failedRound, allDone] = await Promise.all([
+    const [failedRound, allCompleted, allTerminal] = await Promise.all([
       getActiveOrFailedRoundRepo(teamId, gameId),
-      areAllRoundsDoneRepo(teamId, gameId),
+      areAllRoundsCompletedRepo(teamId, gameId),
+      areAllRoundsTerminalRepo(teamId, gameId),
     ]);
 
+    // All rounds completed successfully
+    if (allCompleted) {
+      return { teamState: "COMPLETED", messageCode: "GAME_COMPLETED" };
+    }
+
     // FAILED: stuck on a failed round with locked rounds remaining
-    if (failedRound?.status === "FAILED" && !allDone) {
+    if (failedRound?.status === "FAILED" && !allTerminal) {
       return { teamState: "FAILED", messageCode: "GAME_FAILED" };
     }
 
@@ -46,9 +57,9 @@ export async function resolveTeamGameState(
       return { teamState: "TIME_OVER", messageCode: "GAME_TIME_OVER" };
     }
 
-    // All rounds processed (e.g. Quiz V2 awaiting final submission)
-    if (allDone) {
-      return { teamState: "IN_PROGRESS", messageCode: "ROUND_COMPLETED" };
+    // All rounds terminal, but at least one failed
+    if (allTerminal) {
+      return { teamState: "FAILED", messageCode: "GAME_FAILED" };
     }
 
     // No rounds active, not failed, not done → game not yet started for team

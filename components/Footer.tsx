@@ -16,7 +16,6 @@ const Footer = () => (
             {FEATURES.LOGIN && (
               <a href="/login" className="hover:text-primary transition-colors">Login</a>
             )}
-<<<<<<< HEAD
             <a
               href="https://chat.whatsapp.com/DszaCFRNBLRERu4PBf3pS9?mode=gi_t"
               target="_blank"
@@ -25,10 +24,6 @@ const Footer = () => (
             >
               Join WhatsApp Group
             </a>
-=======
-            <a href="/#rules" className="hover:text-primary transition-colors">Rules</a>
-            <a href="/#faq" className="hover:text-primary transition-colors">FAQ</a>
->>>>>>> dev
           </div>
         </div>
 

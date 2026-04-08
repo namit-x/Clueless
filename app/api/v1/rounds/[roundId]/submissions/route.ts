@@ -28,8 +28,8 @@ export async function POST(
         );
 
         return NextResponse.json({
-            success: true,
-            ...result
+            ...result,
+            success: result?.correct === true
         });
 
     } catch (err: any) {

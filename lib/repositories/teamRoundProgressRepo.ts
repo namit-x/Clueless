@@ -642,7 +642,21 @@ export async function getRevealedNumbersRepo(teamId: string, gameId: string) {
 /**
  * Check whether every round for a team in a game is COMPLETED or FAILED.
  */
-export async function areAllRoundsDoneRepo(teamId: string, gameId: string): Promise<boolean> {
+export async function areAllRoundsCompletedRepo(teamId: string, gameId: string): Promise<boolean> {
+  const result = await pool.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE trp.status = 'COMPLETED') AS completed,
+       COUNT(*) AS total
+     FROM team_round_progress trp
+     JOIN rounds r ON trp.round_id = r.id
+     WHERE trp.team_id = $1 AND r.game_id = $2`,
+    [teamId, gameId]
+  );
+  const { completed, total } = result.rows[0];
+  return parseInt(completed) === parseInt(total) && parseInt(total) > 0;
+}
+
+export async function areAllRoundsTerminalRepo(teamId: string, gameId: string): Promise<boolean> {
   const result = await pool.query(
     `SELECT
        COUNT(*) FILTER (WHERE trp.status IN ('COMPLETED', 'FAILED')) AS done,
