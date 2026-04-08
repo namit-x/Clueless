@@ -109,7 +109,7 @@ const Login = () => {
           e.preventDefault();
           handleSubmit();
         }} className="space-y-6">
-          <h2 className="font-display text-xl font-bold tracking-wide text-center">Team Login</h2>
+          <h2 className="font-display text-xl font-bold tracking-wide text-center">Login</h2>
           {loginError && (
             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-sm text-destructive text-center">
               {loginError}
