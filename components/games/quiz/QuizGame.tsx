@@ -375,6 +375,9 @@ export default function QuizGame() {
 
   if (loading) return <FloatingLoadingGhost />;
   if (isWaiting) return <GameStatusScreen variant="waiting" gameName="Quiz" />;
+  if (isFinished) return <GameStatusScreen variant="finished" gameName="Quiz" />;
+  if (isFailed) return <GameStatusScreen variant="failed" gameName="Quiz" />;
+  if (isGameEnded) return <GameStatusScreen variant="ended" gameName="Quiz" />;
 
   // ── Final Phase UI ──────────────────────────────────────────────────────────
 
@@ -456,10 +459,6 @@ export default function QuizGame() {
       </div>
     );
   }
-
-  if (isFinished) return <GameStatusScreen variant="finished" gameName="Quiz" />;
-  if (isFailed) return <GameStatusScreen variant="failed" gameName="Quiz" />;
-  if (isGameEnded) return <GameStatusScreen variant="ended" gameName="Quiz" />;
 
   // ── Main Game UI (Active Round) ─────────────────────────────────────────────
 

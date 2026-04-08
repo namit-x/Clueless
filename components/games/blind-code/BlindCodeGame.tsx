@@ -318,6 +318,12 @@ export default function BlindCodeGame() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Block Ctrl/Cmd + C (copy) and Ctrl/Cmd + P (print)
+    if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "C" || e.key === "p" || e.key === "P")) {
+      e.preventDefault();
+      return;
+    }
+
     // Ctrl/Cmd + Enter → submit
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
