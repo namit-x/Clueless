@@ -8,12 +8,16 @@ import { supabase } from "@/lib/supabase/client";
 const POLL_INTERVAL_MS = 15_000;
 
 /**
-
-* Subscribes to Supabase Realtime on the sessions table.
-* On any change, verifies the current session still exists in DB.
-* Falls back to periodic polling in case realtime events are missed.
-* Forces logout if session was replaced or deleted.
-  */
+ * Monitors the current session for remote invalidation.
+ *
+ * Strategy:
+ * - Calls /api/auth/session (uses the cookie, checks the DB) to verify the session.
+ * - Polls every 15 seconds as a fallback.
+ * - Also subscribes to Supabase Realtime on the sessions table for instant notification.
+ *
+ * Previous bug: queried Supabase directly with the anon key, which is blocked by RLS,
+ * causing .maybeSingle() to return null → forced logout on every poll.
+ */
 export function useSessionRealtime() {
     const dispatch = useAppDispatch();
     const user = useAppSelector((state) => state.auth.user);
@@ -23,96 +27,78 @@ export function useSessionRealtime() {
     useEffect(() => {
         if (!user?.id || !user?.sessionId) return;
 
-        
-   const ownerType = user.role;
-   const ownerId = user.id;
-   const currentSessionId = user.sessionId;
+        const ownerType = user.role;
+        const ownerId = user.id;
+        const currentSessionId = user.sessionId;
 
-   let isActive = true;
+        let isActive = true;
 
-   async function verifySession() {
-       if (!isActive || hasLoggedOutRef.current) return;
+        async function verifySession() {
+            if (!isActive || hasLoggedOutRef.current) return;
 
-       try {
-           const { data, error } = await supabase
-               .from("sessions")
-               .select("session_id")
-               .eq("owner_type", ownerType)
-               .eq("owner_id", ownerId)
-               .maybeSingle();
+            try {
+                const res = await fetch("/api/auth/session", { credentials: "include" });
+                const data = await res.json();
 
-           if (error) {
-               console.error("[Realtime] Session verification query failed:", error);
-               return;
-           }
+                if (!data.valid || data.sessionId !== currentSessionId) {
+                    if (hasLoggedOutRef.current) return;
+                    hasLoggedOutRef.current = true;
 
-           if (!data || data.session_id !== currentSessionId) {
-               if (hasLoggedOutRef.current) return;
-               hasLoggedOutRef.current = true;
+                    console.log("[Session] Session replaced or expired, forcing logout");
+                    alert("Your session has ended. You may have logged in from another device.");
+                    dispatch(forceLogout());
+                }
+            } catch (err) {
+                // Network error — don't log out, just skip this check
+                console.error("[Session] Verification fetch failed:", err);
+            }
+        }
 
-               console.log("[Realtime] Session invalid, forcing logout");
-               alert(
-                   "Your team member have logged into another device. You have been logged out."
-               );
-               dispatch(forceLogout());
-           }
-       } catch (err) {
-           console.error("[Realtime] Session verification error:", err);
-       }
-   }
+        // Polling fallback
+        const interval = setInterval(verifySession, POLL_INTERVAL_MS);
 
-   // Polling fallback
-   const interval = setInterval(verifySession, POLL_INTERVAL_MS);
+        // Realtime: fires immediately when another login replaces this session
+        const channel = supabase
+            .channel(`session:${ownerType}:${ownerId}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "INSERT",
+                    schema: "public",
+                    table: "sessions",
+                    filter: `owner_id=eq.${ownerId}`,
+                },
+                (payload) => {
+                    if (payload.new.owner_type !== ownerType) return;
+                    verifySession();
+                }
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "sessions",
+                    filter: `owner_id=eq.${ownerId}`,
+                },
+                (payload) => {
+                    if (payload.new.owner_type !== ownerType) return;
+                    verifySession();
+                }
+            )
+            .subscribe((status) => {
+                if (status === "SUBSCRIBED") {
+                    console.log("[Session] Subscribed to realtime session changes");
+                } else if (status === "CHANNEL_ERROR") {
+                    console.error("[Session] Realtime channel error");
+                }
+            });
 
-   const channel = supabase
-       .channel(`session:${ ownerType }:${ ownerId } `)
-       .on(
-           "postgres_changes",
-           {
-               event: "INSERT",
-               schema: "public",
-               table: "sessions",
-               filter: `owner_id=eq.${ownerId}`,
-           },
-           (payload) => {
-               const row = payload.new;
-
-               // 🔥 critical: prevent cross-owner leakage
-               if (row.owner_type !== ownerType) return;
-
-               verifySession();
-           }
-       )
-       .on(
-           "postgres_changes",
-           {
-               event: "UPDATE",
-               schema: "public",
-               table: "sessions",
-               filter: `owner_id=eq.${ownerId}`,
-           },
-           (payload) => {
-               const row = payload.new;
-
-               // 🔥 critical: prevent cross-owner leakage
-               if (row.owner_type !== ownerType) return;
-
-               verifySession();
-           }
-       )
-       .subscribe((status) => {
-           if (status === "SUBSCRIBED") {
-               console.log("[Realtime] Subscribed to session changes");
-           } else if (status === "CHANNEL_ERROR") {
-               console.error("[Realtime] Session channel error");
-           }
-       });
-
-   return () => {
-       isActive = false;
-       clearInterval(interval);
-       supabase.removeChannel(channel);
-   };
+        return () => {
+            isActive = false;
+            clearInterval(interval);
+            supabase.removeChannel(channel);
+        };
 
     }, [user?.id, user?.sessionId, user?.role, dispatch]);
 }

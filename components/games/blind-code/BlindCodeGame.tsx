@@ -439,8 +439,8 @@ export default function BlindCodeGame() {
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 m-0 overflow-hidden whitespace-pre-wrap break-words p-4 text-[13px] leading-[21px] text-muted-foreground"
               >
-                {/* {maskedCode} */}
-                {code}
+                {maskedCode}
+                {/* {code} */}
               </pre>
             )}
             <textarea
