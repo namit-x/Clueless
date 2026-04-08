@@ -2,12 +2,10 @@ import {
     adjustPenaltyWithAuditRepo,
     getPenaltyHistoryRepo,
     type PenaltyOperation,
-} from "@/lib/repositories/teamGameResultsRepo";
-
-const MAX_PENALTY_SECONDS = 86400;
+} from "@/repositories/adminPenaltyRepo";
 
 function assertValidOperation(operation: unknown): asserts operation is PenaltyOperation {
-    if (operation !== "SET" && operation !== "INCREMENT") {
+    if (operation !== "INCREMENT" && operation !== "DECREMENT") {
         throw new Error("INVALID_OPERATION");
     }
 }
@@ -17,7 +15,7 @@ function assertValidValue(value: unknown): asserts value is number {
         throw new Error("INVALID_PENALTY_VALUE");
     }
 
-    if (value < 0) {
+    if (value <= 0) {
         throw new Error("INVALID_PENALTY_VALUE");
     }
 }
@@ -39,14 +37,14 @@ export async function adjustPenaltyService(
     assertValidValue(value);
     assertValidReason(reason);
 
-    const result = await adjustPenaltyWithAuditRepo(
+    const delta = operation === "INCREMENT" ? value : -value;
+
+    const result = await adjustPenaltyWithAuditRepo({
         teamGameResultId,
-        operation,
-        value,
+        delta,
         adminId,
-        reason.trim(),
-        MAX_PENALTY_SECONDS
-    );
+        reason: reason.trim(),
+    });
 
     return result;
 }
