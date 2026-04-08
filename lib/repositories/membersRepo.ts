@@ -1,5 +1,13 @@
 import { pool } from "@/lib/db";
 
+export async function getLeaderEmailForTeamRepo(teamId: string): Promise<string | null> {
+    const result = await pool.query(
+        `SELECT email FROM members WHERE team_id = $1 AND is_leader = true LIMIT 1`,
+        [teamId]
+    );
+    return result.rows[0]?.email ?? null;
+}
+
 export async function getAllMembersWithTeamsRepo() {
     const query = `
     SELECT

@@ -1,5 +1,5 @@
-import { supabaseAdmin } from "@/lib/supabase/server";
-import { getActiveGameRepo, getTeamActiveGameRepo, getAllGamesRepo, getGameByIdRepo, endGameRepo, restartGameRepo } from "@/lib/repositories/gameRepo";
+import { createGameRepo, getActiveGameRepo, getTeamActiveGameRepo, getAllGamesRepo, getGameByIdRepo, endGameRepo, restartGameRepo } from "@/lib/repositories/gameRepo";
+import { isTeamApprovedRepo } from "@/lib/repositories/teamsRepo";
 import { getTeamProgressRepo } from "@/lib/repositories/teamProgressRepo";
 import { resolveTeamGameState } from "./teamGameStateResolver";
 import { getTeamLatestGameResultRepo } from "@/lib/repositories/teamGameResultsRepo";
@@ -36,18 +36,7 @@ const gameHandlers: Record<string, (gameId: string) => Promise<any>> = {
 
 export async function createGame(data: any) {
     const { id, ...gameData } = data;
-    const { data: game, error } = await supabaseAdmin
-        .from("games")
-        .insert([gameData])
-        .select()
-        .single();
-
-    if (error) {
-        console.log(error.message);
-        throw new Error(error.message);
-    }
-
-    return game;
+    return await createGameRepo(gameData);
 }
 
 export async function getGamesForTeam() {
@@ -178,8 +167,17 @@ export async function getCurrentRoundService(teamId: string) {
 
     const state = await resolveTeamGameState(teamId, gameId);
 
-    // Only fetch round data when the resolver says an active round is playable.
-    if (state.teamState !== "IN_PROGRESS" || state.messageCode !== "ROUND_ACTIVE") {
+    const isQuizV2FinalPhase =
+        gameName === "Quiz V2" &&
+        state.teamState === "IN_PROGRESS" &&
+        state.messageCode === "ROUND_COMPLETED";
+
+    // Only fetch round data when the resolver says an active round is playable,
+    // or when Quiz V2 has transitioned into its final submission phase.
+    if (
+        state.teamState !== "IN_PROGRESS" ||
+        (state.messageCode !== "ROUND_ACTIVE" && !isQuizV2FinalPhase)
+    ) {
         return state;
     }
 
@@ -198,10 +196,19 @@ export async function getCurrentRoundService(teamId: string) {
 
 export async function startTeamGameService(teamId: string, gameId: string) {
 
+    const approved = await isTeamApprovedRepo(teamId);
+    if (!approved) {
+        throw new Error("TEAM_NOT_APPROVED");
+    }
+
     const game = await getGameByIdRepo(gameId);
 
     if (!game) {
         throw new Error("GAME_NOT_FOUND");
+    }
+
+    if (!game.is_active) {
+        throw new Error("GAME_NOT_ACTIVE");
     }
 
     // START TIMER FOR TEAM

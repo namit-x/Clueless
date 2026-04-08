@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adjustPenaltyController } from "@/controllers/adminPenaltyController";
 import { verifyToken } from "@/middleware/verifyToken";
 import { validateAdmin } from "@/middleware/validateAdmin";
+import { isValidUUID } from "@/lib/validateUUID";
 
 function unwrapErrorMessage(error: unknown) {
     if (!(error instanceof Error)) {
@@ -25,6 +26,8 @@ function getStatusCode(message: string) {
         case "INVALID_PENALTY_VALUE":
         case "REASON_REQUIRED":
         case "PENALTY_OUT_OF_RANGE":
+        case "PENALTY_CAP_EXCEEDED":
+        case "INVALID_ID":
             return 400;
         default:
             return 500;
@@ -37,6 +40,11 @@ export async function PATCH(
 ) {
     try {
         const { id } = await params;
+
+        if (!isValidUUID(id)) {
+            return NextResponse.json({ success: false, error: "INVALID_ID" }, { status: 400 });
+        }
+
         const user = await verifyToken(req);
 
         validateAdmin(user);

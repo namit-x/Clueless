@@ -2,13 +2,6 @@ import { pool } from "@/lib/db";
 
 type OwnerType = "team" | "admin";
 
-// In-memory cache for validated sessions (5 second TTL)
-interface CachedSession {
-    data: SessionRow;
-    expiresAt: number;
-}
-const sessionCache = new Map<string, CachedSession>();
-
 export interface SessionIdentity {
     ownerType: OwnerType;
     ownerId: string;
@@ -83,15 +76,6 @@ export async function createOrReplaceSessionRepo(
 export async function validateSessionRepo(
     params: ValidateSessionParams
 ): Promise<SessionRow | null> {
-    // Check cache first (5 second TTL)
-    const cacheKey = `${params.ownerType}:${params.ownerId}:${params.sessionId}`;
-    const cached = sessionCache.get(cacheKey);
-
-    if (cached && cached.expiresAt > Date.now()) {
-        return cached.data;
-    }
-
-    // Cache miss - query database
     const result = await pool.query<SessionRow>(
         `
     SELECT *
@@ -99,6 +83,7 @@ export async function validateSessionRepo(
     WHERE owner_type = $1
     AND owner_id = $2
     AND session_id = $3
+    AND expires_at > NOW()
     LIMIT 1
     `,
         [params.ownerType, params.ownerId, params.sessionId]
@@ -108,15 +93,7 @@ export async function validateSessionRepo(
         return null;
     }
 
-    const session = result.rows[0];
-
-    // Cache the validated session for 5 seconds
-    sessionCache.set(cacheKey, {
-        data: session,
-        expiresAt: Date.now() + 5000
-    });
-
-    return session;
+    return result.rows[0];
 }
 
 export async function revokeSessionRepo(

@@ -71,6 +71,20 @@ export async function middleware(req: NextRequest) {
                 );
             }
         }
+
+        // CSRF: reject mutating requests whose Origin doesn't match this host
+        const method = req.method;
+        if (method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE") {
+            const origin = req.headers.get("origin");
+            if (origin) {
+                const host = req.headers.get("host");
+                const originHost = new URL(origin).host;
+                if (host && originHost !== host) {
+                    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+                }
+            }
+        }
+
         return NextResponse.next();
     }
 

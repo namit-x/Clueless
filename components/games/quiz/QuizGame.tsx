@@ -1,17 +1,26 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
 import { getGameScreen } from "@/lib/gameMessages";
 import type { MessageCode } from "@/lib/types/teamGameState";
 import GameStatusScreen, { FloatingLoadingGhost } from "@/components/games/GameStatusScreen";
+import { useAppSelector } from "@/store/hooks";
+import {
+  buildMeaningfulTeamRoundState,
+  isMeaningfulTeamRoundStateEqual,
+  logRealtimeDecision,
+  shouldProcessCurrentTeamUpdateEvent,
+  shouldProcessGameUpdateEvent,
+  shouldProcessTeamRoundProgressEvent,
+} from "@/lib/teamRoundRealtime";
 
 export default function QuizGame() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const gameId = searchParams.get("gameId");
+  const teamId = useAppSelector((state) => state.auth.user?.id ?? null);
 
   // Round data
   const [currentRound, setCurrentRound] = useState<{ id: string; number: number } | null>(null);
@@ -26,6 +35,7 @@ export default function QuizGame() {
   const [submitting, setSubmitting] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
   const [isGameEnded, setIsGameEnded] = useState(false);
   const [isFinalPhase, setIsFinalPhase] = useState(false);
 
@@ -74,19 +84,33 @@ export default function QuizGame() {
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFetchingRef = useRef(false);
   const debounceFetchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAppliedMeaningfulStateRef = useRef<ReturnType<typeof buildMeaningfulTeamRoundState> | null>(null);
 
   async function fetchCurrentRound() {
     // Prevent concurrent requests
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
+    const shouldShowLoading = lastAppliedMeaningfulStateRef.current === null;
     try {
-      setLoading(true);
+      if (shouldShowLoading) setLoading(true);
 
       const res = await fetch("/api/v1/games/current/round", {
         credentials: "include",
       });
       const json = res.ok ? await res.json() : null;
       console.log("Quiz V2 - Fetch Round:", json);
+
+      const nextMeaningfulState = buildMeaningfulTeamRoundState(json);
+      if (
+        isMeaningfulTeamRoundStateEqual(
+          lastAppliedMeaningfulStateRef.current,
+          nextMeaningfulState
+        )
+      ) {
+        return;
+      }
+
+      lastAppliedMeaningfulStateRef.current = nextMeaningfulState;
 
       const screen = getGameScreen(json?.messageCode as MessageCode | undefined);
 
@@ -123,7 +147,7 @@ export default function QuizGame() {
     } catch (err) {
       console.error("Round fetch error", err);
     } finally {
-      setLoading(false);
+      if (shouldShowLoading) setLoading(false);
       isFetchingRef.current = false;
     }
   }
@@ -162,6 +186,7 @@ export default function QuizGame() {
         if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
         transitionTimeoutRef.current = setTimeout(() => {
           setResult(null);
+          fetchCurrentRoundRef.current();
         }, 1200);
         return;
       }
@@ -186,6 +211,7 @@ export default function QuizGame() {
         if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
         transitionTimeoutRef.current = setTimeout(() => {
           setResult(null);
+          fetchCurrentRoundRef.current();
         }, 1800);
         return;
       }
@@ -238,7 +264,7 @@ export default function QuizGame() {
         playFail();
 
         if (json.gameCompleted || json.attemptsLeft === 0) {
-          setTimeout(() => setIsFinished(true), 2000);
+          setTimeout(() => setIsFailed(true), 2000);
         }
         return;
       }
@@ -246,7 +272,7 @@ export default function QuizGame() {
       if (json.status === "ATTEMPTS_EXHAUSTED") {
         setFinalAttemptsLeft(0);
         setFinalResult("incorrect");
-        setTimeout(() => setIsFinished(true), 2000);
+        setTimeout(() => setIsFailed(true), 2000);
       }
     } catch (err) {
       console.error("Final submit error", err);
@@ -259,24 +285,76 @@ export default function QuizGame() {
 
   // Supabase Realtime subscription
   useEffect(() => {
+    lastAppliedMeaningfulStateRef.current = null;
     fetchCurrentRoundRef.current();
+
+    const teamRoundProgressConfig = {
+      event: "UPDATE" as const,
+      schema: "public",
+      table: "team_round_progress",
+      ...(teamId ? { filter: `team_id=eq.${teamId}` } : {}),
+    };
+    const teamsSubscriptionConfig = {
+      event: "UPDATE" as const,
+      schema: "public",
+      table: "teams",
+      ...(teamId ? { filter: `team_id=eq.${teamId}` } : {}),
+    };
 
     const channel = supabase
       .channel("realtime:games:quiz-v2")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games" },
-        () => { debouncedFetchCurrentRound(); }
+        (payload) => {
+          const shouldFetch = shouldProcessGameUpdateEvent(payload);
+          logRealtimeDecision({
+            table: "games",
+            currentTeamId: teamId,
+            shouldFetch,
+            reason: shouldFetch ? "game status changed" : "ignored unchanged game update",
+          });
+
+          if (!shouldFetch) return;
+          debouncedFetchCurrentRound();
+        }
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "teams" },
-        () => { debouncedFetchCurrentRound(); }
+        teamsSubscriptionConfig,
+        (payload) => {
+          const eventTeamId = payload.new.team_id ?? payload.old.team_id ?? null;
+          const shouldFetch = shouldProcessCurrentTeamUpdateEvent(payload, teamId);
+          logRealtimeDecision({
+            table: "teams",
+            currentTeamId: teamId,
+            eventTeamId,
+            shouldFetch,
+            reason: shouldFetch ? "current team approval changed" : "ignored other team or unchanged team update",
+          });
+
+          if (!shouldFetch) return;
+          debouncedFetchCurrentRound();
+        }
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "team_round_progress" },
-        () => { debouncedFetchCurrentRound(); }
+        teamRoundProgressConfig,
+        (payload) => {
+          const eventTeamId = payload.new.team_id ?? payload.old.team_id ?? null;
+          const shouldFetch = shouldProcessTeamRoundProgressEvent(payload, teamId);
+          logRealtimeDecision({
+            table: "team_round_progress",
+            currentTeamId: teamId,
+            eventTeamId,
+            shouldFetch,
+            reason: shouldFetch ? "meaningful team round change" : "ignored other team or non-meaningful round update",
+          });
+
+          if (!shouldFetch) return;
+
+          debouncedFetchCurrentRound();
+        }
       )
       .subscribe();
 
@@ -284,7 +362,7 @@ export default function QuizGame() {
       supabase.removeChannel(channel);
       if (debounceFetchRef.current) clearTimeout(debounceFetchRef.current);
     };
-  }, []);
+  }, [teamId]);
 
   useEffect(() => {
     return () => {
@@ -297,8 +375,6 @@ export default function QuizGame() {
 
   if (loading) return <FloatingLoadingGhost />;
   if (isWaiting) return <GameStatusScreen variant="waiting" gameName="Quiz" />;
-  if (isFinished) return <GameStatusScreen variant="finished" gameName="Quiz" />;
-  if (isGameEnded) return <GameStatusScreen variant="ended" gameName="Quiz" />;
 
   // ── Final Phase UI ──────────────────────────────────────────────────────────
 
@@ -380,6 +456,10 @@ export default function QuizGame() {
       </div>
     );
   }
+
+  if (isFinished) return <GameStatusScreen variant="finished" gameName="Quiz" />;
+  if (isFailed) return <GameStatusScreen variant="failed" gameName="Quiz" />;
+  if (isGameEnded) return <GameStatusScreen variant="ended" gameName="Quiz" />;
 
   // ── Main Game UI (Active Round) ─────────────────────────────────────────────
 

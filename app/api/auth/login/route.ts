@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { supabaseAdmin } from "@/lib/supabase/server";
 import { createSessionToken } from "@/lib/auth";
 import { createSessionController } from "@/controllers/sessionController";
 import { getTeamForLoginRepo } from "@/lib/repositories/teamsRepo";
+import { getLeaderEmailForTeamRepo } from "@/lib/repositories/membersRepo";
+import { rateLimit } from "@/lib/rateLimit";
 
 const loginSchema = z.object({
   teamName: z.string().trim().min(1),
@@ -36,6 +37,18 @@ function getUserAgent(req: NextRequest): string | undefined {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const { allowed, retryAfterMs } = rateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) },
+        }
+      );
+    }
+
     const body = await req.json();
     const { teamName, password } = loginSchema.parse(body);
 
@@ -100,12 +113,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { data: ownerData, error: ownerError } =
-      await supabaseAdmin.auth.admin.getUserById(team.owner_id);
+    const ownerEmail = await getLeaderEmailForTeamRepo(String(team.team_id));
 
-    const ownerEmail = ownerData?.user?.email;
-
-    if (ownerError || !ownerEmail) {
+    if (!ownerEmail) {
       return NextResponse.json(
         { error: "Invalid team name or password" },
         { status: 401 }

@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { NextRequest } from "next/server";
+import { validateSessionRepo } from "@/lib/repositories/sessionRepo";
 
 type JwtPayload = {
     teamId?: string;
@@ -50,6 +51,17 @@ export async function verifyToken(req: NextRequest): Promise<JwtPayload> {
                 throw new Error("Invalid admin identity");
             }
             ownerId = `admin_${adminIndex}`;
+        }
+
+        // Verify session is still valid in the database (catches revoked sessions)
+        const session = await validateSessionRepo({
+            ownerType,
+            ownerId,
+            sessionId: decoded.sessionId!,
+        });
+
+        if (!session) {
+            throw new Error("Session revoked or expired");
         }
 
         return decoded;

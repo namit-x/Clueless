@@ -97,8 +97,16 @@ export async function adjustPenaltyWithAuditRepo({
             throw new Error("TEAM_GAME_RESULT_NOT_FOUND");
         }
 
+        const MAX_TOTAL_PENALTY_SECONDS = 7200; // 2-hour hard cap on total penalty
+
         const oldPenalty = teamGameResult.penalty_seconds ?? 0;
-        const newPenalty = Math.max(0, oldPenalty + delta);
+        const rawNewPenalty = oldPenalty + delta;
+
+        if (rawNewPenalty > MAX_TOTAL_PENALTY_SECONDS) {
+            throw new Error("PENALTY_CAP_EXCEEDED");
+        }
+
+        const newPenalty = Math.max(0, rawNewPenalty);
         const operation: PenaltyOperation = delta > 0 ? "INCREMENT" : "DECREMENT";
 
         await client.query(

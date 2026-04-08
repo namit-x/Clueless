@@ -1,16 +1,24 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
 import { getGameScreen } from "@/lib/gameMessages";
 import type { MessageCode } from "@/lib/types/teamGameState";
 import CoderGhost from "@/components/CoderGhost";
 import GameStatusScreen, { FloatingLoadingGhost } from "@/components/games/GameStatusScreen";
+import { useAppSelector } from "@/store/hooks";
+import {
+  buildMeaningfulTeamRoundState,
+  isMeaningfulTeamRoundStateEqual,
+  logRealtimeDecision,
+  shouldProcessCurrentTeamUpdateEvent,
+  shouldProcessGameUpdateEvent,
+  shouldProcessTeamRoundProgressEvent,
+} from "@/lib/teamRoundRealtime";
 
 export default function BlindCodeGame() {
-  const router = useRouter();
+  const teamId = useAppSelector((state) => state.auth.user?.id ?? null);
   const [code, setCode] = useState("");
   const [lineCount, setLineCount] = useState(10);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -84,11 +92,18 @@ export default function BlindCodeGame() {
 
   const fetchCurrentRoundRef = useRef<() => void>(() => { });
   const lastLocalSubmitRef = useRef(0);
+  const lastAppliedMeaningfulStateRef = useRef<ReturnType<typeof buildMeaningfulTeamRoundState> | null>(null);
+  const isFetchingRef = useRef(false);
+  const debounceFetchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maskedCode = code.replace(/[^\n]/g, "_");
 
   async function fetchCurrentRound() {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    const shouldShowLoading = lastAppliedMeaningfulStateRef.current === null;
+
     try {
-      setLoading(true);
+      if (shouldShowLoading) setLoading(true);
 
       const res = await fetch("/api/v1/games/current/round", {
         credentials: "include",
@@ -96,6 +111,18 @@ export default function BlindCodeGame() {
 
       const json = res.ok ? await res.json() : null;
       console.log("ROUND API: ", json);
+
+      const nextMeaningfulState = buildMeaningfulTeamRoundState(json);
+      if (
+        isMeaningfulTeamRoundStateEqual(
+          lastAppliedMeaningfulStateRef.current,
+          nextMeaningfulState
+        )
+      ) {
+        return;
+      }
+
+      lastAppliedMeaningfulStateRef.current = nextMeaningfulState;
 
       const screen = getGameScreen(json?.messageCode as MessageCode | undefined);
 
@@ -121,8 +148,17 @@ export default function BlindCodeGame() {
     } catch (err) {
       console.error("Round fetch error", err);
     } finally {
-      setLoading(false);
+      if (shouldShowLoading) setLoading(false);
+      isFetchingRef.current = false;
     }
+  }
+
+  function scheduleFetchCurrentRound() {
+    if (debounceFetchRef.current) clearTimeout(debounceFetchRef.current);
+
+    debounceFetchRef.current = setTimeout(() => {
+      fetchCurrentRoundRef.current();
+    }, 200);
   }
 
   async function handleSubmit() {
@@ -172,29 +208,95 @@ export default function BlindCodeGame() {
   useEffect(() => { fetchCurrentRoundRef.current = fetchCurrentRound; });
 
   useEffect(() => {
+    lastAppliedMeaningfulStateRef.current = null;
     fetchCurrentRoundRef.current();
+
+    const teamRoundProgressConfig = {
+      event: "UPDATE" as const,
+      schema: "public",
+      table: "team_round_progress",
+      ...(teamId ? { filter: `team_id=eq.${teamId}` } : {}),
+    };
+    const teamsSubscriptionConfig = {
+      event: "UPDATE" as const,
+      schema: "public",
+      table: "teams",
+      ...(teamId ? { filter: `team_id=eq.${teamId}` } : {}),
+    };
 
     const channel = supabase
       .channel("realtime:games:blind-code")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games" },
-        () => { fetchCurrentRoundRef.current(); }
+        (payload) => {
+          const shouldFetch = shouldProcessGameUpdateEvent(payload);
+          logRealtimeDecision({
+            table: "games",
+            currentTeamId: teamId,
+            shouldFetch,
+            reason: shouldFetch ? "game status changed" : "ignored unchanged game update",
+          });
+
+          if (!shouldFetch) return;
+          scheduleFetchCurrentRound();
+        }
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "teams" },
-        () => { fetchCurrentRoundRef.current(); }
+        teamsSubscriptionConfig,
+        (payload) => {
+          const eventTeamId = payload.new.team_id ?? payload.old.team_id ?? null;
+          const shouldFetch = shouldProcessCurrentTeamUpdateEvent(payload, teamId);
+          logRealtimeDecision({
+            table: "teams",
+            currentTeamId: teamId,
+            eventTeamId,
+            shouldFetch,
+            reason: shouldFetch ? "current team approval changed" : "ignored other team or unchanged team update",
+          });
+
+          if (!shouldFetch) return;
+          scheduleFetchCurrentRound();
+        }
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "team_round_progress" },
-        () => { if (Date.now() - lastLocalSubmitRef.current > 1000) fetchCurrentRoundRef.current(); }
+        teamRoundProgressConfig,
+        (payload) => {
+          const eventTeamId = payload.new.team_id ?? payload.old.team_id ?? null;
+          if (Date.now() - lastLocalSubmitRef.current <= 1000) {
+            logRealtimeDecision({
+              table: "team_round_progress",
+              currentTeamId: teamId,
+              eventTeamId,
+              shouldFetch: false,
+              reason: "ignored local submit echo",
+            });
+            return;
+          }
+
+          const shouldFetch = shouldProcessTeamRoundProgressEvent(payload, teamId);
+          logRealtimeDecision({
+            table: "team_round_progress",
+            currentTeamId: teamId,
+            eventTeamId,
+            shouldFetch,
+            reason: shouldFetch ? "meaningful team round change" : "ignored other team or non-meaningful round update",
+          });
+
+          if (!shouldFetch) return;
+
+          scheduleFetchCurrentRound();
+        }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    return () => {
+      supabase.removeChannel(channel);
+      if (debounceFetchRef.current) clearTimeout(debounceFetchRef.current);
+    };
+  }, [teamId]);
 
   useEffect(() => {
     return () => {

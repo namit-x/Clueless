@@ -72,7 +72,7 @@ export function useSessionRealtime() {
                event: "INSERT",
                schema: "public",
                table: "sessions",
-               filter: `owner_id = eq.${ ownerId } `,
+               filter: `owner_id=eq.${ownerId}`,
            },
            (payload) => {
                const row = payload.new;
@@ -89,7 +89,7 @@ export function useSessionRealtime() {
                event: "UPDATE",
                schema: "public",
                table: "sessions",
-               filter: `owner_id = eq.${ ownerId } `,
+               filter: `owner_id=eq.${ownerId}`,
            },
            (payload) => {
                const row = payload.new;

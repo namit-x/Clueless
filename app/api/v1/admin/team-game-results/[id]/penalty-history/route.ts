@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPenaltyHistoryController } from "@/controllers/adminPenaltyController";
 import { verifyToken } from "@/middleware/verifyToken";
 import { validateAdmin } from "@/middleware/validateAdmin";
+import { isValidUUID } from "@/lib/validateUUID";
 
 function unwrapErrorMessage(error: unknown) {
     if (!(error instanceof Error)) {
@@ -32,6 +33,11 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
+
+        if (!isValidUUID(id)) {
+            return NextResponse.json({ success: false, error: "INVALID_ID" }, { status: 400 });
+        }
+
         const user = await verifyToken(req);
 
         validateAdmin(user);

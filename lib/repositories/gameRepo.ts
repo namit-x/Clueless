@@ -1,5 +1,13 @@
 import { pool } from "@/lib/db";
 
+export async function createGameRepo(data: { name: string; description?: string; is_active?: boolean }) {
+    const result = await pool.query(
+        `INSERT INTO games (name, description, is_active) VALUES ($1, $2, $3) RETURNING *`,
+        [data.name, data.description ?? null, data.is_active ?? false]
+    );
+    return result.rows[0];
+}
+
 export async function getGameByIdRepo(gameId: string) {
   const query = `
     SELECT id, name, is_active

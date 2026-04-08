@@ -24,4 +24,6 @@ export const pool = new Pool({
     max: 5,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
+    statement_timeout: 15000,    // kill queries that run longer than 15s
+    query_timeout: 15000,        // client-side timeout as a second safety net
 });

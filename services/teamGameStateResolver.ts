@@ -5,6 +5,7 @@ import {
   areAllRoundsCompletedRepo,
   areAllRoundsTerminalRepo
 } from "@/lib/repositories/teamRoundProgressRepo";
+import { getGameByIdRepo } from "@/lib/repositories/gameRepo";
 import type { ResolvedTeamState } from "@/lib/types/teamGameState";
 
 /**
@@ -24,9 +25,10 @@ export async function resolveTeamGameState(
   gameId: string
 ): Promise<ResolvedTeamState> {
 
-  const [tgr, activeRound] = await Promise.all([
+  const [tgr, activeRound, game] = await Promise.all([
     getTeamGameResult(teamId, gameId),
     getCurrentRoundRepo(teamId, gameId),
+    getGameByIdRepo(gameId),
   ]);
 
   // 1. COMPLETED — highest priority, final
@@ -44,6 +46,9 @@ export async function resolveTeamGameState(
 
     // All rounds completed successfully
     if (allCompleted) {
+      if (game.name === "Quiz V2") {
+        return { teamState: "IN_PROGRESS", messageCode: "ROUND_COMPLETED" };
+      }
       return { teamState: "COMPLETED", messageCode: "GAME_COMPLETED" };
     }
 

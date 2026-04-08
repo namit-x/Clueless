@@ -10,12 +10,14 @@ function assertValidOperation(operation: unknown): asserts operation is PenaltyO
     }
 }
 
+const MAX_PENALTY_SECONDS = 3600; // 1 hour cap per adjustment
+
 function assertValidValue(value: unknown): asserts value is number {
     if (typeof value !== "number" || !Number.isFinite(value) || !Number.isInteger(value)) {
         throw new Error("INVALID_PENALTY_VALUE");
     }
 
-    if (value <= 0) {
+    if (value <= 0 || value > MAX_PENALTY_SECONDS) {
         throw new Error("INVALID_PENALTY_VALUE");
     }
 }

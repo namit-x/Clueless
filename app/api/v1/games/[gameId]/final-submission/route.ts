@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/middleware/verifyToken";
 import { submitFinalAnswerController } from "@/controllers/finalSubmissionController";
+import { isValidUUID } from "@/lib/validateUUID";
 
 export async function POST(
     req: NextRequest,
@@ -18,6 +19,10 @@ export async function POST(
         }
 
         const { gameId } = await context.params;
+
+        if (!isValidUUID(gameId)) {
+            return NextResponse.json({ success: false, error: "INVALID_GAME_ID" }, { status: 400 });
+        }
 
         const body = await req.json();
 

@@ -2,6 +2,10 @@ import { useEffect, useRef } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import { supabase } from "@/lib/supabase/client";
 import { fetchGamesThunk } from "@/store/slices/gamesSlice";
+import {
+    logRealtimeDecision,
+    shouldProcessGameUpdateEvent,
+} from "@/lib/teamRoundRealtime";
 
 /**
  * Hook to manage Supabase Realtime subscriptions for the team dashboard.
@@ -22,6 +26,7 @@ import { fetchGamesThunk } from "@/store/slices/gamesSlice";
 export function useTeamRealtimeSubscriptions() {
     const dispatch = useAppDispatch();
     const initializedRef = useRef(false);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (initializedRef.current) return;
@@ -39,10 +44,21 @@ export function useTeamRealtimeSubscriptions() {
                         schema: "public",
                         table: "games",
                     },
-                    () => {
-                        // Refetch so the server-side ID masking is applied correctly
-                        dispatch(fetchGamesThunk());
-                        console.log("[Realtime] Game updated, refetching for team");
+                    (payload) => {
+                        const shouldFetch = shouldProcessGameUpdateEvent(payload);
+                        logRealtimeDecision({
+                            table: "games",
+                            shouldFetch,
+                            reason: shouldFetch ? "dashboard game status changed" : "ignored unchanged dashboard game update",
+                        });
+
+                        if (!shouldFetch) return;
+                        if (debounceRef.current) clearTimeout(debounceRef.current);
+
+                        debounceRef.current = setTimeout(() => {
+                            dispatch(fetchGamesThunk());
+                            console.log("[Realtime] Game updated, refetching team dashboard");
+                        }, 200);
                     }
                 )
                 .subscribe((status) => {
@@ -58,6 +74,7 @@ export function useTeamRealtimeSubscriptions() {
 
         return () => {
             initializedRef.current = false;
+            if (debounceRef.current) clearTimeout(debounceRef.current);
             if (channel) supabase.removeChannel(channel);
         };
     }, [dispatch]);

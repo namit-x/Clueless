@@ -38,7 +38,6 @@ export function useRealtimeSubscriptions() {
         try {
             subscribeToGames();
             subscribeToTeams();
-            subscribeToTeamProgress();
         } catch (error) {
             console.error("[Realtime] Subscription setup error:", error);
         }
@@ -169,52 +168,6 @@ export function useRealtimeSubscriptions() {
             });
 
         subscriptionsRef.current.set("teams", channel);
-    }
-
-    /**
-     * Subscribe to team_round_progress table
-     * Events: UPDATE
-     * 
-     * Behavior:
-     * - UPDATE → dispatch refetch of team progress data
-     * 
-     * Why refetch instead of direct update:
-     * - team_round_progress data is joined with teams/rounds
-     * - safer to fetch complete aggregate than patch individual rows
-     * - prevents inconsistencies if multiple rows update
-     */
-    function subscribeToTeamProgress() {
-        const channel = supabase
-            .channel("realtime:team_round_progress")
-            .on(
-                "postgres_changes",
-                {
-                    event: "UPDATE",
-                    schema: "public",
-                    table: "team_round_progress",
-                },
-                (payload: any) => {
-                    try {
-                        if (payload.new) {
-                            // TeamProgressPanel subscribes directly and handles its own refresh
-                            console.log("[Realtime] Team progress updated:", payload.new.team_id);
-                        }
-                    } catch (error) {
-                        console.error("[Realtime] Team progress event error:", error);
-                    }
-                }
-            )
-            .subscribe((status) => {
-                if (status === "SUBSCRIBED") {
-                    console.log("[Realtime] Subscribed to team_round_progress");
-                } else if (status === "CHANNEL_ERROR") {
-                    console.error("[Realtime] Team progress channel error");
-                } else if (status === "CLOSED") {
-                    console.warn("[Realtime] Team progress channel closed");
-                }
-            });
-
-        subscriptionsRef.current.set("team_round_progress", channel);
     }
 
     /**

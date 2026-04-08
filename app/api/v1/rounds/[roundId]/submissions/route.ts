@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/middleware/verifyToken";
 import { submitAnswerController } from "@/controllers/submissionController";
+import { isValidUUID } from "@/lib/validateUUID";
 
 export async function POST(
     req: NextRequest,
@@ -18,6 +19,10 @@ export async function POST(
         }
 
         const { roundId } = await context.params;
+
+        if (!isValidUUID(roundId)) {
+            return NextResponse.json({ success: false, error: "INVALID_ROUND_ID" }, { status: 400 });
+        }
 
         const body = await req.json();
 

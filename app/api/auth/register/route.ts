@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { teamSignupSchema } from "@/validators/team";
 import { isRegistrationEnabled } from "@/lib/repositories/settingsRepo";
+import { createTeamWithMembersRepo } from "@/lib/repositories/teamsRepo";
 
 export async function POST(req: Request) {
   try {
@@ -67,42 +68,14 @@ export async function POST(req: Request) {
 
     const ownerId = authData.user.id;
 
-    const { data: teamData, error: teamError } = await supabaseAdmin.from("teams").insert([
-      {
-        team_name: normalizedTeamName,
-        team_size: teamSize,
-        owner_id: ownerId,
-      },
-    ]).select().single();
-
-    if (teamError || !teamData) {
+    try {
+      const team = await createTeamWithMembersRepo(normalizedTeamName, teamSize, ownerId, members);
+      return NextResponse.json({ success: true, teamId: team.team_id, ownerId });
+    } catch (dbError: any) {
       await supabaseAdmin.auth.admin.deleteUser(ownerId);
-      return NextResponse.json({ error: teamError?.message || "Failed to create team" }, { status: 400 });
+      return NextResponse.json({ error: dbError.message || "Failed to create team" }, { status: 400 });
     }
 
-    const teamId = teamData.team_id;
-
-    const membersWithTeam = members.map((m) => ({
-      team_id: teamId,
-      name: m.name.trim(),
-      mobile: m.mobile.trim(),
-      email: m.email.trim().toLowerCase(),
-      branch: m.branch.trim(),
-      is_leader: m.isLeader,
-      role: m.isLeader ? "leader" : "user",
-    }));
-
-    const { error: memberError } = await supabaseAdmin
-      .from("members")
-      .insert(membersWithTeam);
-
-    if (memberError) {
-      await supabaseAdmin.from("teams").delete().eq("team_id", teamId);
-      await supabaseAdmin.auth.admin.deleteUser(ownerId);
-      return NextResponse.json({ error: memberError.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ success: true, teamId, ownerId });
   } catch (err) {
     console.error("SERVER CRASH:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

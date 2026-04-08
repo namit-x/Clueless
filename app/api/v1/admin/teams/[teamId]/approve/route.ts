@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/middleware/verifyToken";
 import { validateAdmin } from "@/middleware/validateAdmin";
 import { approveTeamController } from "@/controllers/adminTeamsController";
+import { isValidUUID } from "@/lib/validateUUID";
 
 export async function PATCH(
     req: NextRequest,
@@ -10,6 +11,10 @@ export async function PATCH(
     try {
         // resolve dynamic route params
         const { teamId } = await params;
+
+        if (!isValidUUID(teamId)) {
+            return NextResponse.json({ success: false, error: "INVALID_TEAM_ID" }, { status: 400 });
+        }
 
         // authenticate
         const user = await verifyToken(req);

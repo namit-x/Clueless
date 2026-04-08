@@ -1,4 +1,5 @@
 import { getRoundContextRepo } from "@/lib/repositories/roundsRepo";
+import { getRoundAttemptStatusRepo } from "@/lib/repositories/teamRoundProgressRepo";
 import { submissionHandlers } from "./games/gameplayHandlers";
 
 // ─── Global rate limiter (per team, all games) ──────────────────────────────
@@ -36,6 +37,17 @@ export async function submitAnswerService(
         console.log(
             `[SubmissionService] Received submission: teamId=${teamId}, roundId=${roundId}, answerLength=${answer.length}`
         );
+    }
+
+    // Verify the team owns this round and it is currently active
+    let roundProgress;
+    try {
+        roundProgress = await getRoundAttemptStatusRepo(teamId, roundId);
+    } catch {
+        throw new Error("ROUND_NOT_FOUND_FOR_TEAM");
+    }
+    if (roundProgress.status !== "ACTIVE") {
+        throw new Error("ROUND_NOT_ACTIVE_FOR_TEAM");
     }
 
     const roundContext = await getRoundContextRepo(roundId);
