@@ -14,35 +14,6 @@ import { faAngleLeft } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "@/store/hooks";
 import { setUser } from "@/store/slices/authSlice";
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  const parts = token.split(".");
-
-  if (parts.length < 2 || !parts[1]) return null;
-
-  try {
-    const base64Url = parts[1];
-
-    const base64 = base64Url
-      .replace(/-/g, "+")
-      .replace(/_/g, "/")
-      .padEnd(Math.ceil(base64Url.length / 4) * 4, "=");
-
-    // 🔥 safer decoding (handles UTF-8)
-    const decoded = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
-        .join("")
-    );
-
-    const parsed = JSON.parse(decoded);
-
-    return typeof parsed === "object" && parsed !== null ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
 const Login = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -69,8 +40,8 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // console.log("Form Data:", teamName, password);
-      // console.log("Login button clicked");
+      console.log("Form Data:", teamName, password);
+      console.log("Login button clicked");
 
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -89,22 +60,11 @@ const Login = () => {
         setLoginError(data.error || data.message || "Login failed. Please try again.");
         return;
       }
-      // Extract sessionId from JWT payload
-      let sessionId: string | undefined;
-      if (data.token) {
-        const payload = decodeJwtPayload(data.token);
-        if (typeof payload?.sessionId === "string") {
-          sessionId = payload.sessionId;
-        } else if (!payload) {
-          console.error("Failed to decode session token");
-        }
-      }
-
       if (role === "admin") {
-        dispatch(setUser({ ...data.user, sessionId }));
+        dispatch(setUser(data.user));
         router.push('/admin/dashboard');
       } else {
-        dispatch(setUser({ ...data.user, sessionId }));
+        dispatch(setUser(data.user));
         router.push('/dashboard');
       }
 
