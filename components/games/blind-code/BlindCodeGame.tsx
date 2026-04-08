@@ -46,6 +46,7 @@ export default function BlindCodeGame() {
   }
 
   // top of component — track typing state with a timeout ref
+  const [isFocused, setIsFocused] = useState(false);
   const [ghostTyping, setGhostTyping] = useState(false);
   const ghostTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -84,6 +85,7 @@ export default function BlindCodeGame() {
 
   const fetchCurrentRoundRef = useRef<() => void>(() => {});
   const lastLocalSubmitRef = useRef(0);
+  const maskedCode = code.replace(/[^\n]/g, "_");
 
   async function fetchCurrentRound() {
     try {
@@ -349,7 +351,10 @@ export default function BlindCodeGame() {
     // Backspace --> remove previous character
     if (e.key === "Backspace") {
       e.preventDefault();
-      if (cursorPosition === 0) return;
+      if (cursorPosition === 0) {
+        playTypingSound(e.key);
+        return;
+      }
       setCode(prev => `${prev.slice(0, cursorPosition - 1)}${prev.slice(cursorPosition)}`);
       setCursorPosition(prev => Math.max(0, prev - 1));
       setResult(null);
@@ -361,7 +366,10 @@ export default function BlindCodeGame() {
     // Delete --> remove current character
     if (e.key === "Delete") {
       e.preventDefault();
-      if (cursorPosition >= code.length) return;
+      if (cursorPosition >= code.length) {
+        playTypingSound(e.key);
+        return;
+      }
       setCode(prev => `${prev.slice(0, cursorPosition)}${prev.slice(cursorPosition + 1)}`);
       setResult(null);
       playTypingSound(e.key);
@@ -440,7 +448,7 @@ export default function BlindCodeGame() {
         </div>
 
         {/* Code area */}
-        <div className="flex flex-1 overflow-hidden relative">
+        <div className={`flex flex-1 overflow-hidden relative transition-all duration-300 ${isFocused ? "ring-2 ring-success/50 ring-inset" : ""}`}>
 
           {/* Line numbers */}
           <div className="w-9 bg-background border-r border-border/60 py-4 flex flex-col shrink-0 overflow-hidden">
@@ -452,19 +460,30 @@ export default function BlindCodeGame() {
           </div>
 
           {/* Textarea */}
-          <textarea
-            ref={textareaRef}
-            value={code}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            onClick={syncCursorFromTextarea}
-            onFocus={syncCursorFromTextarea}
-            onSelect={syncCursorFromTextarea}
-            spellCheck={false}
-            disabled={submitting}
-            placeholder={`// write your Java code here\npublic class Main {\n    public static void main(String[] args) {\n        // your code\n    }\n}`}
-            className="flex-1 bg-transparent text-transparent text-[13px] leading-[21px] p-4 outline-none resize-none placeholder:text-muted-foreground/20 caret-transparent disabled:opacity-50 selection:bg-transparent"
-          />
+          <div className="relative flex-1">
+            {code && (
+              <pre
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 m-0 overflow-hidden whitespace-pre-wrap break-words p-4 text-[13px] leading-[21px] text-muted-foreground"
+              >
+                {maskedCode}
+              </pre>
+            )}
+            <textarea
+              ref={textareaRef}
+              value={code}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              onClick={syncCursorFromTextarea}
+              onFocus={() => { syncCursorFromTextarea(); setIsFocused(true); }}
+              onBlur={() => setIsFocused(false)}
+              onSelect={syncCursorFromTextarea}
+              spellCheck={false}
+              disabled={submitting}
+              placeholder={`// write your Java code here\npublic class Main {\n    public static void main(String[] args) {\n        // your code\n    }\n}`}
+              className="relative flex-1 w-full h-full bg-transparent text-transparent text-[13px] leading-[21px] p-4 outline-none resize-none placeholder:text-muted-foreground/20 caret-transparent disabled:opacity-50 selection:bg-transparent"
+            />
+          </div>
         </div>
       </div>
 
