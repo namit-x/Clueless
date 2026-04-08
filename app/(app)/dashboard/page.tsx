@@ -70,7 +70,7 @@ if (teamStatus === "loading" || gamesStatus === "loading") {
 
         {/* Animated Entering Text */}
         <div className="flex gap-1 text-sm md:text-base font-semibold uppercase tracking-[0.25em]">
-          {"Entering GameArena".split("").map((char, i) => (
+          {"Loading GameArena".split("").map((char, i) => (
             <span
               key={i}
               className="animate-pulse"

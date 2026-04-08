@@ -282,24 +282,28 @@ export default function BlindCodeGame() {
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         setCursorPosition(prev => Math.max(0, prev - 1));
+        playTypingSound(e.key);
         return;
       }
 
       if (e.key === "ArrowRight") {
         e.preventDefault();
         setCursorPosition(prev => Math.min(code.length, prev + 1));
+        playTypingSound(e.key);
         return;
       }
 
       if (e.key === "ArrowUp") {
         e.preventDefault();
         setCursorPosition(moveCursorVertically(-1));
+        playTypingSound(e.key);
         return;
       }
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setCursorPosition(moveCursorVertically(1));
+        playTypingSound(e.key);
         return;
       }
 
@@ -316,6 +320,11 @@ export default function BlindCodeGame() {
         setCursorPosition(nextNewline === -1 ? code.length : nextNewline);
         return;
       }
+    }
+
+    if (e.key === "CapsLock" || e.key === "Shift") {
+      playTypingSound(e.key);
+      return;
     }
 
     // Tab --> insert 4 spaces
