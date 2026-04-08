@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchTeamDashboardThunk } from "@/store/slices/teamSlice";
 import { fetchGamesThunk } from "@/store/slices/gamesSlice";
 import { selectTeamBlocked, selectTeamStatus, selectDashboardGames, selectGamesStatus } from "@/store/selectors/gameSelectors";
-import { hydrateFromStorage, clearUser } from "@/store/slices/authSlice";
+import { hydrateFromStorage } from "@/store/slices/authSlice";
+
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import GamesGrid from "@/components/dashboard/GameGrid";
 import TeamBlockedScreen from "@/components/game/TeamBlockedScreen";
@@ -14,7 +14,6 @@ import { useTeamRealtimeSubscriptions } from "@/hooks/useTeamRealtimeSubscriptio
 
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
-  const router = useRouter();
 
   // Realtime: update game list when admin starts / ends a game
   useTeamRealtimeSubscriptions();
@@ -33,25 +32,13 @@ export default function DashboardPage() {
   // Fetch data when status is idle
   useEffect(() => {
     if (teamStatus === "idle") {
-      dispatch(fetchTeamDashboardThunk()).then((result) => {
-        if (result.payload === "unauthorized") {
-          dispatch(clearUser());
-          alert("Your session expired. Please login again.");
-          router.replace("/login");
-        }
-      });
+      dispatch(fetchTeamDashboardThunk());
     }
 
     if (gamesStatus === "idle") {
-      dispatch(fetchGamesThunk()).then((result) => {
-        if (result.payload === "unauthorized") {
-          dispatch(clearUser());
-          alert("Your session expired. Please login again.");
-          router.replace("/login");
-        }
-      });
+      dispatch(fetchGamesThunk());
     }
-  }, [dispatch, router, teamStatus, gamesStatus]);
+  }, [dispatch, teamStatus, gamesStatus]);
 
 if (teamStatus === "loading" || gamesStatus === "loading") {
   return (
