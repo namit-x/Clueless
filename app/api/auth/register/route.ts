@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 import { teamSignupSchema } from "@/validators/team";
 import { isRegistrationEnabled } from "@/lib/repositories/settingsRepo";
 import { createTeamWithMembersRepo } from "@/lib/repositories/teamsRepo";
