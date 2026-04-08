@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     const normalizedTeamName = teamName.trim();
 
     const { data: authData, error: authError } =
-      await supabaseAdmin.auth.admin.createUser({
+      await supabaseAdmin().auth.admin.createUser({
         email: ownerEmail,
         password,
         email_confirm: true,
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
       const team = await createTeamWithMembersRepo(normalizedTeamName, teamSize, ownerId, members);
       return NextResponse.json({ success: true, teamId: team.team_id, ownerId });
     } catch (dbError: any) {
-      await supabaseAdmin.auth.admin.deleteUser(ownerId);
+      await supabaseAdmin().auth.admin.deleteUser(ownerId);
       return NextResponse.json({ error: dbError.message || "Failed to create team" }, { status: 400 });
     }
 
