@@ -21,6 +21,7 @@ export default function AdminSidebar({
     { id: "games", label: "Game Control" },
     { id: "teams", label: "Team Control" },
     { id: "progress", label: "Team Progress" },
+    { id: "leaderboard", label: "Leaderboard" },
     { id: "logs", label: "Activity Logs" },
     { id: "settings", label: "Settings" },
   ];

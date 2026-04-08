@@ -4,6 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
+import { getGameScreen } from "@/lib/gameMessages";
+import type { MessageCode } from "@/lib/types/teamGameState";
+import GameStatusScreen, { FloatingLoadingGhost } from "@/components/games/GameStatusScreen";
 
 export default function QuizGame() {
   const router = useRouter();
@@ -46,72 +49,93 @@ export default function QuizGame() {
     failSoundRef.current?.play();
   }
 
-  async function fetchCurrentRound(afterCorrect = false) {
+  function appendRevealedNumber(asciiNumber: unknown) {
+    if (typeof asciiNumber !== "number" || Number.isNaN(asciiNumber)) return;
+
+    setRevealedNumbers((prev) => (
+      prev.includes(asciiNumber) ? prev : [...prev, asciiNumber]
+    ));
+  }
+
+  function syncRevealedNumbers(nextNumbers: unknown) {
+    if (!Array.isArray(nextNumbers)) return;
+
+    const normalized = nextNumbers.filter(
+      (value): value is number => typeof value === "number" && !Number.isNaN(value)
+    );
+
+    setRevealedNumbers((prev) => {
+      if (normalized.length === 0) return prev;
+      return normalized;
+    });
+  }
+
+  const fetchCurrentRoundRef = useRef<() => void>(() => { });
+  const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFetchingRef = useRef(false);
+  const debounceFetchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function fetchCurrentRound() {
+    // Prevent concurrent requests
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
       setLoading(true);
 
       const res = await fetch("/api/v1/games/current/round", {
         credentials: "include",
       });
-      const json = await res.json();
+      const json = res.ok ? await res.json() : null;
       console.log("Quiz V2 - Fetch Round:", json);
 
-      if (!res.ok || !json.success) {
-        if (afterCorrect) {
-          setIsFinished(true);
-        } else {
-          setIsGameEnded(true);
-        }
-        setIsWaiting(false);
-        setIsFinalPhase(false);
-        return;
-      }
+      const screen = getGameScreen(json?.messageCode as MessageCode | undefined);
 
-      if (json.status === "GAME_OVER") {
-        setIsFinished(true);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setIsFinalPhase(false);
+      setIsFinished(screen === "finished");
+      setIsGameEnded(screen === "time_over");
+      setIsWaiting(screen === "waiting");
+      setIsFinalPhase(screen === "rounds_done");
+
+      if (screen === "rounds_done") {
+        syncRevealedNumbers(json?.revealedNumbers);
         setCurrentRound(null);
         return;
       }
 
-      if (json.status === "COMPLETED") {
-        setIsFinalPhase(true);
-        setRevealedNumbers(json.revealedNumbers ?? []);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setIsFinished(false);
+      if (screen !== "playing") {
         setCurrentRound(null);
         return;
       }
 
-      if (json.status === "NOT_STARTED" || !json.roundId) {
+      if (!json.roundId) {
         setIsWaiting(true);
-        setIsFinished(false);
-        setIsGameEnded(false);
-        setIsFinalPhase(false);
         setCurrentRound(null);
         return;
       }
 
       // ACTIVE round
-      setIsWaiting(false);
-      setIsGameEnded(false);
-      setIsFinished(false);
-      setIsFinalPhase(false);
       setCurrentRound({ id: json.roundId, number: json.round });
       setQuestion(json.question);
       setOptions(json.options ?? []);
       setAttemptsLeft(json.attemptsLeft ?? 2);
-      setRevealedNumbers(json.revealedNumbers ?? []);
+      syncRevealedNumbers(json.revealedNumbers);
       setSelectedOption(null);
       setResult(null);
     } catch (err) {
       console.error("Round fetch error", err);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
+  }
+
+  function debouncedFetchCurrentRound() {
+    // Clear existing debounce timer
+    if (debounceFetchRef.current) clearTimeout(debounceFetchRef.current);
+    
+    // Set new debounce timer - delay by 200ms to coalesce multiple events
+    debounceFetchRef.current = setTimeout(() => {
+      fetchCurrentRoundRef.current();
+    }, 200);
   }
 
   async function handleSubmitAnswer() {
@@ -133,9 +157,10 @@ export default function QuizGame() {
 
       if (json.status === "CORRECT") {
         setResult("correct");
+        appendRevealedNumber(json.asciiNumber);
         setSelectedOption(null);
-        setTimeout(async () => {
-          await fetchCurrentRound(true);
+        if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = setTimeout(() => {
           setResult(null);
         }, 1200);
         return;
@@ -143,8 +168,11 @@ export default function QuizGame() {
 
       if (json.status === "ALL_ROUNDS_COMPLETED") {
         setResult("correct");
-        setRevealedNumbers(json.revealedNumbers ?? []);
-        setTimeout(() => {
+        appendRevealedNumber(json.asciiNumber);
+        syncRevealedNumbers(json.revealedNumbers);
+        // lastLocalSubmitRef.current = Date.now();
+        if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = setTimeout(() => {
           setIsFinalPhase(true);
           setCurrentRound(null);
           setResult(null);
@@ -155,8 +183,8 @@ export default function QuizGame() {
       if (json.status === "ROUND_FAILED") {
         setResult("round_failed");
         playFail();
-        setTimeout(async () => {
-          await fetchCurrentRound(false);
+        if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = setTimeout(() => {
           setResult(null);
         }, 1800);
         return;
@@ -227,84 +255,50 @@ export default function QuizGame() {
     }
   }
 
+  useEffect(() => { fetchCurrentRoundRef.current = fetchCurrentRound; });
+
   // Supabase Realtime subscription
   useEffect(() => {
-    fetchCurrentRound();
+    fetchCurrentRoundRef.current();
 
     const channel = supabase
       .channel("realtime:games:quiz-v2")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games" },
-        () => { fetchCurrentRound(); }
+        () => { debouncedFetchCurrentRound(); }
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "teams" },
-        () => { fetchCurrentRound(); }
+        () => { debouncedFetchCurrentRound(); }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "team_round_progress" },
-        () => { fetchCurrentRound(); }
+        () => { debouncedFetchCurrentRound(); }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+      if (debounceFetchRef.current) clearTimeout(debounceFetchRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+      if (debounceFetchRef.current) clearTimeout(debounceFetchRef.current);
+    };
   }, []);
 
   // ── UI States ──────────────────────────────────────────────────────────────
 
-  if (loading) {
-    return (
-      <div className="qz-page qz-page--center">
-        <div className="qz-loader">
-          <span>?</span><span>?</span><span>?</span><span>?</span>
-        </div>
-        <p className="qz-loader-text">Loading quiz...</p>
-        <style>{qzStyles}</style>
-      </div>
-    );
-  }
-
-  if (isWaiting) {
-    return (
-      <div className="qz-page qz-page--center">
-        <div className="qz-bg"><div className="qz-bg__grid" /><div className="qz-bg__glow qz-bg__glow--1" /><div className="qz-bg__glow qz-bg__glow--2" /></div>
-        <div className="qz-status-icon qz-status-icon--waiting">&#x23F3;</div>
-        <p className="qz-status-text">Waiting for admin to start the quiz...</p>
-        <style>{qzStyles}</style>
-      </div>
-    );
-  }
-
-  if (isFinished) {
-    return (
-      <div className="qz-page qz-page--center">
-        <div className="qz-bg"><div className="qz-bg__grid" /><div className="qz-bg__glow qz-bg__glow--1" /><div className="qz-bg__glow qz-bg__glow--2" /></div>
-        <div className="qz-status-icon qz-status-icon--success">&#x2713;</div>
-        <p className="qz-status-text qz-status-text--success">Quiz completed. Well played.</p>
-        <button onClick={() => router.push("/dashboard")} className="qz-nav-btn qz-nav-btn--success">
-          proceed to dashboard &rarr;
-        </button>
-        <style>{qzStyles}</style>
-      </div>
-    );
-  }
-
-  if (isGameEnded) {
-    return (
-      <div className="qz-page qz-page--center">
-        <div className="qz-bg"><div className="qz-bg__grid" /><div className="qz-bg__glow qz-bg__glow--1" /><div className="qz-bg__glow qz-bg__glow--2" /></div>
-        <div className="qz-status-icon qz-status-icon--ended">&#x2298;</div>
-        <p className="qz-status-text qz-status-text--ended">The Quiz has been ended by admin.</p>
-        <button onClick={() => router.push("/dashboard")} className="qz-nav-btn">
-          proceed to dashboard &rarr;
-        </button>
-        <style>{qzStyles}</style>
-      </div>
-    );
-  }
+  if (loading) return <FloatingLoadingGhost />;
+  if (isWaiting) return <GameStatusScreen variant="waiting" gameName="Quiz" />;
+  if (isFinished) return <GameStatusScreen variant="finished" gameName="Quiz" />;
+  if (isGameEnded) return <GameStatusScreen variant="ended" gameName="Quiz" />;
 
   // ── Final Phase UI ──────────────────────────────────────────────────────────
 
@@ -330,11 +324,10 @@ export default function QuizGame() {
             {revealedNumbers.map((num, i) => (
               <div
                 key={i}
-                className={`qz-ascii-card ${num >= 65 && num <= 90 ? "qz-ascii-card--upper" : "qz-ascii-card--lower"}`}
+                className="qz-ascii-card"
                 style={{ animationDelay: `${i * 80}ms` }}
               >
                 <span className="qz-ascii-card__num">{num}</span>
-                <span className="qz-ascii-card__char">{String.fromCharCode(num)}</span>
               </div>
             ))}
           </div>

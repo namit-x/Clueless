@@ -3,16 +3,14 @@
  * In production, individual flags control access.
  * In development, all features are enabled for full access.
  */
-// const isDev = process.env.NODE_ENV !== "production";
-
-const RESTRICT_MODE = process.env.RESTRICT_MODE === "true";
+const isDev = process.env.NODE_ENV !== "production";
 
 export const FEATURES = {
-  LOGIN: !RESTRICT_MODE,
-  DASHBOARD: !RESTRICT_MODE,
-  GAMES: !RESTRICT_MODE,
-  ADMIN: !RESTRICT_MODE,
-  LOGOUT: !RESTRICT_MODE,
+  LOGIN: isDev || false,
+  DASHBOARD: isDev || false,
+  GAMES: isDev || false,
+  ADMIN: isDev || false,
+  LOGOUT: isDev || false,
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES;

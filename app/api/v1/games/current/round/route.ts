@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
         const user = await verifyToken(req);
 
         const teamId = user.teamId;
-        // console.log(user);
+        // console.log(teamId);
 
         if (!teamId) {
             throw new Error("TEAM_ID_MISSING_FROM_TOKEN");

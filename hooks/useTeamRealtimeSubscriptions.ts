@@ -57,6 +57,7 @@ export function useTeamRealtimeSubscriptions() {
         }
 
         return () => {
+            initializedRef.current = false;
             if (channel) supabase.removeChannel(channel);
         };
     }, [dispatch]);

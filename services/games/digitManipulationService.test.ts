@@ -13,6 +13,7 @@ import {
     checkRateLimit
 } from "./digitManipulationService";
 import { resolvePuzzle } from "@/lib/digitManipulation/resolver";
+import { MIN_RESULT, DEFAULT_MAX_RESULT } from "@/lib/digitManipulation/engine";
 import { clearPuzzleCache, getOrResolvePuzzle } from "@/lib/digitManipulation/cache";
 import { GeneratorConfig } from "@/lib/digitManipulation/generator";
 
@@ -95,6 +96,7 @@ for (const valid of ["12345", "-999", "0", "  42  "]) {
 
 assertThrows("validateSubmissionAnswer empty string", () => validateSubmissionAnswer(""), "empty");
 assertThrows("validateSubmissionAnswer whitespace only", () => validateSubmissionAnswer("   "), "empty");
+assertThrows("validateSubmissionAnswer too long", () => validateSubmissionAnswer("1".repeat(21)), "maximum length");
 assertThrows("validateSubmissionAnswer alpha", () => validateSubmissionAnswer("abc"), "numeric");
 assertThrows("validateSubmissionAnswer alphanumeric", () => validateSubmissionAnswer("12abc"), "numeric");
 assertThrows("validateSubmissionAnswer float", () => validateSubmissionAnswer("3.14"), "numeric");
@@ -152,10 +154,11 @@ Date.now = originalNow;
 // ──────────────────────────────────────────────
 
 const config: GeneratorConfig = {
-    digitCount: 8,
+    digitCount: 4,
     operationCount: 5,
     allowedOperations: ["ADD", "SUBTRACT", "MULTIPLY", "REVERSE"],
-    operandRange: { min: 2, max: 20 }
+    operandRange: { min: 2, max: 20 },
+    maxResult: 10_000_000
 };
 
 const puzzle = resolvePuzzle("team-test", "round-test", config);
@@ -234,15 +237,25 @@ async function simulateSubmit(
     catch (e: any) { return { error: e.message }; }
 
     // validate config
-    try { parseConfiguration(overrideConfig); }
+    let parsedConfig;
+    try { parsedConfig = parseConfiguration(overrideConfig); }
     catch (e: any) { return { error: e.message }; }
+
+    // early bounds rejection (uses engine constants)
+    const maxResult = parsedConfig.maxResult !== undefined
+        ? BigInt(parsedConfig.maxResult)
+        : DEFAULT_MAX_RESULT;
+    const submittedValue = BigInt(answer.trim());
+    if (submittedValue < MIN_RESULT || submittedValue > maxResult) {
+        return { error: "INVALID_SUBMISSION: answer is out of bounds" };
+    }
 
     // game active guard
     if (!state.gameActive) return { error: "GAME_NOT_ACTIVE: game is not live" };
 
     // round status guards
     if (state.status === "LOCKED") return { error: "ROUND_LOCKED: round is not active" };
-    if (state.status === "COMPLETED") return { error: "ROUND_ALREADY_COMPLETED" };
+    if (state.status === "COMPLETED") return { correct: true, attemptsLeft: MAX };
     if (state.status === "FAILED" || state.attemptCount >= MAX) return { error: "MAX_ATTEMPTS_REACHED" };
     if (state.status !== "ACTIVE") return { error: "ROUND_NOT_ACTIVE: unexpected status " + state.status };
 
@@ -255,8 +268,8 @@ async function simulateSubmit(
     if (isCorrect) {
         // Simulate atomic completeAndAdvanceRoundRepo
         if (state.status !== "ACTIVE") {
-            // Concurrent: already completed
-            return { error: "ROUND_ALREADY_COMPLETED" };
+            // Idempotent: concurrent request already completed this round
+            return { correct: true, attemptsLeft: MAX };
         }
         state.status = "COMPLETED";
         state.completed = true;
@@ -316,14 +329,15 @@ async function simulateSubmit(
     assert("exhausted: correct error code", result2.error.includes("MAX_ATTEMPTS_REACHED"));
 }
 
-// -- round already completed → reject --
+// -- round already completed → idempotent success --
 {
     const state: MockState = { ...newActiveState(), status: "COMPLETED", completed: true, nextRoundActivated: true };
     const { answer: correctAnswer } = resolvePuzzle("team-sim", "round-sim", config);
     const result = await simulateSubmit(correctAnswer.toString(), state) as any;
 
-    assert("idempotent: completed round rejected", "error" in result);
-    assert("idempotent: correct error code", result.error.includes("ROUND_ALREADY_COMPLETED"));
+    assert("idempotent: completed round returns correct", result.correct === true);
+    assertEq("idempotent: attemptsLeft = MAX", result.attemptsLeft, 3);
+    assertEq("idempotent: no new submissions recorded", state.submissions.length, 0);
 }
 
 // -- parallel correct submissions (concurrency simulation) --
@@ -336,10 +350,10 @@ async function simulateSubmit(
     const r1 = await simulateSubmit(answerStr, state) as any;
     assert("concurrent: first correct accepted", r1.correct === true);
 
-    // Second submission sees COMPLETED state → rejected
+    // Second submission sees COMPLETED state → idempotent success
     const r2 = await simulateSubmit(answerStr, state) as any;
-    assert("concurrent: second correct rejected", "error" in r2);
-    assert("concurrent: correct error", r2.error.includes("ROUND_ALREADY_COMPLETED"));
+    assert("concurrent: second correct idempotent", r2.correct === true);
+    assertEq("concurrent: attemptsLeft = MAX", r2.attemptsLeft, 3);
 }
 
 // -- LOCKED round → reject --
@@ -380,6 +394,42 @@ async function simulateSubmit(
     const badConfig = { digitCount: 0 } as any;
     const result = await simulateSubmit("12345", state, badConfig) as any;
     assert("invalid config: rejected", "error" in result);
+}
+
+// -- out-of-bounds answer → rejected early, no submission recorded --
+{
+    const state = newActiveState();
+
+    const r1 = await simulateSubmit("-1", state) as any;
+    assert("bounds: negative rejected", "error" in r1 && r1.error.includes("out of bounds"));
+
+    // config.maxResult is 10_000_000 — anything above should be rejected
+    const r2 = await simulateSubmit("10000001", state) as any;
+    assert("bounds: above maxResult rejected", "error" in r2 && r2.error.includes("out of bounds"));
+
+    // boundary: exactly at maxResult should be accepted (not rejected by bounds)
+    const r3 = await simulateSubmit("10000000", state) as any;
+    assert("bounds: at maxResult accepted (not bounds error)", !("error" in r3 && r3.error.includes("out of bounds")));
+
+    // zero is valid (MIN_RESULT = 0)
+    const r4 = await simulateSubmit("0", state) as any;
+    assert("bounds: zero accepted (not bounds error)", !("error" in r4 && r4.error.includes("out of bounds")));
+
+    assertEq("bounds: no submissions from out-of-bounds", state.submissions.length, 2);
+}
+
+// -- FAILED round → reject further submissions --
+{
+    const state: MockState = { ...newActiveState(), status: "FAILED", attemptCount: 3 };
+    const { answer: correctAnswer } = resolvePuzzle("team-sim", "round-sim", config);
+
+    const r1 = await simulateSubmit(correctAnswer.toString(), state) as any;
+    assert("failed: correct answer still rejected", "error" in r1);
+    assert("failed: correct error code", r1.error.includes("MAX_ATTEMPTS_REACHED"));
+
+    const r2 = await simulateSubmit("12345", state) as any;
+    assert("failed: wrong answer rejected", "error" in r2);
+    assert("failed: no submissions recorded", state.submissions.length === 0);
 }
 
 // ──────────────────────────────────────────────

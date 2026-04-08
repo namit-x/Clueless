@@ -1,23 +1,38 @@
-import { Operation, OperationType } from "./types";
-import { createSeed, createRng, randomInt, pickOne } from "./seededRng";
+import { Operation, PipelineError } from "./types";
+import { createSeed, createRng, randomInt } from "./seededRng";
 
-const ARITHMETIC_OPS: Set<OperationType> = new Set([
-    "MULTIPLY", "DIVIDE", "ADD", "SUBTRACT"
-]);
+/**
+ * Fixed operation sequence (hardcoded)
+ */
+const FIXED_OPERATIONS: Operation[] = [
+    { type: "ADD", operand: BigInt(10023) },
+    { type: "MULTIPLY", operand: BigInt(11) },
+    { type: "SHIFT_LEFT" },
+    { type: "SUBTRACT", operand: BigInt(8989) },
+    { type: "DIVIDE", operand: BigInt(6) },
+    { type: "REVERSE" },
+    { type: "ADD", operand: BigInt(321) },
+    { type: "DIVIDE", operand: BigInt(4) },
+    { type: "SHIFT_RIGHT" },
+    { type: "SUBTRACT", operand: BigInt(3221) },
+];
 
 export interface GeneratorConfig {
     digitCount: number;
-    operationCount: number;
-    allowedOperations: OperationType[];
-    operandRange: { min: number; max: number };
+    maxResult?: number;
+    operationCount: number; // dummy (not used anymore)
+    allowedOperations: Operation["type"][]; // dummy
+    operandRange: { min: number; max: number }; // dummy
 }
 
 /**
- * Generate a number with exactly `digitCount` digits.
- * First digit is always 1–9; remaining digits are 0–9.
+ * 🔑 ORIGINAL number generation logic (unchanged)
+ * :contentReference[oaicite:0]{index=0}
  */
 export function generateNumber(rng: () => number, digitCount: number): bigint {
-    if (digitCount < 1) throw new Error("INVALID_DIGIT_COUNT");
+    if (digitCount < 1) {
+        throw new PipelineError("INVALID_DIGIT_COUNT", "digitCount must be >= 1");
+    }
 
     let digits = String(randomInt(rng, 1, 9)); // first digit: no leading zero
 
@@ -29,52 +44,20 @@ export function generateNumber(rng: () => number, digitCount: number): bigint {
 }
 
 /**
- * Generate a deterministic ordered list of operations from config.
- */
-export function generateOperations(rng: () => number, config: GeneratorConfig): Operation[] {
-    const { operationCount, allowedOperations, operandRange } = config;
-    const operations: Operation[] = [];
-
-    for (let i = 0; i < operationCount; i++) {
-        const type = pickOne(rng, allowedOperations);
-
-        if (ARITHMETIC_OPS.has(type)) {
-            let min = operandRange.min;
-            let max = operandRange.max;
-
-            // Division: operand must be >= 2 to avoid div-by-zero
-            if (type === "DIVIDE") {
-                min = Math.max(min, 2);
-            }
-
-            // Multiply: cap operand to prevent number explosion
-            if (type === "MULTIPLY") {
-                max = Math.min(max, 20);
-            }
-
-            operations.push({ type, operand: BigInt(randomInt(rng, min, max)) });
-        } else {
-            operations.push({ type });
-        }
-    }
-
-    return operations;
-}
-
-/**
- * Generate a complete puzzle (number + operations) from team/round IDs and config.
- * Pure and deterministic: same inputs → same output, always.
+ * Generate puzzle (deterministic per team + round)
  */
 export function generatePuzzle(
     teamId: string,
     roundId: string,
-    config: GeneratorConfig
+    digitCount: number
 ): { number: bigint; operations: Operation[] } {
     const seed = createSeed(teamId, roundId);
     const rng = createRng(seed);
 
-    const number = generateNumber(rng, config.digitCount);
-    const operations = generateOperations(rng, config);
+    const number = generateNumber(rng, digitCount);
 
-    return { number, operations };
+    return {
+        number,
+        operations: FIXED_OPERATIONS,
+    };
 }

@@ -8,8 +8,6 @@ import {
     SessionIdentity
 } from "@/lib/repositories/sessionRepo";
 
-import { broadcastForceLogout } from "@/lib/sessionConnections";
-
 type OwnerType = "team" | "admin";
 
 export interface CreateSessionInput extends SessionIdentity {
@@ -32,18 +30,13 @@ export async function createOrReplaceSession(
 
     const params: CreateOrReplaceSessionParams = {
         ownerType: input.ownerType as OwnerType,
-        ownerId: input.ownerId, // here team is being sent
+        ownerId: input.ownerId,
         expiresAt
     };
 
     console.log("Creating session for", params.ownerType, params.ownerId);
 
     const result = await createOrReplaceSessionRepo(params);
-
-    // force logout previous session if replaced
-    if (result.previousSessionId) {
-        broadcastForceLogout(result.previousSessionId);
-    }
 
     return {
         sessionId: result.sessionId,

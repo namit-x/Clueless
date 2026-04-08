@@ -1,10 +1,12 @@
 "use client";
 
-import { useState,useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
-import { on } from "events";
+import { getGameScreen } from "@/lib/gameMessages";
+import type { MessageCode } from "@/lib/types/teamGameState";
+import GameStatusScreen, { FloatingLoadingGhost } from "@/components/games/GameStatusScreen";
 
 type Operation = {
   type: string;
@@ -14,6 +16,7 @@ type Operation = {
 export default function DigitManipulationGame() {
   const router = useRouter();
   const [answer, setAnswer] = useState("");
+  const [visibleOpIndex, setVisibleOpIndex] = useState(0);
 
   // Round data
   const [currentRound, setCurrentRound] = useState<{ id: string; number: number } | null>(null);
@@ -43,70 +46,42 @@ export default function DigitManipulationGame() {
       failSoundRef.current?.play();
     }
 
-  async function fetchCurrentRound(afterCorrect = false) {
+  const fetchCurrentRoundRef = useRef<() => void>(() => {});
+  const lastLocalSubmitRef = useRef(0);
+
+  async function fetchCurrentRound() {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/v1/games/current/round", { 
+      const res = await fetch("/api/v1/games/current/round", {
         credentials: "include",
-        // body: JSON.stringify({  }),
       });
-      const json = await res.json();
+      const json = res.ok ? await res.json() : null;
       console.log("Digit Manipulation - Fetch Round:", json);
 
-      if (!res.ok || !json.success) {
-        if (afterCorrect) {
-          setIsFinished(true);
-        } else {
-          setIsGameEnded(true);
-        }
-        setIsWaiting(false);
-        setIsRoundFailed(false);
-        return;
-      }
+      const screen = getGameScreen(json?.messageCode as MessageCode | undefined);
 
-      if (json.status === "FAILED") {
-        setIsRoundFailed(true);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setCurrentRound(null);
-        return;
-      }
+      setIsFinished(screen === "finished" || screen === "rounds_done");
+      setIsRoundFailed(screen === "failed");
+      setIsGameEnded(screen === "time_over");
+      setIsWaiting(screen === "waiting");
 
-      if (json.status === "COMPLETED") {
-        setIsFinished(true);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setIsRoundFailed(false);
-        setCurrentRound(null);
-        return;
-      }
-
-      if (json.status === "GAME_ENDED") {
-        setIsGameEnded(true);
-        setIsWaiting(false);
-        setIsFinished(false);
-        setIsRoundFailed(false);
+      if (screen !== "playing") {
         setCurrentRound(null);
         return;
       }
 
       if (!json.roundId) {
         setIsWaiting(true);
-        setIsFinished(false);
-        setIsGameEnded(false);
-        setIsRoundFailed(false);
         setCurrentRound(null);
         return;
       }
 
-      setIsWaiting(false);
-      setIsGameEnded(false);
-      setIsRoundFailed(false);
       setCurrentRound({ id: json.roundId, number: json.roundNumber ?? json.round });
       setStartingNumber(json.number);
       setOperations(json.operations ?? []);
       setAttemptsLeft(json.attemptsLeft ?? 3);
+      setVisibleOpIndex(0);
     } catch (err) {
       console.error("Round fetch error", err);
     } finally {
@@ -145,7 +120,8 @@ export default function DigitManipulationGame() {
           return;
         }
 
-        await fetchCurrentRound(true);
+        lastLocalSubmitRef.current = Date.now();
+        await fetchCurrentRound();
         setResult(null);
       } else {
         setResult("incorrect");
@@ -160,25 +136,27 @@ export default function DigitManipulationGame() {
     }
   }
 
+  useEffect(() => { fetchCurrentRoundRef.current = fetchCurrentRound; });
+
   useEffect(() => {
-    fetchCurrentRound();
+    fetchCurrentRoundRef.current();
 
     const channel = supabase
       .channel("realtime:games:digit-manipulation")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games" },
-        () => { fetchCurrentRound(); }
+        () => { fetchCurrentRoundRef.current(); }
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "teams" },
-        () => { fetchCurrentRound(); }
+        () => { fetchCurrentRoundRef.current(); }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "team_round_progress" },
-        () => { fetchCurrentRound(); }
+        () => { if (Date.now() - lastLocalSubmitRef.current > 1000) fetchCurrentRoundRef.current(); }
       )
       .subscribe();
 
@@ -213,70 +191,11 @@ export default function DigitManipulationGame() {
 
   // ── UI states ──────────────────────────────────────────────────────────────
 
-  if (loading) {
-    return (
-      <div className="dm-page dm-page--center">
-        <div className="dm-loader">
-          <span>0</span><span>1</span><span>0</span><span>1</span>
-        </div>
-        <p className="dm-loader-text">Initializing puzzle…</p>
-        <style>{dmStyles}</style>
-      </div>
-    );
-  }
-
-  if (isWaiting) {
-    return (
-      <div className="dm-page dm-page--center">
-        <div className="dm-bg"><div className="dm-bg__grid" /><div className="dm-bg__glow dm-bg__glow--1" /><div className="dm-bg__glow dm-bg__glow--2" /></div>
-        <div className="dm-status-icon dm-status-icon--waiting">⏳</div>
-        <p className="dm-status-text">Waiting for admin to start digit manipulation…</p>
-        <style>{dmStyles}</style>
-      </div>
-    );
-  }
-
-  if (isRoundFailed) {
-    return (
-      <div className="dm-page dm-page--center">
-        <div className="dm-bg"><div className="dm-bg__grid" /><div className="dm-bg__glow dm-bg__glow--1" /><div className="dm-bg__glow dm-bg__glow--2" /></div>
-        <div className="dm-status-icon dm-status-icon--failed">✗</div>
-        <p className="dm-status-text dm-status-text--failed">Attempts exhausted — your run ends here.</p>
-        <button onClick={() => router.push("/dashboard")} className="dm-nav-btn">
-          proceed to dashboard →
-        </button>
-        <style>{dmStyles}</style>
-      </div>
-    );
-  }
-
-  if (isFinished) {
-    return (
-      <div className="dm-page dm-page--center">
-        <div className="dm-bg"><div className="dm-bg__grid" /><div className="dm-bg__glow dm-bg__glow--1" /><div className="dm-bg__glow dm-bg__glow--2" /></div>
-        <div className="dm-status-icon dm-status-icon--success">✓</div>
-        <p className="dm-status-text dm-status-text--success">All rounds cleared. Well played.</p>
-        <button onClick={() => router.push("/dashboard")} className="dm-nav-btn dm-nav-btn--success">
-          proceed to dashboard →
-        </button>
-        <style>{dmStyles}</style>
-      </div>
-    );
-  }
-
-  if (isGameEnded) {
-    return (
-      <div className="dm-page dm-page--center">
-        <div className="dm-bg"><div className="dm-bg__grid" /><div className="dm-bg__glow dm-bg__glow--1" /><div className="dm-bg__glow dm-bg__glow--2" /></div>
-        <div className="dm-status-icon dm-status-icon--ended">⊘</div>
-        <p className="dm-status-text dm-status-text--ended">The Digit Manipulation has been ended by admin.</p>
-        <button onClick={() => router.push("/dashboard")} className="dm-nav-btn">
-          proceed to dashboard →
-        </button>
-        <style>{dmStyles}</style>
-      </div>
-    );
-  }
+  if (loading) return <FloatingLoadingGhost />;
+  if (isWaiting) return <GameStatusScreen variant="waiting" gameName="Digit Manipulation" />;
+  if (isRoundFailed) return <GameStatusScreen variant="failed" gameName="Digit Manipulation" />;
+  if (isFinished) return <GameStatusScreen variant="finished" gameName="Digit Manipulation" />;
+  if (isGameEnded) return <GameStatusScreen variant="ended" gameName="Digit Manipulation" />;
 
   // ── Main game UI ───────────────────────────────────────────────────────────
 
@@ -292,11 +211,11 @@ export default function DigitManipulationGame() {
       {/* Header */}
       <header className="dm-header">
         <div className="dm-header__left">
-          <span className="dm-title dm-title--glitch" data-text="DIGIT">DIGIT</span>
-          <span className="dm-title dm-title--thin">MANIPULATION</span>
+          {/* <span className="dm-title dm-title--glitch" data-text="DIGIT">DIGIT</span>
+          <span className="dm-title dm-title--thin">MANIPULATION</span> */}
+          <span className="dm-round-badge">ROUND {currentRound?.number}</span>
         </div>
         <div className="dm-header__right">
-          <span className="dm-round-badge">RND {currentRound?.number}</span>
           <AttemptsHearts remaining={attemptsLeft} />
         </div>
       </header>
@@ -308,7 +227,7 @@ export default function DigitManipulationGame() {
           {startingNumber.split("").map((d, i) => (
             <span
               key={i}
-              className={`dm-digit ${i % 2 === 0 ? "dm-digit--active" : ""}`}
+              className="dm-digit dm-digit--active"
               style={{ animationDelay: `${i * 60}ms` }}
             >
               {d}
@@ -317,50 +236,75 @@ export default function DigitManipulationGame() {
         </div>
       </section>
 
-      {/* Operations */}
+      {/* Operations — one at a time */}
       <section className="dm-ops-section">
         <p className="dm-label">OPERATIONS — APPLY IN ORDER</p>
-        <div className="dm-ops-list">
-          {operations.map((op, i) => {
-            const color = operationColor(op.type);
-            return (
-              <div
-                key={i}
-                className="dm-step"
-                style={{
-                  borderColor: `hsl(${color} / 0.19)`,
-                  background: `hsl(${color} / 0.03)`,
-                  animationDelay: `${i * 80 + 400}ms`,
-                }}
-              >
-                <span className="dm-step__num" style={{ background: `hsl(${color} / 0.13)`, color: `hsl(${color})` }}>
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span className="dm-step__text">{formatOperation(op)}</span>
-                <span className="dm-step__tag" style={{ color: `hsl(${color} / 0.5)` }}>{op.type}</span>
+        {operations.length > 0 && (() => {
+          const op = operations[visibleOpIndex];
+          const color = operationColor(op.type);
+          const isLast = visibleOpIndex === operations.length - 1;
+          return (
+            <div className="dm-op-carousel">
+              {/* Dot progress */}
+              <div className="dm-op-dots">
+                {operations.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`dm-op-dot ${i === visibleOpIndex ? "dm-op-dot--active" : i < visibleOpIndex ? "dm-op-dot--done" : ""}`}
+                  />
+                ))}
               </div>
-            );
-          })}
-        </div>
+
+              {/* Centered card stage */}
+              <div className="dm-op-row">
+                <div
+                  className="dm-step dm-step--solo"
+                  key={visibleOpIndex}
+                  style={{
+                    borderColor: `hsl(${color} / 0.35)`,
+                    background: `hsl(${color} / 0.06)`,
+                    boxShadow: `0 0 32px hsl(${color} / 0.08)`,
+                  }}
+                >
+                  <span className="dm-step__num" style={{ background: `hsl(${color} / 0.15)`, color: `hsl(${color})` }}>
+                    {String(visibleOpIndex + 1).padStart(2, "0")}
+                  </span>
+                  <span className="dm-step__text">{formatOperation(op)}</span>
+                  <span className="dm-step__tag" style={{ color: `hsl(${color} / 0.6)` }}>{op.type}</span>
+                </div>
+
+                {!isLast && (
+                  <button
+                    className="dm-op-next"
+                    onClick={() => setVisibleOpIndex(i => i + 1)}
+                    title="Next operation"
+                  >
+                    NEXT ›
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </section>
 
       {/* Answer Section */}
       <section className="dm-answer-section">
         <p className="dm-label">FINAL ANSWER</p>
-        <div className={`dm-input-row ${result === "correct" ? "dm-input-row--correct" : result === "incorrect" ? "dm-input-row--wrong" : ""}`}>
+        <div className={`dm-input-row ${visibleOpIndex < operations.length - 1 ? "dm-input-row--locked" : ""} ${result === "correct" ? "dm-input-row--correct" : result === "incorrect" ? "dm-input-row--wrong" : ""}`}>
           <input
             className="dm-input"
             type="text"
             inputMode="numeric"
-            placeholder="Enter calculated result…"
+            placeholder={visibleOpIndex < operations.length - 1 ? "Go through all operations first…" : "Enter calculated result…"}
             value={answer}
-            disabled={submitting || attemptsLeft === 0}
+            disabled={submitting || attemptsLeft === 0 || visibleOpIndex < operations.length - 1}
             onChange={(e) => { setAnswer(e.target.value); setResult(null); }}
             onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
           />
           <button
             className="dm-submit"
-            disabled={!answer.trim() || submitting || attemptsLeft === 0}
+            disabled={!answer.trim() || submitting || attemptsLeft === 0 || visibleOpIndex < operations.length - 1}
             onClick={handleSubmit}
           >
             {submitting ? <span className="dm-submit__spinner" /> : "SUBMIT"}
@@ -586,33 +530,97 @@ const dmStyles = `
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* ── Operations ── */
-  .dm-ops-section { position: relative; z-index: 1; flex: 1; min-height: 0; overflow-y: auto; }
-  .dm-ops-list { display: flex; flex-direction: column; gap: 8px; }
+  /* ── Operations carousel ── */
+  .dm-ops-section {
+    position: relative; z-index: 1;
+    flex: 1;
+    display: flex; flex-direction: column;
+  }
+
+  .dm-op-carousel {
+    flex: 1;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+  }
+
+  .dm-op-dots {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; margin-bottom: 18px;
+  }
+  .dm-op-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--dm-border);
+    transition: background 0.25s, transform 0.25s;
+  }
+  .dm-op-dot--done { background: hsl(var(--primary) / 0.35); }
+  .dm-op-dot--active {
+    background: var(--accent); transform: scale(1.35);
+    box-shadow: 0 0 6px var(--accent-dim);
+  }
+
+  .dm-op-row {
+    width: 100%;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+  }
+
   .dm-step {
     display: flex; align-items: center; gap: 14px;
     padding: 12px 16px;
     border: 1px solid var(--dm-border);
     border-radius: 10px;
-    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease;
-    animation: dm-fadeUp 0.5s ease both;
+    animation: dm-fadeUp 0.35s ease both;
   }
-  .dm-step:hover { transform: translateX(4px); box-shadow: -4px 0 12px -4px var(--accent-dim); }
+  .dm-step--solo {
+    width: min(100%, 360px);
+    min-height: 320px;
+    padding: 28px;
+    border-radius: 20px;
+    flex: none;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 22px;
+  }
+
   .dm-step__num {
     flex-shrink: 0;
-    width: 32px; height: 32px;
+    width: 56px; height: 56px;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 6px;
+    border-radius: 12px;
     font-family: 'Chakra Petch', sans-serif;
-    font-weight: 700; font-size: 12px;
+    font-weight: 700; font-size: 18px;
   }
   .dm-step__text {
-    flex: 1; font-size: 14px; font-weight: 500; color: var(--text);
-    letter-spacing: 1px;
+    flex: 0; font-size: clamp(22px, 3vw, 28px); font-weight: 700; color: var(--text);
+    letter-spacing: 1px; line-height: 1.35;
+    max-width: 14ch;
   }
   .dm-step__tag {
-    font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
   }
+
+  .dm-op-next {
+    flex-shrink: 0;
+    min-width: 120px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: var(--surface2);
+    border: 1px solid var(--dm-border);
+    color: var(--text);
+    font-family: 'Chakra Petch', sans-serif;
+    font-size: 14px; font-weight: 700; line-height: 1;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+  }
+  .dm-op-next:hover {
+    border-color: var(--accent-mid);
+    color: var(--accent);
+    background: var(--accent-dim);
+    transform: scale(1.1);
+  }
+  .dm-op-next:active { transform: scale(0.95); }
 
   /* ── Answer section ── */
   .dm-answer-section { position: relative; z-index: 1; }
@@ -628,6 +636,7 @@ const dmStyles = `
     border-color: var(--accent);
     box-shadow: 0 0 24px var(--accent-dim);
   }
+  .dm-input-row--locked { opacity: 0.4; pointer-events: none; }
   .dm-input-row--correct { border-color: var(--accent); }
   .dm-input-row--wrong { border-color: var(--red); animation: dm-shake 0.4s; }
   @keyframes dm-shake {
@@ -683,5 +692,9 @@ const dmStyles = `
     .dm-digit { width: 36px; height: 44px; font-size: 18px; }
     .dm-header { flex-direction: column; gap: 12px; align-items: flex-start; }
     .dm-header__right { align-self: flex-end; }
+    .dm-step--solo { width: 100%; min-height: 260px; padding: 22px; }
+    .dm-step__num { width: 48px; height: 48px; font-size: 16px; }
+    .dm-step__text { font-size: 20px; }
+    .dm-op-next { min-width: 110px; height: 40px; font-size: 12px; }
   }
 `;

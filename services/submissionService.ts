@@ -4,6 +4,7 @@ import { submissionHandlers } from "./games/gameplayHandlers";
 // ─── Global rate limiter (per team, all games) ──────────────────────────────
 const RATE_LIMIT_MS = 2000;
 const lastSubmissionTime = new Map<string, number>();
+const shouldLogSubmissionMeta = process.env.NODE_ENV !== "production";
 
 function enforceRateLimit(teamId: string): void {
     const now = Date.now();
@@ -31,6 +32,11 @@ export async function submitAnswerService(
 ) {
 
     enforceRateLimit(teamId);
+    if (shouldLogSubmissionMeta) {
+        console.log(
+            `[SubmissionService] Received submission: teamId=${teamId}, roundId=${roundId}, answerLength=${answer.length}`
+        );
+    }
 
     const roundContext = await getRoundContextRepo(roundId);
     const handler = submissionHandlers[roundContext.gameName];

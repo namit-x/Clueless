@@ -34,6 +34,27 @@ export async function getActiveGameRepo() {
   return result.rows[0];
 }
 
+export async function getTeamActiveGameRepo(teamId: string) {
+  const query = `
+    SELECT *
+    FROM team_game_results
+    WHERE team_id = $1
+      AND status = 'IN_PROGRESS';
+  `;
+
+  const result = await pool.query(query, [teamId]);
+
+  if (!result.rowCount) {
+    throw new Error("NO_ACTIVE_GAME_FOR_TEAM");
+  }
+
+  if (result.rowCount > 1) {
+    throw new Error("MULTIPLE_ACTIVE_GAMES_DETECTED");
+  }
+
+  return result.rows[0];
+}
+
 export async function activateGameRepo(gameId: string) {
 
   const query = `

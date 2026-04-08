@@ -34,11 +34,7 @@ Session is stored in **cookie automatically**.
 3\. Session Monitoring (Single Login Protection)
 ================================================
 
-| When to Call | Endpoint | Method | Notes |
-| --- | --- | --- | --- |
-| After login (keep connection open) | `/api/auth/session/stream` | GET | SSE stream |
-
-Purpose: logout user if session becomes invalid.
+Session validity is monitored client-side via Supabase Realtime subscription on the `sessions` table, with periodic polling as fallback. No dedicated endpoint needed.
 
 * * * * *
 

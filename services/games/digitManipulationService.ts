@@ -1,5 +1,6 @@
 import {
     activateFirstRoundRepo,
+    failRoundRepo,
     getCurrentRoundRepo,
     getRoundAttemptStatusRepo,
     initializeTeamRoundProgressRepo,
@@ -8,7 +9,10 @@ import {
 } from "@/lib/repositories/teamRoundProgressRepo";
 import { activateGameRepo, getGameByIdRepo } from "@/lib/repositories/gameRepo";
 import { getRoundContextRepo } from "@/lib/repositories/roundsRepo";
+import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 import { getOrResolvePuzzle } from "@/lib/digitManipulation/cache";
+import { resolvePuzzle } from "@/lib/digitManipulation/resolver";
+import { MIN_RESULT, DEFAULT_MAX_RESULT } from "@/lib/digitManipulation/engine";
 import { GeneratorConfig } from "@/lib/digitManipulation/generator";
 import { Operation } from "@/lib/digitManipulation/types";
 
@@ -46,30 +50,32 @@ export function parseConfiguration(configuration: unknown): GeneratorConfig {
     if (!c || typeof c !== "object") throw new Error("INVALID_CONFIGURATION");
 
     const digitCount = c.digitCount;
-    const operationCount = c.operationCount;
-    const allowedOperations = c.allowedOperations;
-    const operandRange = c.operandRange as Record<string, unknown> | undefined;
+    const maxResult = c.maxResult;
 
     if (typeof digitCount !== "number" || digitCount < 1)
         throw new Error("INVALID_CONFIGURATION: digitCount missing or < 1");
-    if (typeof operationCount !== "number" || operationCount < 1)
-        throw new Error("INVALID_CONFIGURATION: operationCount missing or < 1");
-    if (!Array.isArray(allowedOperations) || allowedOperations.length === 0)
-        throw new Error("INVALID_CONFIGURATION: allowedOperations missing or empty");
-    if (!operandRange || typeof operandRange.min !== "number" || typeof operandRange.max !== "number")
-        throw new Error("INVALID_CONFIGURATION: operandRange missing or invalid");
+
+    if (maxResult !== undefined && (typeof maxResult !== "number" || maxResult < 1))
+        throw new Error("INVALID_CONFIGURATION: maxResult must be a positive number");
 
     return {
         digitCount,
-        operationCount,
-        allowedOperations,
-        operandRange: { min: operandRange.min as number, max: operandRange.max as number }
+        operationCount: 1,            // dummy (not used anymore)
+        allowedOperations: [],        // dummy
+        operandRange: { min: 0, max: 0 }, // dummy
+        ...(maxResult !== undefined && { maxResult: maxResult as number })
     };
 }
+
+/** Maximum length of a submitted answer string. No valid result exceeds this. */
+const MAX_ANSWER_LENGTH = 20;
 
 export function validateSubmissionAnswer(answer: string): void {
     if (!answer || answer.trim() === "") {
         throw new Error("INVALID_SUBMISSION: answer is empty");
+    }
+    if (answer.trim().length > MAX_ANSWER_LENGTH) {
+        throw new Error("INVALID_SUBMISSION: answer exceeds maximum length");
     }
     if (!/^-?\d+$/.test(answer.trim())) {
         throw new Error("INVALID_SUBMISSION: answer must be numeric");
@@ -105,9 +111,9 @@ export async function startDigitManipulationGame(gameId: string) {
     return await activateGameRepo(gameId);
 }
 
-export async function startDigitManipulationForTeam(teamId: string) {
-    const roundId = await activateFirstRoundRepo(teamId);
-    const { roundNumber, configuration, gameId } = await getRoundContextRepo(roundId);
+export async function startDigitManipulationForTeam(teamId: string, gameId: string) {
+    const roundId = await activateFirstRoundRepo(teamId, gameId);
+    const { roundNumber, configuration } = await getRoundContextRepo(roundId);
 
     await assertGameActive(gameId);
 
@@ -126,15 +132,15 @@ export async function startDigitManipulationForTeam(teamId: string) {
 
 // ─── Get current round ──────────────────────────────────────────────────────
 
-export async function getDigitManipulationRound(teamId: string) {
-    const roundProgress = await getCurrentRoundRepo(teamId);
+export async function getDigitManipulationRound(teamId: string, gameId: string) {
+    const roundProgress = await getCurrentRoundRepo(teamId, gameId);
 
     if (!roundProgress) {
         return { status: "NO_ACTIVE_ROUND", message: "No active round found." };
     }
 
     const { roundId, roundNumber } = roundProgress;
-    const { configuration, gameId } = await getRoundContextRepo(roundId);
+    const { configuration } = await getRoundContextRepo(roundId);
 
     await assertGameActive(gameId);
 
@@ -161,69 +167,69 @@ export async function submitDigitManipulationAnswer(
     roundNumber: number,
     gameId: string
 ) {
-    // 1. Input validation
+    // 1. Validate input
     validateSubmissionAnswer(answer);
 
-    // 3. Config validation
-    const config = parseConfiguration(configuration);
+    const submittedValue = BigInt(answer.trim());
 
-    // 4. Game state guard
+    // 2. Minimal config (only what matters now)
+    const config = parseConfiguration(configuration);
+    const maxResult = config.maxResult !== undefined
+        ? BigInt(config.maxResult)
+        : DEFAULT_MAX_RESULT;
+
+    // Optional early rejection (fast fail)
+    if (submittedValue < MIN_RESULT || submittedValue > maxResult) {
+        throw new Error("INVALID_SUBMISSION: answer is out of bounds");
+    }
+
+    // 3. Game must be active
     await assertGameActive(gameId);
 
-    // 5. Round state guard (DB is source of truth)
-    const { status, attemptCount } = await getRoundAttemptStatusRepo(teamId, roundId);
-
-    if (status === "LOCKED") {
-        throw new Error("ROUND_LOCKED: round is not active");
-    }
-    if (status === "COMPLETED") {
-        throw new Error("ROUND_ALREADY_COMPLETED");
-    }
-    if (status === "FAILED" || attemptCount >= MAX_ATTEMPTS) {
+    const attempt = await submitAndDecrementAttemptRepo(teamId, roundId, MAX_ATTEMPTS);
+    if (!attempt) {
         throw new Error("MAX_ATTEMPTS_REACHED");
     }
-    if (status !== "ACTIVE") {
-        throw new Error("ROUND_NOT_ACTIVE: unexpected status " + status);
-    }
 
-    // 6. Resolve correct answer (cache → resolver, deterministic)
-    const { answer: correctAnswer } = getOrResolvePuzzle(teamId, roundId, config);
+    // 4. Compute correct answer (single source of truth)
+    const { answer: correctAnswer } = resolvePuzzle(
+        teamId,
+        roundId,
+        config
+    );
 
-    const isCorrect = BigInt(answer.trim()) === correctAnswer;
-    const evaluation = isCorrect ? "CORRECT" : `WRONG: expected ${correctAnswer}`;
+    const isCorrect = submittedValue === correctAnswer;
 
-    // 7+8. Atomic: record submission + state transition in one transaction
+    // 5. Atomic DB update
     if (isCorrect) {
         const { advanced } = await submitAndAdvanceRoundRepo(
-            teamId, roundId, roundNumber, gameId,
-            answer.trim(), true, evaluation
+            teamId,
+            roundId,
+            roundNumber,
+            gameId,
+            answer.trim(),
+            true,
+            "CORRECT"
         );
 
         if (!advanced) {
-            console.log(`[DIGIT] Team ${teamId} round ${roundNumber}: concurrent completion (no-op)`);
             throw new Error("ROUND_ALREADY_COMPLETED");
         }
 
-        console.log(`[DIGIT] Team ${teamId} completed round ${roundNumber} ✓`);
-        return { correct: true, attemptsLeft: MAX_ATTEMPTS };
+        return { correct: true, attemptsLeft: computeAttemptsLeft(attempt.attemptCount) };
     }
 
-    // Wrong answer — atomic: insert submission + decrement attempts
-    const result = await submitAndDecrementAttemptRepo(
-        teamId, roundId, answer.trim(), evaluation
-    );
+    await insertSubmissionRepo(teamId, roundId, answer.trim(), false, "WRONG");
 
-    if (!result) {
-        throw new Error("MAX_ATTEMPTS_REACHED");
+    if (attempt.attemptCount >= MAX_ATTEMPTS) {
+        const failed = await failRoundRepo(teamId, roundId);
+        if (!failed) {
+            throw new Error("ROUND_NOT_ACTIVE");
+        }
     }
 
-    const attemptsLeft = computeAttemptsLeft(result.attemptCount);
-
-    if (attemptsLeft === 0) {
-        console.log(`[DIGIT] Team ${teamId} exhausted attempts on round ${roundNumber} ✗`);
-    } else {
-        console.log(`[DIGIT] Team ${teamId} wrong answer on round ${roundNumber} (${attemptsLeft} left)`);
-    }
-
-    return { correct: false, attemptsLeft };
+    return {
+        correct: false,
+        attemptsLeft: computeAttemptsLeft(attempt.attemptCount)
+    };
 }

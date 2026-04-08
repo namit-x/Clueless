@@ -7,7 +7,7 @@ export default function DisableDevTools() {
     document.oncontextmenu = () => false;
 
     document.onkeydown = (e) => {
-      if (e.ctrlKey && ["u", "U", "c", "C"].includes(e.key)) {
+      if (e.ctrlKey && ["u", "U", "c", "C", "v", "V"].includes(e.key)) {
         e.preventDefault();
       }
       if (e.ctrlKey && e.shiftKey && ["i", "I", "c", "C", "j", "J"].includes(e.key)) {

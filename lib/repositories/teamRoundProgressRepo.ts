@@ -42,7 +42,7 @@ export async function initializeTeamRoundProgressForTeamRepo(teamId: string, gam
   await pool.query(query, [teamId, gameId]);
 }
 
-export async function activateFirstRoundRepo(teamId: string) {
+export async function activateFirstRoundRepo(teamId: string, gameId: string) {
 
   // Try to activate round 1 (LOCKED → ACTIVE)
   const activateQuery = `
@@ -50,16 +50,15 @@ export async function activateFirstRoundRepo(teamId: string) {
     SET status = 'ACTIVE',
         started_at = NOW()
     FROM rounds r
-    JOIN games g ON g.id = r.game_id
     WHERE trp.round_id = r.id
     AND trp.team_id = $1
     AND trp.status = 'LOCKED'
     AND r.round_number = 1
-    AND g.is_active = true
+    AND r.game_id = $2
     RETURNING trp.round_id;
   `;
 
-  const result = await pool.query(activateQuery, [teamId]);
+  const result = await pool.query(activateQuery, [teamId, gameId]);
 
   if (result.rowCount && result.rowCount > 0) {
     return result.rows[0].round_id;
@@ -70,14 +69,13 @@ export async function activateFirstRoundRepo(teamId: string) {
     SELECT trp.round_id
     FROM team_round_progress trp
     JOIN rounds r ON trp.round_id = r.id
-    JOIN games g ON g.id = r.game_id
     WHERE trp.team_id = $1
       AND r.round_number = 1
-      AND g.is_active = true
+      AND r.game_id = $2
       AND trp.status = 'ACTIVE'
   `;
 
-  const fallback = await pool.query(fallbackQuery, [teamId]);
+  const fallback = await pool.query(fallbackQuery, [teamId, gameId]);
 
   if (fallback.rowCount === 0) {
     throw new Error("ROUND_ACTIVATION_FAILED");
@@ -86,18 +84,19 @@ export async function activateFirstRoundRepo(teamId: string) {
   return fallback.rows[0].round_id;
 }
 
-export async function getCurrentRoundRepo(teamId: string) {
+export async function getCurrentRoundRepo(teamId: string, gameId: string) {
 
   const query = `
     SELECT r.id, r.round_number
     FROM team_round_progress trp
     JOIN rounds r ON trp.round_id = r.id
     WHERE trp.team_id = $1
+    AND r.game_id = $2
     AND trp.status = 'ACTIVE'
     LIMIT 1
   `;
 
-  const result = await pool.query(query, [teamId]);
+  const result = await pool.query(query, [teamId, gameId]);
 
   if (result.rowCount === 0) {
     return null;
@@ -109,18 +108,26 @@ export async function getCurrentRoundRepo(teamId: string) {
   };
 }
 
-export async function getActiveOrFailedRoundRepo(teamId: string) {
+export async function getActiveOrFailedRoundRepo(teamId: string, gameId: string) {
 
   const query = `
     SELECT r.id, r.round_number, trp.status, trp.attempt_count
     FROM team_round_progress trp
     JOIN rounds r ON trp.round_id = r.id
     WHERE trp.team_id = $1
+      AND r.game_id = $2
       AND trp.status IN ('ACTIVE', 'FAILED')
+    ORDER BY
+      CASE trp.status
+        WHEN 'ACTIVE' THEN 0
+        WHEN 'FAILED' THEN 1
+        ELSE 2
+      END,
+      r.round_number ASC
     LIMIT 1
   `;
 
-  const result = await pool.query(query, [teamId]);
+  const result = await pool.query(query, [teamId, gameId]);
 
   if (result.rowCount === 0) {
     return null;
@@ -176,6 +183,25 @@ export async function decreaseAttemptRepo(teamId: string, roundId: string): Prom
   return result.rows[0].attempt_count;
 }
 
+export async function refundAttemptRepo(
+  teamId: string,
+  roundId: string,
+  consumedAttemptCount: number
+): Promise<boolean> {
+  const result = await pool.query(
+    `UPDATE team_round_progress
+     SET attempt_count = attempt_count - 1
+     WHERE team_id = $1
+       AND round_id = $2
+       AND status = 'ACTIVE'
+       AND attempt_count = $3
+       AND attempt_count > 0`,
+    [teamId, roundId, consumedAttemptCount]
+  );
+
+  return (result.rowCount ?? 0) > 0;
+}
+
 export async function completeRoundRepo(teamId: string, roundId: string) {
 
   const query = `
@@ -186,6 +212,20 @@ export async function completeRoundRepo(teamId: string, roundId: string) {
   `;
 
   await pool.query(query, [teamId, roundId]);
+}
+
+export async function failRoundRepo(teamId: string, roundId: string): Promise<boolean> {
+  const result = await pool.query(
+    `UPDATE team_round_progress
+     SET status = 'FAILED',
+         failed_at = NOW()
+     WHERE team_id = $1
+       AND round_id = $2
+       AND status = 'ACTIVE'`,
+    [teamId, roundId]
+  );
+
+  return (result.rowCount ?? 0) > 0;
 }
 
 /**
@@ -270,6 +310,55 @@ export async function activateNextRoundRepo(teamId: string, roundNumber: number,
   await pool.query(updateQuery, [teamId, gameId, roundNumber + 1]);
 }
 
+export async function failAndAdvanceRoundRepo(
+  teamId: string,
+  roundId: string,
+  roundNumber: number,
+  gameId: string
+): Promise<boolean> {
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const failResult = await client.query(
+      `UPDATE team_round_progress
+       SET status = 'FAILED', failed_at = NOW()
+       WHERE team_id = $1
+         AND round_id = $2
+         AND status = 'ACTIVE'`,
+      [teamId, roundId]
+    );
+
+    if (failResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return false;
+    }
+
+    await client.query(
+      `UPDATE team_round_progress
+       SET status = 'ACTIVE', started_at = NOW()
+       WHERE team_id = $1
+         AND round_id = (
+           SELECT id FROM rounds
+           WHERE game_id = $2
+             AND round_number = $3
+           LIMIT 1
+         )`,
+      [teamId, gameId, roundNumber + 1]
+    );
+
+    await client.query("COMMIT");
+    return true;
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 /**
  * Atomically: insert submission + complete round + advance to next round.
  * All in one transaction so submission and progress are always consistent.
@@ -288,6 +377,7 @@ export async function submitAndAdvanceRoundRepo(
   const client = await pool.connect();
 
   try {
+    // console.log('Evaluations result:', { teamId, roundId, roundNumber, gameId, answer, isCorrect, evaluationResult });
     await client.query("BEGIN");
 
     // 1. Record the submission
@@ -327,6 +417,39 @@ export async function submitAndAdvanceRoundRepo(
       [teamId, gameId, roundNumber + 1]
     );
 
+    // 4. If last round → mark game completed (unless it's Quiz V2, which has a final submission phase)
+    const isLastRound = await client.query(
+      `SELECT 1 FROM rounds
+   WHERE game_id = $1 AND round_number > $2
+   LIMIT 1`,
+      [gameId, roundNumber]
+    );
+
+    if (isLastRound.rowCount === 0) {
+      // no next round → this was last round
+      // Check if this is Quiz V2 (which needs a final submission phase, not auto-completion)
+      const gameCheck = await client.query(
+        `SELECT name FROM games WHERE id = $1`,
+        [gameId]
+      );
+      const gameName = gameCheck.rows[0]?.name;
+
+      // Only auto-complete for non-Quiz V2 games
+      if (gameName !== "Quiz V2") {
+        await client.query(
+          `UPDATE team_game_results
+       SET
+         status = 'COMPLETED',
+         completed_at = NOW(),
+         completion_time = (NOW() - started_at) + make_interval(secs => COALESCE(penalty_seconds, 0))
+       WHERE team_id = $1
+         AND game_id = $2
+         AND completed_at IS NULL`,
+          [teamId, gameId]
+        );
+      }
+    }
+
     await client.query("COMMIT");
     return { advanced: true };
 
@@ -339,60 +462,65 @@ export async function submitAndAdvanceRoundRepo(
 }
 
 /**
- * Atomically: insert wrong submission + decrement attempts in one transaction.
- * The UPDATE uses WHERE status='ACTIVE' AND attempt_count < 3 to prevent
+ * Atomically consume an attempt for a valid submission.
+ * The UPDATE uses WHERE status='ACTIVE' AND attempt_count < maxAttempts to prevent
  * races with concurrent submissions.
  * Returns { attemptCount } or null if the round was no longer active/attempts exhausted.
  */
 export async function submitAndDecrementAttemptRepo(
   teamId: string,
   roundId: string,
-  answer: string,
-  evaluationResult: string
+  maxAttempts: number = 3
 ): Promise<{ attemptCount: number } | null> {
 
-  const client = await pool.connect();
+  const result = await pool.query(
+    `UPDATE team_round_progress
+     SET attempt_count = attempt_count + 1
+     WHERE team_id = $1
+       AND round_id = $2
+       AND status = 'ACTIVE'
+       AND attempt_count < $3
+     RETURNING attempt_count`,
+    [teamId, roundId, maxAttempts]
+  );
 
-  try {
-    await client.query("BEGIN");
-
-    // 1. Record the submission
-    await client.query(
-      `INSERT INTO submissions
-         (team_id, round_id, submitted_answer, is_correct, evaluation_result, evaluated_at)
-       VALUES ($1, $2, $3, false, $4, NOW())`,
-      [teamId, roundId, answer, evaluationResult]
-    );
-
-    // 2. Atomically increment attempt_count, auto-fail at 3
-    const result = await client.query(
-      `UPDATE team_round_progress
-       SET
-         attempt_count = attempt_count + 1,
-         status = CASE WHEN attempt_count + 1 >= 3 THEN 'FAILED' ELSE status END,
-         failed_at = CASE WHEN attempt_count + 1 >= 3 THEN NOW() ELSE failed_at END
-       WHERE team_id = $1
-         AND round_id = $2
-         AND status = 'ACTIVE'
-         AND attempt_count < 3
-       RETURNING attempt_count`,
-      [teamId, roundId]
-    );
-
-    if (result.rowCount === 0) {
-      await client.query("ROLLBACK");
-      return null;
-    }
-
-    await client.query("COMMIT");
-    return { attemptCount: result.rows[0].attempt_count };
-
-  } catch (e) {
-    await client.query("ROLLBACK");
-    throw e;
-  } finally {
-    client.release();
+  if (result.rowCount === 0) {
+    return null;
   }
+
+  return { attemptCount: result.rows[0].attempt_count };
+}
+
+export async function completeGameResultRepo(
+  teamId: string,
+  gameId: string,
+  status: "COMPLETED" | "FAILED"
+) {
+  const result = await pool.query(
+    `UPDATE team_game_results
+     SET
+       status = $3,
+       completed_at = NOW(),
+       completion_time = (NOW() - started_at) + make_interval(secs => COALESCE(penalty_seconds, 0))
+     WHERE team_id = $1
+       AND game_id = $2
+       AND completed_at IS NULL
+     RETURNING id, status, completed_at, completion_time`,
+    [teamId, gameId, status]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function cleanupActiveRoundsRepo(teamId: string) {
+  await pool.query(
+    `UPDATE team_round_progress
+     SET status = 'FAILED',
+         failed_at = NOW()
+     WHERE team_id = $1
+       AND status = 'ACTIVE'`,
+    [teamId]
+  );
 }
 
 // ─── Quiz V2: metadata + configurable attempt limit ─────────────────────────
@@ -411,8 +539,13 @@ export async function bulkSetMetadataRepo(
     for (const u of updates) {
       await client.query(
         `UPDATE team_round_progress
-         SET metadata = $3
-         WHERE team_id = $1 AND round_id = $2 AND metadata IS NULL`,
+         SET metadata = $3::jsonb
+         WHERE team_id = $1
+           AND round_id = $2
+           AND (
+             metadata IS NULL
+             OR NOT (metadata ? 'ascii_number')
+           )`,
         [u.teamId, u.roundId, JSON.stringify(u.metadata)]
       );
     }
@@ -427,10 +560,48 @@ export async function bulkSetMetadataRepo(
 
 export async function getRoundMetadataRepo(teamId: string, roundId: string) {
   const result = await pool.query(
-    `SELECT metadata FROM team_round_progress WHERE team_id = $1 AND round_id = $2`,
+    `SELECT
+       metadata,
+       (metadata->>'ascii_number')::int AS ascii_number,
+       COALESCE((metadata->>'revealed')::boolean, false) AS revealed
+     FROM team_round_progress
+     WHERE team_id = $1 AND round_id = $2`,
     [teamId, roundId]
   );
-  return result.rows[0]?.metadata ?? null;
+
+  if (result.rowCount === 0) {
+    return null;
+  }
+
+  if (result.rows[0].ascii_number === null || result.rows[0].ascii_number === undefined) {
+    return result.rows[0]?.metadata ?? null;
+  }
+
+  return {
+    ascii_number: result.rows[0].ascii_number as number,
+    revealed: result.rows[0].revealed as boolean,
+  };
+}
+
+export async function getMetadataCoverageRepo(teamId: string, gameId: string) {
+  const result = await pool.query(
+    `SELECT
+       COUNT(*) AS total,
+       COUNT(*) FILTER (
+         WHERE trp.metadata IS NOT NULL
+           AND trp.metadata ? 'ascii_number'
+       ) AS with_ascii
+     FROM team_round_progress trp
+     JOIN rounds r ON trp.round_id = r.id
+     WHERE trp.team_id = $1
+       AND r.game_id = $2`,
+    [teamId, gameId]
+  );
+
+  return {
+    total: Number(result.rows[0]?.total ?? 0),
+    withAscii: Number(result.rows[0]?.with_ascii ?? 0),
+  };
 }
 
 export async function updateMetadataRevealedRepo(teamId: string, roundId: string) {
@@ -448,20 +619,23 @@ export async function updateMetadataRevealedRepo(teamId: string, roundId: string
  */
 export async function getRevealedNumbersRepo(teamId: string, gameId: string) {
   const result = await pool.query(
-    `SELECT trp.metadata, r.round_number
+    `SELECT
+       r.round_number,
+       (trp.metadata->>'ascii_number')::int AS ascii_number
      FROM team_round_progress trp
      JOIN rounds r ON trp.round_id = r.id
      WHERE trp.team_id = $1
        AND r.game_id = $2
        AND trp.status = 'COMPLETED'
        AND trp.metadata IS NOT NULL
+       AND trp.metadata ? 'ascii_number'
        AND (trp.metadata->>'revealed')::boolean = true
      ORDER BY r.round_number`,
     [teamId, gameId]
   );
   return result.rows.map((r: any) => ({
     roundNumber: r.round_number as number,
-    asciiNumber: r.metadata.ascii_number as number,
+    asciiNumber: r.ascii_number as number,
   }));
 }
 
@@ -480,80 +654,4 @@ export async function areAllRoundsDoneRepo(teamId: string, gameId: string): Prom
   );
   const { done, total } = result.rows[0];
   return parseInt(done) === parseInt(total) && parseInt(total) > 0;
-}
-
-/**
- * Atomically: insert wrong submission + decrement attempts (configurable max)
- * + advance to next round if attempts exhausted.
- *
- * Used by games where failed rounds still unlock the next round (e.g. Quiz V2).
- */
-export async function submitDecrementAndAdvanceRepo(
-  teamId: string,
-  roundId: string,
-  answer: string,
-  evaluationResult: string,
-  maxAttempts: number,
-  roundNumber: number,
-  gameId: string
-): Promise<{ attemptCount: number; failed: boolean } | null> {
-
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    // 1. Record wrong submission
-    await client.query(
-      `INSERT INTO submissions
-         (team_id, round_id, submitted_answer, is_correct, evaluation_result, evaluated_at)
-       VALUES ($1, $2, $3, false, $4, NOW())`,
-      [teamId, roundId, answer, evaluationResult]
-    );
-
-    // 2. Increment attempts, auto-fail at maxAttempts
-    const result = await client.query(
-      `UPDATE team_round_progress
-       SET
-         attempt_count = attempt_count + 1,
-         status = CASE WHEN attempt_count + 1 >= $3 THEN 'FAILED' ELSE status END,
-         failed_at = CASE WHEN attempt_count + 1 >= $3 THEN NOW() ELSE failed_at END
-       WHERE team_id = $1
-         AND round_id = $2
-         AND status = 'ACTIVE'
-         AND attempt_count < $3
-       RETURNING attempt_count`,
-      [teamId, roundId, maxAttempts]
-    );
-
-    if (result.rowCount === 0) {
-      await client.query("ROLLBACK");
-      return null;
-    }
-
-    const attemptCount = result.rows[0].attempt_count;
-    const failed = attemptCount >= maxAttempts;
-
-    // 3. If failed, still advance to next round (no-op for the last round)
-    if (failed) {
-      await client.query(
-        `UPDATE team_round_progress
-         SET status = 'ACTIVE', started_at = NOW()
-         WHERE team_id = $1
-           AND round_id = (
-             SELECT id FROM rounds
-             WHERE game_id = $2 AND round_number = $3
-             LIMIT 1
-           )`,
-        [teamId, gameId, roundNumber + 1]
-      );
-    }
-
-    await client.query("COMMIT");
-    return { attemptCount, failed };
-  } catch (e) {
-    await client.query("ROLLBACK");
-    throw e;
-  } finally {
-    client.release();
-  }
 }

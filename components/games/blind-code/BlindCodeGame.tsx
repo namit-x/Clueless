@@ -4,10 +4,15 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
+import { getGameScreen } from "@/lib/gameMessages";
+import type { MessageCode } from "@/lib/types/teamGameState";
+import CoderGhost from "@/components/CoderGhost";
+import GameStatusScreen, { FloatingLoadingGhost } from "@/components/games/GameStatusScreen";
 
 export default function BlindCodeGame() {
   const router = useRouter();
   const [code, setCode] = useState("");
+  const [cursorPosition, setCursorPosition] = useState(0);
   const [lineCount, setLineCount] = useState(10);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -40,6 +45,10 @@ export default function BlindCodeGame() {
     failSoundRef.current?.play();
   }
 
+  // top of component — track typing state with a timeout ref
+  const [ghostTyping, setGhostTyping] = useState(false);
+  const ghostTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Typing Sound Effects
   const keySoundsRef = useRef<HTMLAudioElement[]>([]);
   const keyIndexRef = useRef(0);
@@ -65,7 +74,18 @@ export default function BlindCodeGame() {
     }
   }
 
-  async function fetchCurrentRound(afterCorrect = false) {
+  function triggerGhostTyping() {
+    setGhostTyping(true);
+    if (ghostTimeoutRef.current) {
+      clearTimeout(ghostTimeoutRef.current);
+    }
+    ghostTimeoutRef.current = setTimeout(() => setGhostTyping(false), 1200);
+  }
+
+  const fetchCurrentRoundRef = useRef<() => void>(() => {});
+  const lastLocalSubmitRef = useRef(0);
+
+  async function fetchCurrentRound() {
     try {
       setLoading(true);
 
@@ -73,58 +93,29 @@ export default function BlindCodeGame() {
         credentials: "include",
       });
 
-      if (!res.ok) {
-        if (afterCorrect) setIsFinished(true);
-        else setIsGameEnded(true);
-        setIsWaiting(false);
-        setIsRoundFailed(false);
-        return;
-      }
-
-      const json = await res.json();
+      const json = res.ok ? await res.json() : null;
       console.log("ROUND API: ", json);
 
-      if (!json.success) {
-        if (afterCorrect) setIsFinished(true);
-        else setIsGameEnded(true);
-        setIsWaiting(false);
-        setIsRoundFailed(false);
-        return;
-      }
+      const screen = getGameScreen(json?.messageCode as MessageCode | undefined);
 
-      // NOTE for backend: getBlindCodeRound should return status: "FAILED" when attempts exhausted
-      if (json.status === "FAILED") {
-        setIsRoundFailed(true);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setCurrentRound(null);
-        return;
-      }
+      setIsFinished(screen === "finished" || screen === "rounds_done");
+      setIsRoundFailed(screen === "failed");
+      setIsGameEnded(screen === "time_over");
+      setIsWaiting(screen === "waiting");
 
-      if (json.status === "COMPLETED") {
-        setIsFinished(true);
-        setIsWaiting(false);
-        setIsGameEnded(false);
-        setIsRoundFailed(false);
+      if (screen !== "playing") {
         setCurrentRound(null);
         return;
       }
 
       if (!json.roundId) {
         setIsWaiting(true);
-        setIsFinished(false);
-        setIsGameEnded(false);
-        setIsRoundFailed(false);
         setCurrentRound(null);
         return;
       }
 
-      setIsWaiting(false);
-      setIsGameEnded(false);
-      setIsRoundFailed(false);
       setCurrentRound({ id: json.roundId, number: json.round });
       setTargetString(json.challenge);
-      // NOTE for backend: getBlindCodeRound should return attemptsLeft
       setAttemptsLeft(json.attemptsLeft ?? 3);
     } catch (err) {
       console.error("Round fetch error", err);
@@ -155,10 +146,12 @@ export default function BlindCodeGame() {
       if (json.correct) {
         setResult("correct");
         setCode("");
+        setCursorPosition(0);
         setLineCount(10);
 
-        // Re-fetch to load the next round (pass true so a failed fetch = completed)
-        await fetchCurrentRound(true);
+        // Re-fetch to load the next round (resolver handles terminal states)
+        lastLocalSubmitRef.current = Date.now();
+        await fetchCurrentRound();
         setResult(null);
       } else {
         setResult("incorrect");
@@ -176,116 +169,222 @@ export default function BlindCodeGame() {
     }
   }
 
+  useEffect(() => { fetchCurrentRoundRef.current = fetchCurrentRound; });
+
   useEffect(() => {
-    fetchCurrentRound();
+    fetchCurrentRoundRef.current();
 
     const channel = supabase
       .channel("realtime:games:blind-code")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "games" },
-        () => { fetchCurrentRound(); }
+        () => { fetchCurrentRoundRef.current(); }
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "teams" },
-        () => { fetchCurrentRound(); }
+        () => { fetchCurrentRoundRef.current(); }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "team_round_progress" },
-        () => { fetchCurrentRound(); }
+        () => { if (Date.now() - lastLocalSubmitRef.current > 1000) fetchCurrentRoundRef.current(); }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setCode(val);
-    setResult(null);
-    const lines = val.split("\n").length;
+  useEffect(() => {
+    return () => {
+      if (ghostTimeoutRef.current) {
+        clearTimeout(ghostTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Keep the textarea caret aligned with our virtual cursor state.
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+
+    const nextCursorPosition = Math.min(cursorPosition, code.length);
+    if (nextCursorPosition !== cursorPosition) {
+      setCursorPosition(nextCursorPosition);
+      return;
+    }
+
+    ta.selectionStart = nextCursorPosition;
+    ta.selectionEnd = nextCursorPosition;
+  }, [code, cursorPosition]);
+
+  // Recalculate line count whenever code changes
+  useEffect(() => {
+    const lines = code.split("\n").length;
     setLineCount(Math.max(10, lines + 2));
+  }, [code]);
+
+  // No-op: all input is handled in onKeyDown; onChange is required by React for controlled inputs
+  const handleChange = () => { };
+
+  const insertAtCursor = (text: string) => {
+    setCode(prev => `${prev.slice(0, cursorPosition)}${text}${prev.slice(cursorPosition)}`);
+    setCursorPosition(prev => prev + text.length);
+    setResult(null);
+  };
+
+  const moveCursorVertically = (direction: -1 | 1) => {
+    const lineStarts = [0];
+    for (let i = 0; i < code.length; i++) {
+      if (code[i] === "\n") {
+        lineStarts.push(i + 1);
+      }
+    }
+
+    let currentLine = 0;
+    for (let i = 0; i < lineStarts.length; i++) {
+      if (lineStarts[i] <= cursorPosition) {
+        currentLine = i;
+      } else {
+        break;
+      }
+    }
+
+    const targetLine = currentLine + direction;
+    if (targetLine < 0 || targetLine >= lineStarts.length) {
+      return cursorPosition;
+    }
+
+    const column = cursorPosition - lineStarts[currentLine];
+    const targetLineStart = lineStarts[targetLine];
+    const targetLineEnd =
+      targetLine + 1 < lineStarts.length ? lineStarts[targetLine + 1] - 1 : code.length;
+    const targetLineLength = targetLineEnd - targetLineStart;
+
+    return targetLineStart + Math.min(column, targetLineLength);
+  };
+
+  const syncCursorFromTextarea = () => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    setCursorPosition(ta.selectionStart ?? 0);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-
-    // Ctrl + Enter --> Run & Submit
+    // Ctrl + Enter --> Run & Submit (no ghost trigger)
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();
+      return;
     }
 
-    // Tab --> Insert spaces (4)
+    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setCursorPosition(prev => Math.max(0, prev - 1));
+        playTypingSound(e.key);
+        return;
+      }
+
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setCursorPosition(prev => Math.min(code.length, prev + 1));
+        playTypingSound(e.key);
+        return;
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setCursorPosition(moveCursorVertically(-1));
+        playTypingSound(e.key);
+        return;
+      }
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setCursorPosition(moveCursorVertically(1));
+        playTypingSound(e.key);
+        return;
+      }
+
+      if (e.key === "Home") {
+        e.preventDefault();
+        const lineStart = code.lastIndexOf("\n", Math.max(cursorPosition - 1, 0)) + 1;
+        setCursorPosition(lineStart);
+        return;
+      }
+
+      if (e.key === "End") {
+        e.preventDefault();
+        const nextNewline = code.indexOf("\n", cursorPosition);
+        setCursorPosition(nextNewline === -1 ? code.length : nextNewline);
+        return;
+      }
+    }
+
+    if (e.key === "CapsLock" || e.key === "Shift") {
+      playTypingSound(e.key);
+      return;
+    }
+
+    // Tab --> insert 4 spaces
     if (e.key === "Tab") {
       e.preventDefault();
-      const ta = textareaRef.current!;
-      const s = ta.selectionStart;
-      const newVal = code.substring(0, s) + "    " + code.substring(ta.selectionEnd);
-      setCode(newVal);
-      setTimeout(() => { ta.selectionStart = ta.selectionEnd = s + 4; }, 0);
+      insertAtCursor("    ");
+      playTypingSound(e.key);
+      triggerGhostTyping();
+      return;
     }
 
-    // Play typing sound for printable keys, Enter, Backspace, Tab, Space, Arrow keys
-    if (e.key.length === 1 || ["Enter", "Backspace", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+    // Enter --> insert newline
+    if (e.key === "Enter") {
+      e.preventDefault();
+      insertAtCursor("\n");
       playTypingSound(e.key);
+      triggerGhostTyping();
+      return;
+    }
+
+    // Backspace --> remove previous character
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      if (cursorPosition === 0) return;
+      setCode(prev => `${prev.slice(0, cursorPosition - 1)}${prev.slice(cursorPosition)}`);
+      setCursorPosition(prev => Math.max(0, prev - 1));
+      setResult(null);
+      playTypingSound(e.key);
+      triggerGhostTyping();
+      return;
+    }
+
+    // Delete --> remove current character
+    if (e.key === "Delete") {
+      e.preventDefault();
+      if (cursorPosition >= code.length) return;
+      setCode(prev => `${prev.slice(0, cursorPosition)}${prev.slice(cursorPosition + 1)}`);
+      setResult(null);
+      playTypingSound(e.key);
+      triggerGhostTyping();
+      return;
+    }
+
+    // Printable character (exclude ctrl/meta combos like Ctrl+A, Ctrl+C)
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      insertAtCursor(e.key);
+      playTypingSound(e.key);
+      triggerGhostTyping();
     }
   };
 
   // ── UI states ──────────────────────────────────────────────────────────────
 
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center font-mono text-sm text-muted-foreground/30 animate-fade-in">
-        <span className="animate-pulse">loading...</span>
-      </div>
-    );
-  }
-
-  if (isWaiting) {
-    return (
-      <div className="flex-1 flex items-center justify-center font-mono text-sm text-muted-foreground/50 animate-fade-in">
-        waiting for admin to start blind code...
-      </div>
-    );
-  }
-
-  if (isRoundFailed) {
-    return (
-      <div className="flex-1 flex items-center justify-center font-mono text-sm text-destructive animate-fade-in">
-        attempts exhausted — your run ends here.
-      </div>
-    );
-  }
-
-  if (isFinished) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 font-mono animate-fade-in">
-        <span className="text-sm text-success">Round Cleared. Well Played.</span>
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="bg-success/10 border border-success/25 text-success text-xs rounded-md px-5 py-2 transition-all duration-200 hover:bg-success/15 hover:border-success/35 active:scale-[0.97]"
-        >
-          [ proceed to dashboard ]
-        </button>
-      </div>
-    );
-  }
-
-  if (isGameEnded) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 font-mono animate-fade-in">
-        <span className="text-2xl font-bold text-destructive">The Blind Code has been ended by admin.</span>
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="border border-border text-muted-foreground text-xs rounded-md px-5 py-2 transition-all duration-200 hover:bg-muted hover:border-white/[0.1] active:scale-[0.97]"
-        >
-          [ proceed to dashboard ]
-        </button>
-      </div>
-    );
-  }
+  if (loading) return <FloatingLoadingGhost />;
+  if (isWaiting) return <GameStatusScreen variant="waiting" gameName="Blind Code" />;
+  if (isRoundFailed) return <GameStatusScreen variant="failed" gameName="Blind Code" />;
+  if (isFinished) return <GameStatusScreen variant="finished" gameName="Blind Code" />;
+  if (isGameEnded) return <GameStatusScreen variant="ended" gameName="Blind Code" />;
 
   // ── Main game UI ───────────────────────────────────────────────────────────
 
@@ -308,7 +407,19 @@ export default function BlindCodeGame() {
             target output — print this exact string
           </span>
           <span className="text-[10px] text-muted-foreground/50 flex items-center gap-2">
-            round {currentRound?.number} · <AttemptsHearts remaining={attemptsLeft} />
+            <span
+              className="inline-flex items-center rounded-md px-3 py-1 text-[12px] font-bold uppercase font-display text-primary"
+              style={{
+                letterSpacing: "0.16em",
+                background: "hsl(var(--foreground) / 0.05)",
+                border: "1px solid hsl(var(--foreground) / 0.09)",
+                boxShadow: "inset 0 0.5px 0 hsl(var(--foreground) / 0.05)",
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              ROUND {currentRound?.number}
+            </span>
+            <AttemptsHearts remaining={attemptsLeft} />
           </span>
         </div>
         <div className="bg-muted/30 border border-border border-l-2 border-l-success rounded-r-md px-4 py-3 text-success text-sm tracking-wide break-all leading-relaxed">
@@ -325,7 +436,7 @@ export default function BlindCodeGame() {
             <span className="text-[12px] tracking-widest text-muted-foreground uppercase">editor</span>
             <span className="text-[10px] text-muted-foreground/60">Main.java</span>
           </div>
-          <span className="bg-muted border border-border rounded px-2 py-0.5 text-[10px] text-muted-foreground/40">Java</span>
+          <span className="bg-muted border border-border rounded px-2 py-0.5 text-[10px] text-white/40">Java</span>
         </div>
 
         {/* Code area */}
@@ -346,10 +457,13 @@ export default function BlindCodeGame() {
             value={code}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
+            onClick={syncCursorFromTextarea}
+            onFocus={syncCursorFromTextarea}
+            onSelect={syncCursorFromTextarea}
             spellCheck={false}
             disabled={submitting}
             placeholder={`// write your Java code here\npublic class Main {\n    public static void main(String[] args) {\n        // your code\n    }\n}`}
-            className="flex-1 bg-transparent text-transparent text-[13px] leading-[21px] p-4 outline-none resize-none placeholder:text-muted-foreground/20 caret-success disabled:opacity-50 selection:bg-transparent"
+            className="flex-1 bg-transparent text-transparent text-[13px] leading-[21px] p-4 outline-none resize-none placeholder:text-muted-foreground/20 caret-transparent disabled:opacity-50 selection:bg-transparent"
           />
         </div>
       </div>
@@ -395,17 +509,32 @@ export default function BlindCodeGame() {
           )}
         </div>
         <div className="flex items-center gap-3 ml-auto">
-          <span className="text-[10px] text-muted-foreground/20">{code.length} chars</span>
+          <CoderGhost isTyping={ghostTyping} className="mr-1" />
+          <span className="text-[10px] text-white/80">{code.length} chars</span>
           <button
             onClick={handleSubmit}
             disabled={!code.trim() || submitting}
-            className="relative group bg-success/10 border border-success/25 text-success text-xs rounded-md px-4 py-1.5 transition-all duration-200 hover:bg-success/15 hover:border-success/35 active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="relative group flex items-center gap-2 px-4 py-1.5 text-xs font-mono rounded-md border transition-all duration-200
+    bg-success/5 border-success/20 text-success
+    hover:bg-success/10 hover:border-success/40 hover:shadow-[0_0_12px_rgba(var(--color-success),0.15)]
+    active:scale-[0.97]
+    disabled:opacity-25 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:bg-success/5 disabled:hover:border-success/20"
           >
-            {submitting ? "[ running... ]" : "[ run & submit ]"}
+            {/* left accent bar */}
+            <span className="w-[2px] h-3 rounded-full bg-success/60 group-hover:bg-success transition-colors duration-200" />
+
+            {submitting ? (
+              <>
+                <span className="animate-pulse">running</span>
+                <span className="tracking-widest animate-pulse">...</span>
+              </>
+            ) : (
+              <span className="tracking-wide">Submit</span>
+            )}
 
             {/* tooltip */}
             {!submitting && (
-              <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-black/90 px-2 py-1 text-[10px] text-white opacity-0 transition group-hover:opacity-100">
+              <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded border border-white/10 bg-black/90 px-2 py-1 text-[10px] text-white/70 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                 Ctrl + Enter
               </span>
             )}

@@ -2,8 +2,8 @@ import { getApprovedTeamsRepo } from "@/lib/repositories/teamsRepo";
 import { getAllRoutesRepo, getTeamRouteRepo, insertTeamRoutesRepo } from "@/lib/repositories/teamRoutesRepo";
 import {
     activateFirstRoundRepo,
+    failRoundRepo,
     getActiveOrFailedRoundRepo,
-    getRoundAttemptStatusRepo,
     initializeTeamRoundProgressRepo,
     submitAndAdvanceRoundRepo,
     submitAndDecrementAttemptRepo
@@ -11,6 +11,7 @@ import {
 import { activateGameRepo } from "@/lib/repositories/gameRepo";
 import { getClueAndAnswerForRoundRepo, getClueForRoundRepo, getRoundClueRepo } from "@/lib/repositories/routeLocationsRepo";
 import { completeTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
+import { insertSubmissionRepo } from "@/lib/repositories/submissionsRepo";
 
 export async function startTreasureHuntGame(gameId: string) {
 
@@ -38,13 +39,13 @@ export async function startTreasureHuntGame(gameId: string) {
     return await activateGameRepo(gameId);
 }
 
-export async function startTreasureHuntForTeam(teamId: string) {
+export async function startTreasureHuntForTeam(teamId: string, gameId: string) {
 
     console.log(`[TreasureHuntService] Starting Treasure Hunt for team ${teamId}`);
 
     const [routeId] = await Promise.all([
         getTeamRouteRepo(teamId),
-        activateFirstRoundRepo(teamId)
+        activateFirstRoundRepo(teamId, gameId)
     ]);
 
     const clue = await getRoundClueRepo(routeId, 1);
@@ -55,11 +56,11 @@ export async function startTreasureHuntForTeam(teamId: string) {
     };
 }
 
-export async function getTreasureHuntRound(teamId: string) {
+export async function getTreasureHuntRound(teamId: string, gameId: string) {
 
     const [routeId, roundProgress] = await Promise.all([
         getTeamRouteRepo(teamId),
-        getActiveOrFailedRoundRepo(teamId)
+        getActiveOrFailedRoundRepo(teamId, gameId)
     ]);
 
     if (!roundProgress) {
@@ -103,10 +104,9 @@ export async function submitTreasureHuntAnswer(
         message: "You have used all attempts for this round"
     };
 
-    // Pre-check: reject immediately if round is already failed or attempts exhausted.
-    const progress = await getRoundAttemptStatusRepo(teamId, roundId);
-    if (progress.status !== 'ACTIVE' || progress.attemptCount >= 3) {
-        return FAILED_RESPONSE;
+    const attempt = await submitAndDecrementAttemptRepo(teamId, roundId, 3);
+    if (!attempt) {
+        throw new Error("MAX_ATTEMPTS_REACHED");
     }
 
     const routeId = await getTeamRouteRepo(teamId);
@@ -122,7 +122,7 @@ export async function submitTreasureHuntAnswer(
         );
 
         if (!advanced) {
-            return FAILED_RESPONSE;
+            throw new Error("ROUND_ALREADY_COMPLETED");
         }
 
         if (roundNumber === 3) {
@@ -133,22 +133,19 @@ export async function submitTreasureHuntAnswer(
         return { status: "CORRECT" };
     }
 
-    // Atomic: insert wrong submission + decrement attempts in one transaction
-    const result = await submitAndDecrementAttemptRepo(
-        teamId, roundId, answer, "Treasure Hunt"
-    );
+    await insertSubmissionRepo(teamId, roundId, answer, false, "Treasure Hunt");
 
-    if (!result) {
-        return FAILED_RESPONSE;
-    }
-
-    if (result.attemptCount >= 3) {
+    if (attempt.attemptCount >= 3) {
+        const failed = await failRoundRepo(teamId, roundId);
+        if (!failed) {
+            throw new Error("ROUND_NOT_ACTIVE");
+        }
         return FAILED_RESPONSE;
     }
 
     return {
         status: "INCORRECT",
-        attemptsUsed: result.attemptCount,
-        attemptsLeft: 3 - result.attemptCount
+        attemptsUsed: attempt.attemptCount,
+        attemptsLeft: 3 - attempt.attemptCount
     };
 }

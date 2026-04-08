@@ -38,21 +38,27 @@ export default function GamesGrid({ games }: Props) {
     );
   }
 
+  const liveCount = games.filter((g) => g.state === "ACTIVE").length;
+
   return (
     <div>
-      {/* Section header */}
-      <div className="flex items-center gap-3 mb-5">
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-          <h2 className="font-display text-sm font-semibold uppercase tracking-[0.15em] text-white/40">
-            Available Games
+      {/* ── Section header ── */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          {/* Divider accent */}
+          <div className="w-px h-4 bg-primary/40" />
+          <h2 className="font-display text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+            Games
           </h2>
         </div>
-        <div className="flex-1 h-px bg-gradient-to-r from-white/[0.06] to-transparent" />
-        <span className="text-xs text-white/20 tabular-nums">{games.length} total</span>
+        <div>
+          {/* Dashboard PlayingGhost */}
+        </div>
+
+
       </div>
 
-      {/* Grid */}
+      {/* ── Grid ── */}
       <div className="grid gap-8 grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto">
         {games.map((game, idx) => (
           <div
@@ -68,7 +74,6 @@ export default function GamesGrid({ games }: Props) {
           </div>
         ))}
       </div>
-
     </div>
   );
 }

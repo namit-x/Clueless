@@ -59,10 +59,11 @@ export async function completeTeamGameResult(teamId: string, gameId: string) {
         UPDATE team_game_results
         SET
             completed_at = NOW(),
-            completion_time = NOW() - started_at,
+            completion_time = (NOW() - started_at) + make_interval(secs => COALESCE(penalty_seconds, 0)),
             status = 'COMPLETED'
         WHERE team_id = $1
           AND game_id = $2
+          AND completed_at IS NULL
         RETURNING
             id,
             team_id,
@@ -105,6 +106,24 @@ export async function markTimedOutTeamGameResults(gameId: string, penaltySeconds
     const result = await pool.query(query, [gameId, penaltySeconds]);
 
     return result.rows;
+}
+
+export async function getTeamLatestGameResultRepo(teamId: string) {
+    const query = `
+        SELECT
+            tgr.game_id,
+            tgr.status,
+            g.name AS game_name
+        FROM team_game_results tgr
+        JOIN games g ON tgr.game_id = g.id
+        WHERE tgr.team_id = $1
+        ORDER BY tgr.started_at DESC
+        LIMIT 1;
+    `;
+
+    const result = await pool.query(query, [teamId]);
+
+    return result.rows[0] ?? null;
 }
 
 export async function deleteTeamGameResultsByGameId(gameId: string) {
