@@ -417,7 +417,7 @@ export async function submitAndAdvanceRoundRepo(
       [teamId, gameId, roundNumber + 1]
     );
 
-    // 4. If last round → mark game completed
+    // 4. If last round → mark game completed (unless it's Quiz V2, which has a final submission phase)
     const isLastRound = await client.query(
       `SELECT 1 FROM rounds
    WHERE game_id = $1 AND round_number > $2
@@ -427,17 +427,27 @@ export async function submitAndAdvanceRoundRepo(
 
     if (isLastRound.rowCount === 0) {
       // no next round → this was last round
-      await client.query(
-        `UPDATE team_game_results
-     SET
-       status = 'COMPLETED',
-       completed_at = NOW(),
-       completion_time = (NOW() - started_at) + make_interval(secs => COALESCE(penalty_seconds, 0))
-     WHERE team_id = $1 
-       AND game_id = $2
-       AND completed_at IS NULL`,
-        [teamId, gameId]
+      // Check if this is Quiz V2 (which needs a final submission phase, not auto-completion)
+      const gameCheck = await client.query(
+        `SELECT name FROM games WHERE id = $1`,
+        [gameId]
       );
+      const gameName = gameCheck.rows[0]?.name;
+
+      // Only auto-complete for non-Quiz V2 games
+      if (gameName !== "Quiz V2") {
+        await client.query(
+          `UPDATE team_game_results
+       SET
+         status = 'COMPLETED',
+         completed_at = NOW(),
+         completion_time = (NOW() - started_at) + make_interval(secs => COALESCE(penalty_seconds, 0))
+       WHERE team_id = $1
+         AND game_id = $2
+         AND completed_at IS NULL`,
+          [teamId, gameId]
+        );
+      }
     }
 
     await client.query("COMMIT");
