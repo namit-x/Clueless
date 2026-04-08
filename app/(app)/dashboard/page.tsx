@@ -51,25 +51,42 @@ export default function DashboardPage() {
     }
   }, [dispatch, router, teamStatus, gamesStatus]);
 
-  if (teamStatus === "loading" || gamesStatus === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="relative flex flex-col items-center gap-5">
-          <div className="relative w-14 h-14">
-            <div className="absolute inset-0 rounded-full border-2 border-white/[0.06]" />
-            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" style={{ animationDuration: "1s" }} />
-            <div
-              className="absolute inset-2 rounded-full border-2 border-transparent border-b-secondary animate-spin"
-              style={{ animationDirection: "reverse", animationDuration: "0.7s" }}
-            />
-          </div>
-          <p className="text-sm tracking-[0.2em] uppercase text-white/30 animate-pulse">
-            Loading dashboard
-          </p>
+if (teamStatus === "loading" || gamesStatus === "loading") {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="relative flex flex-col items-center gap-6">
+        {/* Spinner Rings */}
+        <div className="relative w-16 h-16">
+          <div className="absolute inset-0 rounded-full border-2 border-white/[0.06]" />
+          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
+          <div
+            className="absolute inset-2 rounded-full border-2 border-transparent border-b-secondary animate-spin"
+            style={{
+              animationDirection: "reverse",
+              animationDuration: "0.7s",
+            }}
+          />
+        </div>
+
+        {/* Animated Entering Text */}
+        <div className="flex gap-1 text-sm md:text-base font-semibold uppercase tracking-[0.25em]">
+          {"Entering GameArena".split("").map((char, i) => (
+            <span
+              key={i}
+              className="animate-pulse"
+              style={{
+                animationDelay: `${i * 0.08}s`,
+                opacity: 0.25,
+              }}
+            >
+              {char === " " ? "\u00A0" : char}
+            </span>
+          ))}
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (teamBlocked) return <TeamBlockedScreen />;
 

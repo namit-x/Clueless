@@ -24,7 +24,7 @@ const Navbar = () => {
     user?.role === "admin" ? "/admin/dashboard" : "/dashboard";
 
   const dashboardLabel =
-    user?.role === "admin" ? "Admin Dashboard" : "Team Dashboard";
+    user?.role === "admin" ? "Admin Dashboard" : "GameArena";
 
 
   useEffect(() => {
