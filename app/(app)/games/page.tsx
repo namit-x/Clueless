@@ -15,6 +15,7 @@ import DigitManipulationGame from "@/components/games/digit-manipulation/DigitMa
 import BlindCodeGame from "@/components/games/blind-code/BlindCodeGame";
 import TeamBlockedScreen from "@/components/game/TeamBlockedScreen";
 import LoadingGhost from "@/components/LoadingGhost";
+import { useFullscreenExitLogout } from "@/hooks/useFullscreenExitLogout";
 
 const NoActiveGame = () => (
   <div className="flex items-center justify-center min-h-[320px] p-8">
@@ -33,6 +34,10 @@ function GamesPageInner() {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const selectedGameId = searchParams.get("gameId");
+
+  // Log out user if they exit fullscreen
+  // Comment out the line below to disable during development
+  useFullscreenExitLogout();
 
   const teamBlocked = useAppSelector(selectTeamBlocked);
   const teamStatus = useAppSelector(selectTeamStatus);

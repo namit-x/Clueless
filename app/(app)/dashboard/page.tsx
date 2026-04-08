@@ -11,6 +11,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import GamesGrid from "@/components/dashboard/GameGrid";
 import TeamBlockedScreen from "@/components/game/TeamBlockedScreen";
 import { useTeamRealtimeSubscriptions } from "@/hooks/useTeamRealtimeSubscriptions";
+import { useFullscreenExitLogout } from "@/hooks/useFullscreenExitLogout";
 
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
@@ -18,6 +19,10 @@ export default function DashboardPage() {
 
   // Realtime: update game list when admin starts / ends a game
   useTeamRealtimeSubscriptions();
+
+  // Log out user if they exit fullscreen
+  // Comment out the line below to disable during development
+  useFullscreenExitLogout();
 
   const teamBlocked = useAppSelector(selectTeamBlocked);
   const teamStatus = useAppSelector(selectTeamStatus);
