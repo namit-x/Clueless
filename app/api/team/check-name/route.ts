@@ -3,6 +3,8 @@ import { z } from "zod";
 import { checkTeamNameRepo } from "@/lib/repositories/teamsRepo";
 import { rateLimit } from "@/lib/rateLimit";
 
+export const dynamic = "force-dynamic";
+
 const schema = z.object({
     teamName: z.string().min(3).max(50),
 });

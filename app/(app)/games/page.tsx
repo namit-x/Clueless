@@ -15,6 +15,7 @@ import DigitManipulationGame from "@/components/games/digit-manipulation/DigitMa
 import BlindCodeGame from "@/components/games/blind-code/BlindCodeGame";
 import TeamBlockedScreen from "@/components/game/TeamBlockedScreen";
 import LoadingGhost from "@/components/LoadingGhost";
+import GameErrorBoundary from "@/components/GameErrorBoundary";
 
 const NoActiveGame = () => (
   <div className="flex items-center justify-center min-h-[320px] p-8">
@@ -39,7 +40,6 @@ function GamesPageInner() {
   const gamesStatus = useAppSelector(selectGamesStatus);
   const games = useAppSelector(selectAllGames);
   const selectedGame = games.find((game) => game.id === selectedGameId) ?? null;
-  console.log("Selected Game:", selectedGame); // Debug log to check selected game
 
   useEffect(() => {
     // Only fetch if not already loaded
@@ -70,7 +70,9 @@ function GamesPageInner() {
           <LoadingGhost />
         </div>
       ) : selectedGame ? (
-        gameComponents[selectedGame.name] ?? <NoActiveGame />
+        <GameErrorBoundary>
+          {gameComponents[selectedGame.name] ?? <NoActiveGame />}
+        </GameErrorBoundary>
       ) : (
         <NoActiveGame />
       )}

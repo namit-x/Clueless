@@ -29,7 +29,6 @@ export function useSessionRealtime() {
                 },
                 (payload) => {
                     if (payload.new.owner_type !== ownerType) return;
-                    console.log("[Session] New session detected for this owner");
                 }
             )
             .on(
@@ -42,14 +41,9 @@ export function useSessionRealtime() {
                 },
                 (payload) => {
                     if (payload.new.owner_type !== ownerType) return;
-                    console.log("[Session] Session updated for this owner");
                 }
             )
-            .subscribe((status) => {
-                if (status === "SUBSCRIBED") {
-                    console.log("[Session] Subscribed to realtime session changes");
-                }
-            });
+            .subscribe();
 
         return () => {
             supabase.removeChannel(channel);

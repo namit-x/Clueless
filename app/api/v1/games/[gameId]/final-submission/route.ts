@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { verifyToken } from "@/middleware/verifyToken";
 import { submitFinalAnswerController } from "@/controllers/finalSubmissionController";
 import { isValidUUID } from "@/lib/validateUUID";
+
+const submissionSchema = z.object({
+    answer: z.string().min(1, "Answer cannot be empty").max(1000),
+});
 
 export async function POST(
     req: NextRequest,
@@ -24,12 +29,19 @@ export async function POST(
             return NextResponse.json({ success: false, error: "INVALID_GAME_ID" }, { status: 400 });
         }
 
-        const body = await req.json();
+        const rawBody = await req.json();
+        const parsed = submissionSchema.safeParse(rawBody);
+        if (!parsed.success) {
+            return NextResponse.json(
+                { success: false, error: "INVALID_INPUT", message: parsed.error.errors[0].message },
+                { status: 400 }
+            );
+        }
 
         const result = await submitFinalAnswerController(
             teamId,
             gameId,
-            body.answer
+            parsed.data.answer
         );
 
         return NextResponse.json({
