@@ -1,10 +1,6 @@
 "use client";
 
-<<<<<<< HEAD
 import { useState, useEffect } from "react";
-=======
-import { useState } from "react";
->>>>>>> dev
 import HeroSection from "@/components/HeroSection";
 import PrizesSection from "@/components/PrizesSection";
 import Timeline from "@/components/Timeline";
