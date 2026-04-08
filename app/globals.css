@@ -87,47 +87,58 @@ html {
   }
 
   /* Standardized motion timing */
-  .motion-fast    { transition-duration: 150ms; }
-  .motion-normal  { transition-duration: 250ms; }
-  .motion-slow    { transition-duration: 400ms; }
-  .motion-ease    { transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+  .motion-fast {
+    transition-duration: 150ms;
+  }
+
+  .motion-normal {
+    transition-duration: 250ms;
+  }
+
+  .motion-slow {
+    transition-duration: 400ms;
+  }
+
+  .motion-ease {
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
 
   .neon-glow {
     box-shadow: 0 0 12px hsl(var(--neon-cyan) / 0.25),
-                0 0 24px hsl(var(--neon-cyan) / 0.12),
-                0 0 48px hsl(var(--neon-cyan) / 0.04);
+      0 0 24px hsl(var(--neon-cyan) / 0.12),
+      0 0 48px hsl(var(--neon-cyan) / 0.04);
   }
 
   .neon-glow-strong {
     box-shadow: 0 0 16px hsl(var(--neon-cyan) / 0.4),
-                0 0 32px hsl(var(--neon-cyan) / 0.2),
-                0 0 64px hsl(var(--neon-cyan) / 0.08);
+      0 0 32px hsl(var(--neon-cyan) / 0.2),
+      0 0 64px hsl(var(--neon-cyan) / 0.08);
   }
 
   .neon-glow-purple {
     box-shadow: 0 0 15px hsl(var(--neon-purple) / 0.3),
-                0 0 30px hsl(var(--neon-purple) / 0.15);
+      0 0 30px hsl(var(--neon-purple) / 0.15);
   }
 
   .neon-text {
     text-shadow: 0 0 10px hsl(var(--neon-cyan) / 0.5),
-                 0 0 20px hsl(var(--neon-cyan) / 0.3),
-                 0 0 40px hsl(var(--neon-cyan) / 0.15);
+      0 0 20px hsl(var(--neon-cyan) / 0.3),
+      0 0 40px hsl(var(--neon-cyan) / 0.15);
   }
 
   .neon-text-purple {
     text-shadow: 0 0 10px hsl(var(--neon-purple) / 0.5),
-                 0 0 20px hsl(var(--neon-purple) / 0.3);
+      0 0 20px hsl(var(--neon-purple) / 0.3);
   }
 
   .neon-glow-green {
     box-shadow: 0 0 15px hsl(var(--neon-green) / 0.3),
-                0 0 30px hsl(var(--neon-green) / 0.15);
+      0 0 30px hsl(var(--neon-green) / 0.15);
   }
 
   .neon-glow-subtle {
     box-shadow: 0 0 8px hsl(var(--neon-cyan) / 0.12),
-                0 0 16px hsl(var(--neon-cyan) / 0.06);
+      0 0 16px hsl(var(--neon-cyan) / 0.06);
   }
 
   /* Gameplay focus vignette — dims edges to draw eye to center */
@@ -150,13 +161,13 @@ html {
 
   .gradient-bg {
     background: radial-gradient(ellipse at 20% 50%, hsl(var(--neon-cyan) / 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, hsl(var(--neon-purple) / 0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 80%, hsl(var(--neon-blue) / 0.04) 0%, transparent 50%);
+      radial-gradient(ellipse at 80% 20%, hsl(var(--neon-purple) / 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, hsl(var(--neon-blue) / 0.04) 0%, transparent 50%);
   }
 
   .grid-pattern {
     background-image: linear-gradient(hsl(var(--border) / 0.3) 1px, transparent 1px),
-                       linear-gradient(90deg, hsl(var(--border) / 0.3) 1px, transparent 1px);
+      linear-gradient(90deg, hsl(var(--border) / 0.3) 1px, transparent 1px);
     background-size: 60px 60px;
   }
 
@@ -196,7 +207,8 @@ html {
 
 /* Chrome, Edge, Safari */
 ::-webkit-scrollbar {
-  width: 14px;   /* was 8px */
+  width: 14px;
+  /* was 8px */
 }
 
 ::-webkit-scrollbar-track {
@@ -217,7 +229,8 @@ html {
 
 /* Firefox */
 * {
-  scrollbar-width: auto; /* thin → auto for wider */
+  scrollbar-width: auto;
+  /* thin → auto for wider */
   scrollbar-color: hsl(var(--neon-cyan)) hsl(var(--background));
 }
 
@@ -231,9 +244,12 @@ html {
 }
 
 @keyframes ghostFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-18px);
   }
@@ -244,13 +260,29 @@ html {
 }
 
 @keyframes ghostDrift {
-  0%, 100% { transform: translateX(0px); }
-  50% { transform: translateX(-12px); }
+
+  0%,
+  100% {
+    transform: translateX(0px);
+  }
+
+  50% {
+    transform: translateX(-12px);
+  }
 }
 
 @keyframes ghostBlink {
-  0%, 45%, 100% { transform: scaleY(1); }
-  48%, 52% { transform: scaleY(0.08); }
+
+  0%,
+  45%,
+  100% {
+    transform: scaleY(1);
+  }
+
+  48%,
+  52% {
+    transform: scaleY(0.08);
+  }
 }
 
 
@@ -265,18 +297,24 @@ html {
 }
 
 @keyframes readingFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px) translateX(0px) rotate(0deg);
   }
+
   50% {
     transform: translateY(-10px) translateX(4px) rotate(-2deg);
   }
 }
 
 @keyframes paperWiggle {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: rotate(0deg) translateX(0px);
   }
+
   50% {
     transform: rotate(4deg) translateX(2px);
   }
@@ -284,22 +322,35 @@ html {
 
 /* 👀 Eye movement: right → left → repeat */
 @keyframes lookAround {
-  0%, 20% {
-    transform: translateX(2px);   /* looking at card (right) */
+
+  0%,
+  20% {
+    transform: translateX(2px);
+    /* looking at card (right) */
   }
-  40%, 60% {
-    transform: translateX(-2px);  /* looking left */
+
+  40%,
+  60% {
+    transform: translateX(-2px);
+    /* looking left */
   }
-  80%, 100% {
-    transform: translateX(2px);   /* back to card */
+
+  80%,
+  100% {
+    transform: translateX(2px);
+    /* back to card */
   }
 }
 
 /* 😑 Blink animation */
 @keyframes blink {
-  0%, 92%, 100% {
+
+  0%,
+  92%,
+  100% {
     transform: scaleY(1);
   }
+
   95% {
     transform: scaleY(0.1);
   }
@@ -320,15 +371,20 @@ html {
 /* 🔍 move magnifying glass toward eye and away */
 /* 💻 Desktop: move left-right toward eye */
 @keyframes magnifyInspectDesktop {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateX(0px) translateY(0px);
   }
+
   35% {
     transform: translateX(-18px) translateY(-10px);
   }
+
   55% {
     transform: translateX(-18px) translateY(-10px);
   }
+
   75% {
     transform: translateX(0px) translateY(0px);
   }
@@ -336,15 +392,20 @@ html {
 
 /* 📱 Mobile: move upward toward eye */
 @keyframes magnifyInspectMobile {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   35% {
     transform: translateY(-18px);
   }
+
   55% {
     transform: translateY(-18px);
   }
+
   75% {
     transform: translateY(0px);
   }
@@ -361,14 +422,20 @@ html {
     animation: magnifyInspectMobile 3.2s infinite ease-in-out;
   }
 }
+
 /* 💻 Desktop pupils look toward magnifying glass */
 @keyframes detectiveLookDesktop {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0px, 0px);
   }
-  35%, 55% {
+
+  35%,
+  55% {
     transform: translate(-1.5px, -1px);
   }
+
   75% {
     transform: translate(0px, 0px);
   }
@@ -376,16 +443,23 @@ html {
 
 /* 📱 Mobile pupils look upward */
 @keyframes detectiveLookMobile {
-  0%, 20% {
-    transform: translate(1.5px, 1px); /* look at magnifying glass */
+
+  0%,
+  20% {
+    transform: translate(1.5px, 1px);
+    /* look at magnifying glass */
   }
 
-  40%, 60% {
-    transform: translate(0px, -2px); /* look up */
+  40%,
+  60% {
+    transform: translate(0px, -2px);
+    /* look up */
   }
 
-  80%, 100% {
-    transform: translate(1.5px, 1px); /* back to magnifying glass */
+  80%,
+  100% {
+    transform: translate(1.5px, 1px);
+    /* back to magnifying glass */
   }
 }
 
@@ -402,27 +476,45 @@ html {
 
 /* 💻 Desktop: card (right) → left */
 @keyframes readingLookDesktop {
-  0%, 20% {
-    transform: translateX(2px);   /* look at card */
+
+  0%,
+  20% {
+    transform: translateX(2px);
+    /* look at card */
   }
-  40%, 60% {
-    transform: translateX(-2px);  /* look left */
+
+  40%,
+  60% {
+    transform: translateX(-2px);
+    /* look left */
   }
-  80%, 100% {
-    transform: translateX(2px);   /* back to card */
+
+  80%,
+  100% {
+    transform: translateX(2px);
+    /* back to card */
   }
 }
 
 /* 📱 Mobile: card (right) → up */
 @keyframes readingLookMobile {
-  0%, 20% {
-    transform: translate(2px, 0px);   /* look at card */
+
+  0%,
+  20% {
+    transform: translate(2px, 0px);
+    /* look at card */
   }
-  40%, 60% {
-    transform: translate(0px, -2px);  /* look upward */
+
+  40%,
+  60% {
+    transform: translate(0px, -2px);
+    /* look upward */
   }
-  80%, 100% {
-    transform: translate(2px, 0px);   /* back to card */
+
+  80%,
+  100% {
+    transform: translate(2px, 0px);
+    /* back to card */
   }
 }
 
@@ -462,10 +554,14 @@ html {
 }
 
 @keyframes dotBounce {
-  0%, 80%, 100% {
+
+  0%,
+  80%,
+  100% {
     transform: translateY(0px);
     opacity: 0.6;
   }
+
   40% {
     transform: translateY(-8px);
     opacity: 1;
@@ -479,20 +575,26 @@ html {
 }
 
 @keyframes dashboardLook {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateX(0) scaleY(1);
   }
+
   20% {
     transform: translateX(-2px) scaleY(1);
   }
+
   40% {
     transform: translateX(2px) scaleY(1);
   }
+
   60% {
-    transform: translateX(0) scaleY(0.15); /* blink */
+    transform: translateX(0) scaleY(0.15);
+    /* blink */
   }
+
   80% {
     transform: translateX(-1px) scaleY(1);
   }
 }
-
