@@ -7,6 +7,7 @@ import AttemptsHearts from "@/components/games/AttemptsHearts";
 import { getGameScreen } from "@/lib/gameMessages";
 import type { MessageCode } from "@/lib/types/teamGameState";
 import CoderGhost from "@/components/CoderGhost";
+import GameStatusScreen, { FloatingLoadingGhost } from "@/components/games/GameStatusScreen";
 
 export default function BlindCodeGame() {
   const router = useRouter();
@@ -379,57 +380,11 @@ export default function BlindCodeGame() {
 
   // ── UI states ──────────────────────────────────────────────────────────────
 
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center font-mono text-sm text-muted-foreground/30 animate-fade-in">
-        <span className="animate-pulse">loading...</span>
-      </div>
-    );
-  }
-
-  if (isWaiting) {
-    return (
-      <div className="flex-1 flex items-center justify-center font-mono text-sm text-muted-foreground/50 animate-fade-in">
-        waiting for admin to start blind code...
-      </div>
-    );
-  }
-
-  if (isRoundFailed) {
-    return (
-      <div className="flex-1 flex items-center justify-center font-mono text-sm text-destructive animate-fade-in">
-        attempts exhausted — your run ends here.
-      </div>
-    );
-  }
-
-  if (isFinished) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 font-mono animate-fade-in">
-        <span className="text-sm text-success">Round Cleared. Well Played.</span>
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="bg-success/10 border border-success/25 text-success text-xs rounded-md px-5 py-2 transition-all duration-200 hover:bg-success/15 hover:border-success/35 active:scale-[0.97]"
-        >
-          [ proceed to dashboard ]
-        </button>
-      </div>
-    );
-  }
-
-  if (isGameEnded) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 font-mono animate-fade-in">
-        <span className="text-2xl font-bold text-destructive">The Blind Code has been ended by admin.</span>
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="border border-border text-muted-foreground text-xs rounded-md px-5 py-2 transition-all duration-200 hover:bg-muted hover:border-white/[0.1] active:scale-[0.97]"
-        >
-          [ proceed to dashboard ]
-        </button>
-      </div>
-    );
-  }
+  if (loading) return <FloatingLoadingGhost />;
+  if (isWaiting) return <GameStatusScreen variant="waiting" gameName="Blind Code" />;
+  if (isRoundFailed) return <GameStatusScreen variant="failed" gameName="Blind Code" />;
+  if (isFinished) return <GameStatusScreen variant="finished" gameName="Blind Code" />;
+  if (isGameEnded) return <GameStatusScreen variant="ended" gameName="Blind Code" />;
 
   // ── Main game UI ───────────────────────────────────────────────────────────
 

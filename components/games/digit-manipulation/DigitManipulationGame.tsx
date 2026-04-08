@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
 import { getGameScreen } from "@/lib/gameMessages";
 import type { MessageCode } from "@/lib/types/teamGameState";
+import GameStatusScreen, { FloatingLoadingGhost } from "@/components/games/GameStatusScreen";
 
 type Operation = {
   type: string;
@@ -190,70 +191,11 @@ export default function DigitManipulationGame() {
 
   // ── UI states ──────────────────────────────────────────────────────────────
 
-  if (loading) {
-    return (
-      <div className="dm-page dm-page--center">
-        <div className="dm-loader">
-          <span>0</span><span>1</span><span>0</span><span>1</span>
-        </div>
-        <p className="dm-loader-text">Initializing puzzle…</p>
-        <style>{dmStyles}</style>
-      </div>
-    );
-  }
-
-  if (isWaiting) {
-    return (
-      <div className="dm-page dm-page--center">
-        <div className="dm-bg"><div className="dm-bg__grid" /><div className="dm-bg__glow dm-bg__glow--1" /><div className="dm-bg__glow dm-bg__glow--2" /></div>
-        <div className="dm-status-icon dm-status-icon--waiting">⏳</div>
-        <p className="dm-status-text">Waiting for admin to start digit manipulation…</p>
-        <style>{dmStyles}</style>
-      </div>
-    );
-  }
-
-  if (isRoundFailed) {
-    return (
-      <div className="dm-page dm-page--center">
-        <div className="dm-bg"><div className="dm-bg__grid" /><div className="dm-bg__glow dm-bg__glow--1" /><div className="dm-bg__glow dm-bg__glow--2" /></div>
-        <div className="dm-status-icon dm-status-icon--failed">✗</div>
-        <p className="dm-status-text dm-status-text--failed">Attempts exhausted — your run ends here.</p>
-        <button onClick={() => router.push("/dashboard")} className="dm-nav-btn">
-          proceed to dashboard →
-        </button>
-        <style>{dmStyles}</style>
-      </div>
-    );
-  }
-
-  if (isFinished) {
-    return (
-      <div className="dm-page dm-page--center">
-        <div className="dm-bg"><div className="dm-bg__grid" /><div className="dm-bg__glow dm-bg__glow--1" /><div className="dm-bg__glow dm-bg__glow--2" /></div>
-        <div className="dm-status-icon dm-status-icon--success">✓</div>
-        <p className="dm-status-text dm-status-text--success">All rounds cleared. Well played.</p>
-        <button onClick={() => router.push("/dashboard")} className="dm-nav-btn dm-nav-btn--success">
-          proceed to dashboard →
-        </button>
-        <style>{dmStyles}</style>
-      </div>
-    );
-  }
-
-  if (isGameEnded) {
-    return (
-      <div className="dm-page dm-page--center">
-        <div className="dm-bg"><div className="dm-bg__grid" /><div className="dm-bg__glow dm-bg__glow--1" /><div className="dm-bg__glow dm-bg__glow--2" /></div>
-        <div className="dm-status-icon dm-status-icon--ended">⊘</div>
-        <p className="dm-status-text dm-status-text--ended">The Digit Manipulation has been ended by admin.</p>
-        <button onClick={() => router.push("/dashboard")} className="dm-nav-btn">
-          proceed to dashboard →
-        </button>
-        <style>{dmStyles}</style>
-      </div>
-    );
-  }
+  if (loading) return <FloatingLoadingGhost />;
+  if (isWaiting) return <GameStatusScreen variant="waiting" gameName="Digit Manipulation" />;
+  if (isRoundFailed) return <GameStatusScreen variant="failed" gameName="Digit Manipulation" />;
+  if (isFinished) return <GameStatusScreen variant="finished" gameName="Digit Manipulation" />;
+  if (isGameEnded) return <GameStatusScreen variant="ended" gameName="Digit Manipulation" />;
 
   // ── Main game UI ───────────────────────────────────────────────────────────
 

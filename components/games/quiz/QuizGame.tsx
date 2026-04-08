@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import AttemptsHearts from "@/components/games/AttemptsHearts";
 import { getGameScreen } from "@/lib/gameMessages";
 import type { MessageCode } from "@/lib/types/teamGameState";
+import GameStatusScreen, { FloatingLoadingGhost } from "@/components/games/GameStatusScreen";
 
 export default function QuizGame() {
   const router = useRouter();
@@ -294,56 +295,10 @@ export default function QuizGame() {
 
   // ── UI States ──────────────────────────────────────────────────────────────
 
-  if (loading) {
-    return (
-      <div className="qz-page qz-page--center">
-        <div className="qz-loader">
-          <span>?</span><span>?</span><span>?</span><span>?</span>
-        </div>
-        <p className="qz-loader-text">Loading quiz...</p>
-        <style>{qzStyles}</style>
-      </div>
-    );
-  }
-
-  if (isWaiting) {
-    return (
-      <div className="qz-page qz-page--center">
-        <div className="qz-bg"><div className="qz-bg__grid" /><div className="qz-bg__glow qz-bg__glow--1" /><div className="qz-bg__glow qz-bg__glow--2" /></div>
-        <div className="qz-status-icon qz-status-icon--waiting">&#x23F3;</div>
-        <p className="qz-status-text">Waiting for admin to start the quiz...</p>
-        <style>{qzStyles}</style>
-      </div>
-    );
-  }
-
-  if (isFinished) {
-    return (
-      <div className="qz-page qz-page--center">
-        <div className="qz-bg"><div className="qz-bg__grid" /><div className="qz-bg__glow qz-bg__glow--1" /><div className="qz-bg__glow qz-bg__glow--2" /></div>
-        <div className="qz-status-icon qz-status-icon--success">&#x2713;</div>
-        <p className="qz-status-text qz-status-text--success">Quiz completed. Well played.</p>
-        <button onClick={() => router.push("/dashboard")} className="qz-nav-btn qz-nav-btn--success">
-          proceed to dashboard &rarr;
-        </button>
-        <style>{qzStyles}</style>
-      </div>
-    );
-  }
-
-  if (isGameEnded) {
-    return (
-      <div className="qz-page qz-page--center">
-        <div className="qz-bg"><div className="qz-bg__grid" /><div className="qz-bg__glow qz-bg__glow--1" /><div className="qz-bg__glow qz-bg__glow--2" /></div>
-        <div className="qz-status-icon qz-status-icon--ended">&#x2298;</div>
-        <p className="qz-status-text qz-status-text--ended">The Quiz has been ended by admin.</p>
-        <button onClick={() => router.push("/dashboard")} className="qz-nav-btn">
-          proceed to dashboard &rarr;
-        </button>
-        <style>{qzStyles}</style>
-      </div>
-    );
-  }
+  if (loading) return <FloatingLoadingGhost />;
+  if (isWaiting) return <GameStatusScreen variant="waiting" gameName="Quiz" />;
+  if (isFinished) return <GameStatusScreen variant="finished" gameName="Quiz" />;
+  if (isGameEnded) return <GameStatusScreen variant="ended" gameName="Quiz" />;
 
   // ── Final Phase UI ──────────────────────────────────────────────────────────
 
