@@ -105,7 +105,7 @@ export async function createTeamWithMembersRepo(
         await client.query("BEGIN");
 
         const teamResult = await client.query(
-            `INSERT INTO teams (team_name, team_size, owner_id) VALUES ($1, $2, $3) RETURNING team_id, team_name`,
+            `INSERT INTO teams (team_name, team_size, owner_id, is_approved) VALUES ($1, $2, $3, true) RETURNING team_id, team_name`,
             [teamName, teamSize, ownerId]
         );
         const team = teamResult.rows[0];

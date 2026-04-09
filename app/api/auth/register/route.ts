@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 import { teamSignupSchema } from "@/validators/team";
@@ -8,6 +9,15 @@ import { createTeamWithMembersRepo } from "@/lib/repositories/teamsRepo";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const { allowed, retryAfterMs } = rateLimit(`register:${ip}`, 10, 60 * 60 * 1000);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many registration attempts. Try again later." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) } }
+      );
+    }
+
     // Check if registration is open before processing
     const regOpen = await isRegistrationEnabled();
     if (!regOpen) {

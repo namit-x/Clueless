@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { rateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 import { z } from "zod";
@@ -35,6 +36,14 @@ export async function POST(req: NextRequest) {
     const { teamName, password } = loginSchema.parse(body);
 
     const normalizedTeamName = teamName.trim();
+
+    const { allowed, retryAfterMs } = rateLimit(`login:${normalizedTeamName.toLowerCase()}`, 10, 15 * 60 * 1000);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again in a few minutes." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) } }
+      );
+    }
 
     /* ---------------- ADMIN LOGIN ---------------- */
 
