@@ -64,7 +64,6 @@ export function computeLeaderboard(teams: Team[]): LeaderboardEntry[] {
     return teams
         .map(toLeaderboardEntry)
         .sort(compareEntries)
-        .slice(0, 20)
         .map((entry, index) => ({
             ...entry,
             rank: index + 1,

@@ -44,7 +44,7 @@ export function computeLeaderboard(teams: {
         return a.teamId.localeCompare(b.teamId);
     });
 
-    return sorted.slice(0, 20).map((e, i) => ({
+    return sorted.map((e, i) => ({
         ...e,
         rank: i + 1,
     }));
