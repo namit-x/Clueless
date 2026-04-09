@@ -3,12 +3,6 @@ import { isTeamApprovedRepo } from "@/lib/repositories/teamsRepo";
 import { getTeamProgressRepo } from "@/lib/repositories/teamProgressRepo";
 import { resolveTeamGameState } from "./teamGameStateResolver";
 import { getTeamLatestGameResultRepo } from "@/lib/repositories/teamGameResultsRepo";
-import { startTreasureHuntGame } from "./games/treasureHuntService";
-import { startBlindCodeGame } from "./games/blindCodeService";
-import { startQuizGame } from "./games/quizService";
-import { startDigitManipulationGame } from "./games/digitManipulationService";
-import { startQuizV2Game } from "./games/quizV2Service";
-import { currentRoundHandlers, teamStartHandlers } from "./games/gameplayHandlers";
 import { createTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
 import { initializeTeamRoundProgressForTeamRepo } from "@/lib/repositories/teamRoundProgressRepo";
 import { markTimedOutTeamGameResults } from "@/lib/repositories/teamGameResultsRepo";
@@ -26,13 +20,52 @@ import { deleteTeamGameResultsByGameId } from "@/lib/repositories/teamGameResult
  * "Quiz" → startQuizGame
  * "Digit Manipulation" → startDigitManipulationGame
  */
-const gameHandlers: Record<string, (gameId: string) => Promise<any>> = {
-    "Treasure Hunt": startTreasureHuntGame,
-    "Blind Code": startBlindCodeGame,
-    "Quiz": startQuizGame,
-    "Digit Manipulation": startDigitManipulationGame,
-    "Quiz V2": startQuizV2Game,
-};
+async function getStartGameHandler(gameName: string): Promise<(gameId: string) => Promise<any>> {
+    switch (gameName) {
+        case "Treasure Hunt":
+            return (await import("./games/treasureHuntService")).startTreasureHuntGame;
+        case "Blind Code":
+            return (await import("./games/blindCodeService")).startBlindCodeGame;
+        case "Quiz":
+            return (await import("./games/quizService")).startQuizGame;
+        case "Digit Manipulation":
+            return (await import("./games/digitManipulationService")).startDigitManipulationGame;
+        case "Quiz V2":
+            return (await import("./games/quizV2Service")).startQuizV2Game;
+        default:
+            throw new Error(`UNKNOWN_GAME_TYPE: ${gameName}`);
+    }
+}
+
+async function getCurrentRoundHandler(gameName: string): Promise<(teamId: string, gameId: string) => Promise<any>> {
+    switch (gameName) {
+        case "Treasure Hunt":
+            return (await import("./games/treasureHuntService")).getTreasureHuntRound;
+        case "Blind Code":
+            return (await import("./games/blindCodeService")).getBlindCodeRound;
+        case "Digit Manipulation":
+            return (await import("./games/digitManipulationService")).getDigitManipulationRound;
+        case "Quiz V2":
+            return (await import("./games/quizV2Service")).getQuizV2Round;
+        default:
+            throw new Error(`UNKNOWN_GAME_TYPE: ${gameName}`);
+    }
+}
+
+async function getTeamStartHandler(gameName: string): Promise<(teamId: string, gameId: string) => Promise<any>> {
+    switch (gameName) {
+        case "Treasure Hunt":
+            return (await import("./games/treasureHuntService")).startTreasureHuntForTeam;
+        case "Blind Code":
+            return (await import("./games/blindCodeService")).startBlindCodeForTeam;
+        case "Digit Manipulation":
+            return (await import("./games/digitManipulationService")).startDigitManipulationForTeam;
+        case "Quiz V2":
+            return (await import("./games/quizV2Service")).startQuizV2ForTeam;
+        default:
+            throw new Error(`UNKNOWN_GAME_TYPE: ${gameName}`);
+    }
+}
 
 export async function createGame(data: any) {
     const { id, ...gameData } = data;
@@ -98,11 +131,7 @@ export async function startGameService(gameId: string) {
         }
 
         // Step 3: Dispatch to registered handler
-        const handler = gameHandlers[game.name];
-
-        if (!handler) {
-            throw new Error(`UNKNOWN_GAME_TYPE: ${game.name}`);
-        }
+        const handler = await getStartGameHandler(game.name);
 
         // Step 4: Execute game-specific initialization
         return await handler(gameId);
@@ -182,10 +211,7 @@ export async function getCurrentRoundService(teamId: string) {
     }
 
     // IN_PROGRESS — get round-specific data from game handler
-    const handler = currentRoundHandlers[gameName];
-    if (!handler) {
-        throw new Error(`UNKNOWN_GAME_TYPE: ${gameName}`);
-    }
+    const handler = await getCurrentRoundHandler(gameName);
 
     const roundData = await handler(teamId, gameId);
 
@@ -217,11 +243,7 @@ export async function startTeamGameService(teamId: string, gameId: string) {
     // Ensure team has round progress rows (idempotent — safe for late approvals and retries)
     await initializeTeamRoundProgressForTeamRepo(teamId, gameId);
 
-    const handler = teamStartHandlers[game.name];
-
-    if (!handler) {
-        throw new Error(`UNKNOWN_GAME_TYPE: ${game.name}`);
-    }
+    const handler = await getTeamStartHandler(game.name);
 
     return await handler(teamId, gameId);
 }

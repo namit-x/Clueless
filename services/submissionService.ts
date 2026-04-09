@@ -1,6 +1,5 @@
 import { getRoundContextRepo } from "@/lib/repositories/roundsRepo";
 import { getRoundAttemptStatusRepo } from "@/lib/repositories/teamRoundProgressRepo";
-import { submissionHandlers } from "./games/gameplayHandlers";
 
 // ─── Global rate limiter (per team, all games) ──────────────────────────────
 const RATE_LIMIT_MS = 2000;
@@ -51,11 +50,43 @@ export async function submitAnswerService(
     }
 
     const roundContext = await getRoundContextRepo(roundId);
-    const handler = submissionHandlers[roundContext.gameName];
-
-    if (!handler) {
-        throw new Error(`UNKNOWN_GAME_TYPE: ${roundContext.gameName}`);
+    switch (roundContext.gameName) {
+        case "Treasure Hunt":
+            return (await import("./games/treasureHuntService")).submitTreasureHuntAnswer(
+                teamId,
+                roundId,
+                answer,
+                roundContext.roundNumber,
+                roundContext.gameId
+            );
+        case "Blind Code":
+            return (await import("./games/blindCodeService")).submitBlindCodeAnswer(
+                teamId,
+                roundId,
+                answer,
+                roundContext.configuration,
+                roundContext.roundNumber,
+                roundContext.gameId
+            );
+        case "Digit Manipulation":
+            return (await import("./games/digitManipulationService")).submitDigitManipulationAnswer(
+                teamId,
+                roundId,
+                answer,
+                roundContext.configuration,
+                roundContext.roundNumber,
+                roundContext.gameId
+            );
+        case "Quiz V2":
+            return (await import("./games/quizV2Service")).submitQuizV2Answer(
+                teamId,
+                roundId,
+                answer,
+                roundContext.configuration,
+                roundContext.roundNumber,
+                roundContext.gameId
+            );
+        default:
+            throw new Error(`UNKNOWN_GAME_TYPE: ${roundContext.gameName}`);
     }
-
-    return await handler(teamId, roundId, answer, roundContext);
 }

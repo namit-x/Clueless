@@ -2,7 +2,7 @@ import {
     adjustPenaltyWithAuditRepo,
     getPenaltyHistoryRepo,
     type PenaltyOperation,
-} from "@/repositories/adminPenaltyRepo";
+} from "@/lib/repositories/adminPenaltyRepo";
 
 function assertValidOperation(operation: unknown): asserts operation is PenaltyOperation {
     if (operation !== "INCREMENT" && operation !== "DECREMENT") {

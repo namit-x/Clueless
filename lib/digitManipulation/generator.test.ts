@@ -1,7 +1,6 @@
 import { createSeed, createRng, randomInt, pickOne, shuffle } from "./seededRng";
-import { generateNumber, generatePuzzle, GeneratorConfig } from "./generator";
-import { OperationType, ARITHMETIC_OPS, DIGIT_OPS, PipelineError } from "./types";
-import { executeOperations, DEFAULT_MAX_RESULT } from "./engine";
+import { generateNumber, generatePuzzle } from "./generator";
+import { ARITHMETIC_OPS, DIGIT_OPS, PipelineError } from "./types";
 
 let passed = 0;
 let failed = 0;
@@ -110,12 +109,7 @@ assert("shuffle preserves elements",
 // generator.ts tests
 // ==============================
 
-const defaultConfig: GeneratorConfig = {
-    digitCount: 4,
-    operationCount: 5,
-    allowedOperations: ["MULTIPLY", "DIVIDE", "ADD", "SUBTRACT", "SHIFT_LEFT", "SHIFT_RIGHT", "REVERSE"],
-    operandRange: { min: 2, max: 50 }
-};
+const defaultDigitCount = 4;
 
 // --- generateNumber ---
 for (const dc of [1, 5, 10, 20]) {
@@ -135,8 +129,8 @@ assertEq("generateNumber deterministic",
     generateNumber(rngN2, 10));
 
 // --- full puzzle determinism ---
-const puzzle1 = generatePuzzle("team-alpha", "round-3", defaultConfig);
-const puzzle2 = generatePuzzle("team-alpha", "round-3", defaultConfig);
+const puzzle1 = generatePuzzle("team-alpha", "round-3", defaultDigitCount);
+const puzzle2 = generatePuzzle("team-alpha", "round-3", defaultDigitCount);
 
 assertEq("same number", puzzle1.number, puzzle2.number);
 assertEq("same operation count", puzzle1.operations.length, puzzle2.operations.length);
@@ -147,10 +141,10 @@ assert("same operations",
     ));
 
 // --- different inputs → different puzzles ---
-const puzzle3 = generatePuzzle("team-alpha", "round-4", defaultConfig);
+const puzzle3 = generatePuzzle("team-alpha", "round-4", defaultDigitCount);
 assert("different round → different number", puzzle1.number !== puzzle3.number);
 
-const puzzle4 = generatePuzzle("team-beta", "round-3", defaultConfig);
+const puzzle4 = generatePuzzle("team-beta", "round-3", defaultDigitCount);
 assert("different team → different number", puzzle1.number !== puzzle4.number);
 
 // --- operations have correct structure ---
@@ -164,113 +158,44 @@ assert("digit ops have no operand",
         .filter(op => DIGIT_OPS.has(op.type))
         .every(op => op.operand === undefined));
 
-// --- division safety ---
-const divConfig: GeneratorConfig = {
-    digitCount: 3,
-    operationCount: 20,
-    allowedOperations: ["DIVIDE"],
-    operandRange: { min: 1, max: 100 }
-};
-
-const divPuzzle = generatePuzzle("team-div", "round-div", divConfig);
+// --- fixed operation sequence remains stable ---
+const divPuzzle = generatePuzzle("team-div", "round-div", 3);
 assert("division operand >= 2",
     divPuzzle.operations.every(op =>
-        op.operand !== undefined &&
-        op.operand >= BigInt(2)
+        op.type !== "DIVIDE" ||
+        (op.operand !== undefined && op.operand >= BigInt(2))
     )
 );
 
 // --- multiply cap ---
-const mulConfig: GeneratorConfig = {
-    digitCount: 2,
-    operationCount: 3,
-    allowedOperations: ["MULTIPLY"],
-    operandRange: { min: 2, max: 999 },
-    maxResult: 1_000_000_000
-};
-
-const mulPuzzle = generatePuzzle("team-mul", "round-mul", mulConfig);
+const mulPuzzle = generatePuzzle("team-mul", "round-mul", 2);
 assert("multiply operand <= 20",
     mulPuzzle.operations.every(op =>
-        op.operand !== undefined &&
-        op.operand <= BigInt(20)
+        op.type !== "MULTIPLY" ||
+        (op.operand !== undefined && op.operand <= BigInt(20))
     )
 );
 
 // --- ADD/SUB range ---
-const addConfig: GeneratorConfig = {
-    digitCount: 3,
-    operationCount: 20,
-    allowedOperations: ["ADD", "SUBTRACT"],
-    operandRange: { min: 10, max: 30 }
-};
-
-const addPuzzle = generatePuzzle("team-add", "round-add", addConfig);
-assert("ADD/SUB in range",
+const addPuzzle = generatePuzzle("team-add", "round-add", 3);
+assert("ADD/SUB operands exist",
     addPuzzle.operations.every(op =>
-        op.operand !== undefined &&
-        op.operand >= BigInt(10) &&
-        op.operand <= BigInt(30)
+        !ARITHMETIC_OPS.has(op.type) || op.operand !== undefined
     )
 );
 
 // --- digit-only config ---
-const digitConfig: GeneratorConfig = {
-    digitCount: 5,
-    operationCount: 10,
-    allowedOperations: ["SHIFT_LEFT", "SHIFT_RIGHT", "REVERSE"],
-    operandRange: { min: 2, max: 50 }
-};
+const digitPuzzle = generatePuzzle("team-dig", "round-dig", 5);
+assert("digit ops have no operands",
+    digitPuzzle.operations
+        .filter(op => DIGIT_OPS.has(op.type))
+        .every(op => op.operand === undefined));
+assertEq("fixed op count", digitPuzzle.operations.length, 10);
 
-const digitPuzzle = generatePuzzle("team-dig", "round-dig", digitConfig);
-assert("digit-only has no operands",
-    digitPuzzle.operations.every(op => op.operand === undefined));
-assertEq("digit-only correct op count", digitPuzzle.operations.length, 10);
-
-// --- bounds enforcement: generated puzzles stay within bounds ---
-{
-    // With a small maxResult, the simulation loop should still find valid puzzles
-    const boundedConfig: GeneratorConfig = {
-        digitCount: 3,
-        operationCount: 3,
-        allowedOperations: ["ADD", "SUBTRACT"],
-        operandRange: { min: 2, max: 10 },
-        maxResult: 999
-    };
-
-    const bp = generatePuzzle("team-bound", "round-bound", boundedConfig);
-    const answer = executeOperations(bp.number, bp.operations, BigInt(999));
-    assert("bounded puzzle: answer >= 0", answer >= BigInt(0));
-    assert("bounded puzzle: answer <= 999", answer <= BigInt(999));
-}
-
-// --- bounds enforcement: initial number checked ---
-{
-    // digitCount=4 produces numbers 1000-9999, but maxResult=500 means
-    // the initial number itself exceeds bounds. Generator should still work
-    // because digitCount=1 isn't forced — it retries until it finds a valid combo.
-    // Actually with digitCount=4 minimum is 1000 > 500, so all attempts fail.
-    const impossibleConfig: GeneratorConfig = {
-        digitCount: 4,
-        operationCount: 1,
-        allowedOperations: ["ADD"],
-        operandRange: { min: 2, max: 5 },
-        maxResult: 500
-    };
-
-    assertThrows("impossible config throws GENERATION_FAILED",
-        () => generatePuzzle("team-imp", "round-imp", impossibleConfig),
-        "GENERATION_FAILED"
-    );
-}
-
-// --- invalid operation type rejected ---
-assertThrows("invalid operation type in config",
-    () => generatePuzzle("t", "r", {
-        ...defaultConfig,
-        allowedOperations: ["EXPLODE" as OperationType]
-    }),
-    "INVALID_OPERATION"
+// --- invalid digit count rejected ---
+assertThrows("invalid digit count rejected",
+    () => generatePuzzle("team-imp", "round-imp", 0),
+    "INVALID_DIGIT_COUNT"
 );
 
 // --- result ---

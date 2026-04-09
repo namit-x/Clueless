@@ -1,4 +1,8 @@
-import { getAllTeamsRepo } from "@/lib/repositories/teamsRepo";
+import {
+    approveTeamRepo,
+    getAllTeamsRepo,
+    rejectTeamRepo,
+} from "@/lib/repositories/teamsRepo";
 
 export async function fetchAllTeamsService() {
     try {
@@ -14,8 +18,6 @@ export async function fetchAllTeamsService() {
     }
 }
 
-import { approveTeamRepo } from "@/lib/repositories/teamsRepo";
-
 export async function approveTeamService(teamId: string) {
     try {
         const team = await approveTeamRepo(teamId);
@@ -26,8 +28,6 @@ export async function approveTeamService(teamId: string) {
         throw new Error(`SERVICE_TEAM_APPROVAL_FAILED: ${error.message}`);
     }
 }
-
-import { rejectTeamRepo } from "@/lib/repositories/teamsRepo";
 
 export async function rejectTeamService(teamId: string) {
     try {

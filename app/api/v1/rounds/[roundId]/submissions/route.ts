@@ -33,7 +33,7 @@ export async function POST(
         const parsed = submissionSchema.safeParse(rawBody);
         if (!parsed.success) {
             return NextResponse.json(
-                { success: false, error: "INVALID_INPUT", message: parsed.error.errors[0].message },
+                { success: false, error: "INVALID_INPUT", message: parsed.error.issues[0]?.message ?? "Invalid input" },
                 { status: 400 }
             );
         }
@@ -46,7 +46,7 @@ export async function POST(
 
         return NextResponse.json({
             ...result,
-            success: result?.correct === true
+            success: "correct" in result && result.correct === true
         });
 
     } catch (err: any) {
