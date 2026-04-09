@@ -1,6 +1,7 @@
 "use client";
 import GameCard from "./GameCard";
 import { useRouter } from "next/navigation";
+import { useRef } from "react";
 
 type Game = {
   id: string;
@@ -15,13 +16,20 @@ type Props = {
 
 export default function GamesGrid({ games }: Props) {
   const router = useRouter();
+  const inFlightRef = useRef<Set<string>>(new Set());
 
   const fetchGame = async (game_id: string) => {
-    await fetch(`/api/v1/games/${game_id}/start`, {
-      method: "POST",
-      credentials: "include",
-    });
-    router.push(`/games?gameId=${game_id}`);
+    if (inFlightRef.current.has(game_id)) return;
+    inFlightRef.current.add(game_id);
+    try {
+      await fetch(`/api/v1/games/${game_id}/start`, {
+        method: "POST",
+        credentials: "include",
+      });
+      router.push(`/games?gameId=${game_id}`);
+    } finally {
+      inFlightRef.current.delete(game_id);
+    }
   };
 
   if (!games || !Array.isArray(games)) {

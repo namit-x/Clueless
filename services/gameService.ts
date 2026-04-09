@@ -3,7 +3,7 @@ import { isTeamApprovedRepo } from "@/lib/repositories/teamsRepo";
 import { getTeamProgressRepo } from "@/lib/repositories/teamProgressRepo";
 import { resolveTeamGameState } from "./teamGameStateResolver";
 import { getTeamLatestGameResultRepo } from "@/lib/repositories/teamGameResultsRepo";
-import { createTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
+import { createTeamGameResult, getTeamGameResult } from "@/lib/repositories/teamGameResultsRepo";
 import { initializeTeamRoundProgressForTeamRepo } from "@/lib/repositories/teamRoundProgressRepo";
 import { markTimedOutTeamGameResults } from "@/lib/repositories/teamGameResultsRepo";
 import { deleteTeamGameResultsByGameId } from "@/lib/repositories/teamGameResultsRepo";
@@ -224,6 +224,17 @@ export async function getCurrentRoundService(teamId: string) {
 }
 
 export async function startTeamGameService(teamId: string, gameId: string) {
+
+    // Idempotency: if team already started this game, skip all initialization
+    // and return the handler result directly. Prevents DB pool exhaustion from
+    // duplicate concurrent calls (e.g. rapid button clicks or Realtime-triggered retries).
+    const existing = await getTeamGameResult(teamId, gameId);
+    if (existing) {
+        const game = await getGameByIdRepo(gameId);
+        if (!game) throw new Error("GAME_NOT_FOUND");
+        const handler = await getTeamStartHandler(game.name);
+        return await handler(teamId, gameId);
+    }
 
     const approved = await isTeamApprovedRepo(teamId);
     if (!approved) {
