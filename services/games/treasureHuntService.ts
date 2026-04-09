@@ -1,5 +1,5 @@
 import { getApprovedTeamsRepo } from "@/lib/repositories/teamsRepo";
-import { getAllRoutesRepo, getTeamRouteRepo, insertTeamRoutesRepo } from "@/lib/repositories/teamRoutesRepo";
+import { getAllRoutesRepo, getTeamRouteRepo, insertTeamRoutesRepo, assignLateTeamRouteRepo } from "@/lib/repositories/teamRoutesRepo";
 import {
     activateFirstRoundRepo,
     failRoundRepo,
@@ -41,12 +41,19 @@ export async function startTreasureHuntGame(gameId: string) {
 
 export async function startTreasureHuntForTeam(teamId: string, gameId: string) {
 
-    console.log(`[TreasureHuntService] Starting Treasure Hunt for team ${teamId}`);
+    // Get route — assign one on the fly if team was approved after game start
+    let routeId: string;
+    try {
+        routeId = await getTeamRouteRepo(teamId);
+    } catch (e: any) {
+        if (e.message === "TEAM_ROUTE_NOT_FOUND") {
+            routeId = await assignLateTeamRouteRepo(teamId);
+        } else {
+            throw e;
+        }
+    }
 
-    const [routeId] = await Promise.all([
-        getTeamRouteRepo(teamId),
-        activateFirstRoundRepo(teamId, gameId)
-    ]);
+    await activateFirstRoundRepo(teamId, gameId);
 
     const clue = await getRoundClueRepo(routeId, 1);
 

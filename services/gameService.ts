@@ -186,7 +186,10 @@ export async function getCurrentRoundService(teamId: string) {
         if (e.message === "NO_ACTIVE_GAME_FOR_TEAM") {
             // No active/failed rounds — check team_game_results for completed/timed-out games
             const result = await getTeamLatestGameResultRepo(teamId);
-            if (!result) throw new Error("NO_ACTIVE_GAME_FOR_TEAM");
+            if (!result) {
+                // Team has never started any game — return waiting state (normal, not an error)
+                return { teamState: "IN_PROGRESS" as const, messageCode: "GAME_IN_PROGRESS" as const };
+            }
 
             const state = await resolveTeamGameState(teamId, result.game_id);
             return state;

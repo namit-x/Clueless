@@ -35,6 +35,30 @@ export async function insertTeamRoutesRepo(
     }
 }
 
+export async function assignLateTeamRouteRepo(teamId: string): Promise<string> {
+    // Pick the route with the fewest teams assigned (distributes load evenly)
+    const pickQuery = `
+        SELECT r.id
+        FROM routes r
+        LEFT JOIN team_routes tr ON tr.route_id = r.id
+        GROUP BY r.id
+        ORDER BY COUNT(tr.team_id) ASC, r.name ASC
+        LIMIT 1
+    `;
+    const pickResult = await pool.query(pickQuery);
+    if (!pickResult.rowCount || pickResult.rowCount === 0) {
+        throw new Error("NO_ROUTES_AVAILABLE");
+    }
+    const routeId = pickResult.rows[0].id;
+
+    await pool.query(
+        `INSERT INTO team_routes (team_id, route_id) VALUES ($1, $2) ON CONFLICT (team_id) DO NOTHING`,
+        [teamId, routeId]
+    );
+
+    return routeId;
+}
+
 export async function getTeamRouteRepo(teamId: string) {
 
     // Check cache first (routes are immutable during gameplay)
