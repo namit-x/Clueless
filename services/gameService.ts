@@ -225,13 +225,30 @@ export async function getCurrentRoundService(teamId: string) {
 
 export async function startTeamGameService(teamId: string, gameId: string) {
 
-    // Idempotency: if team already started this game, skip all initialization.
-    // Prevents DB pool exhaustion from duplicate concurrent calls (e.g. rapid
-    // button clicks). The frontend navigates to /games immediately after and
-    // fetches current round state independently — so the response is not used.
+    // Idempotency: if team already has a game result row, skip the heavy
+    // initialization (approval check, createTeamGameResult, game validation)
+    // but still ensure round rows exist and round 1 is activated. This handles
+    // two cases: (a) rapid duplicate clicks, (b) recovery when a prior call
+    // created the game_result row but timed out before round rows were inserted.
     const existing = await getTeamGameResult(teamId, gameId);
     if (existing) {
-        return { alreadyStarted: true };
+        const game = await getGameByIdRepo(gameId);
+        if (!game) throw new Error("GAME_NOT_FOUND");
+        // Re-run round row initialization (idempotent — ON CONFLICT DO NOTHING)
+        // so teams whose prior initializeTeamRoundProgressForTeamRepo timed out
+        // get their rows created on retry.
+        await initializeTeamRoundProgressForTeamRepo(teamId, gameId);
+        const handler = await getTeamStartHandler(game.name);
+        try {
+            return await handler(teamId, gameId);
+        } catch (e: any) {
+            if (e.message === "ROUND_ACTIVATION_FAILED") {
+                // Round 1 is already COMPLETED/FAILED — team is past round 1.
+                // Return gracefully; the game component fetches current state.
+                return { alreadyStarted: true };
+            }
+            throw e;
+        }
     }
 
     const approved = await isTeamApprovedRepo(teamId);
