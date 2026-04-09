@@ -7,7 +7,6 @@ import { createSessionToken } from "@/lib/auth";
 import { createSessionController } from "@/controllers/sessionController";
 import { getTeamForLoginRepo } from "@/lib/repositories/teamsRepo";
 import { getLeaderEmailForTeamRepo } from "@/lib/repositories/membersRepo";
-import { rateLimit } from "@/lib/rateLimit";
 
 const loginSchema = z.object({
   teamName: z.string().trim().min(1),
@@ -29,28 +28,9 @@ const supabaseAuthClient = createClient(
 const ADMIN_USERS = process.env.ADMIN_STRINGS?.split(",") || [];
 const ADMIN_PASSWORDS = process.env.ADMIN_PASS?.split(",") || [];
 
-function getUserAgent(req: NextRequest): string | undefined {
-  try {
-    return req.headers.get("user-agent") ?? undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    const { allowed, retryAfterMs } = rateLimit(`login:${ip}`, 5, 15 * 60 * 1000);
-    if (!allowed) {
-      return NextResponse.json(
-        { error: "Too many login attempts. Please try again later." },
-        {
-          status: 429,
-          headers: { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) },
-        }
-      );
-    }
-
     const body = await req.json();
     const { teamName, password } = loginSchema.parse(body);
 
