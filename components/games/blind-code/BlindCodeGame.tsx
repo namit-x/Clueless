@@ -95,11 +95,12 @@ export default function BlindCodeGame() {
   const lastLocalSubmitRef = useRef(0);
   const lastAppliedMeaningfulStateRef = useRef<ReturnType<typeof buildMeaningfulTeamRoundState> | null>(null);
   const isFetchingRef = useRef(false);
+  const pendingFetchRef = useRef(false);
   const debounceFetchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maskedCode = code.replace(/[^\n]/g, "_");
 
   async function fetchCurrentRound() {
-    if (isFetchingRef.current) return;
+    if (isFetchingRef.current) { pendingFetchRef.current = true; return; }
     isFetchingRef.current = true;
     const shouldShowLoading = lastAppliedMeaningfulStateRef.current === null;
 
@@ -151,6 +152,10 @@ export default function BlindCodeGame() {
     } finally {
       if (shouldShowLoading) setLoading(false);
       isFetchingRef.current = false;
+      if (pendingFetchRef.current) {
+        pendingFetchRef.current = false;
+        fetchCurrentRoundRef.current();
+      }
     }
   }
 

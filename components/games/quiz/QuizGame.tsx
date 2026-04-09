@@ -83,12 +83,13 @@ export default function QuizGame() {
   const fetchCurrentRoundRef = useRef<() => void>(() => { });
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFetchingRef = useRef(false);
+  const pendingFetchRef = useRef(false);
   const debounceFetchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAppliedMeaningfulStateRef = useRef<ReturnType<typeof buildMeaningfulTeamRoundState> | null>(null);
 
   async function fetchCurrentRound() {
     // Prevent concurrent requests
-    if (isFetchingRef.current) return;
+    if (isFetchingRef.current) { pendingFetchRef.current = true; return; }
     isFetchingRef.current = true;
     const shouldShowLoading = lastAppliedMeaningfulStateRef.current === null;
     try {
@@ -149,6 +150,10 @@ export default function QuizGame() {
     } finally {
       if (shouldShowLoading) setLoading(false);
       isFetchingRef.current = false;
+      if (pendingFetchRef.current) {
+        pendingFetchRef.current = false;
+        fetchCurrentRoundRef.current();
+      }
     }
   }
 
