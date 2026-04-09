@@ -436,6 +436,9 @@ export default function QuizGame() {
               {finalSubmitting ? <span className="qz-submit__spinner" /> : "SUBMIT"}
             </button>
           </div>
+          <p className="text-sm text-muted-foreground/50 italic p-2 ">
+            The answer is not a number...
+          </p>
 
           {finalResult === "correct" && (
             <p className="qz-feedback qz-feedback--correct">Correct! Word decoded successfully.</p>

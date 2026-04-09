@@ -21,6 +21,7 @@ export default function BlindCodeGame() {
   const teamId = useAppSelector((state) => state.auth.user?.id ?? null);
   const [code, setCode] = useState("");
   const [lineCount, setLineCount] = useState(10);
+  const gameRootRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Round data
@@ -317,9 +318,29 @@ export default function BlindCodeGame() {
     setResult(null);
   };
 
+  const isClipboardShortcut = (e: KeyboardEvent | React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const key = e.key.toLowerCase();
+    const hasModifier = e.ctrlKey || e.metaKey;
+
+    if (hasModifier && ["c", "v", "x", "insert"].includes(key)) return true;
+    if (e.shiftKey && ["insert", "delete"].includes(key)) return true;
+
+    return false;
+  };
+
+  const handleBlockedClipboardEvent = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Block Ctrl/Cmd + C (copy) and Ctrl/Cmd + P (print)
-    if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "C" || e.key === "p" || e.key === "P")) {
+    // Block common clipboard shortcuts while still allowing Ctrl/Cmd + Enter to submit.
+    if (isClipboardShortcut(e)) {
+      e.preventDefault();
+      return;
+    }
+
+    // Block Ctrl/Cmd + P (print)
+    if ((e.ctrlKey || e.metaKey) && (e.key === "p" || e.key === "P")) {
       e.preventDefault();
       return;
     }
@@ -359,6 +380,46 @@ export default function BlindCodeGame() {
     }
   };
 
+  useEffect(() => {
+    const root = gameRootRef.current;
+    if (!root) return;
+
+    const isInsideGame = (target: EventTarget | null) =>
+      target instanceof Node && root.contains(target);
+
+    const preventContextMenu = (e: MouseEvent) => {
+      if (!isInsideGame(e.target)) return;
+      e.preventDefault();
+    };
+
+    const preventClipboardEvent = (e: ClipboardEvent) => {
+      if (!isInsideGame(e.target)) return;
+      e.preventDefault();
+    };
+
+    const preventClipboardShortcut = (e: KeyboardEvent) => {
+      if (!isInsideGame(e.target)) return;
+
+      if (isClipboardShortcut(e)) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("contextmenu", preventContextMenu, true);
+    document.addEventListener("copy", preventClipboardEvent, true);
+    document.addEventListener("cut", preventClipboardEvent, true);
+    document.addEventListener("paste", preventClipboardEvent, true);
+    document.addEventListener("keydown", preventClipboardShortcut, true);
+
+    return () => {
+      document.removeEventListener("contextmenu", preventContextMenu, true);
+      document.removeEventListener("copy", preventClipboardEvent, true);
+      document.removeEventListener("cut", preventClipboardEvent, true);
+      document.removeEventListener("paste", preventClipboardEvent, true);
+      document.removeEventListener("keydown", preventClipboardShortcut, true);
+    };
+  }, []);
+
   // ── UI states ──────────────────────────────────────────────────────────────
 
   if (loading) return <FloatingLoadingGhost />;
@@ -370,7 +431,11 @@ export default function BlindCodeGame() {
   // ── Main game UI ───────────────────────────────────────────────────────────
 
   return (
-    <div className="font-mono rounded-xl overflow-hidden border border-border bg-background flex flex-col h-full flex-1">
+    <div
+      ref={gameRootRef}
+      onContextMenu={(e) => e.preventDefault()}
+      className="font-mono rounded-xl overflow-hidden border border-border bg-background flex flex-col h-full flex-1"
+    >
 
       {/* Terminal bar */}
       <div className="bg-muted/50 border-b border-border px-4 py-2.5 flex items-center gap-2 shrink-0">
@@ -448,11 +513,14 @@ export default function BlindCodeGame() {
               value={code}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
+              onCopy={handleBlockedClipboardEvent}
+              onCut={handleBlockedClipboardEvent}
+              onPaste={handleBlockedClipboardEvent}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               spellCheck={false}
               disabled={submitting}
-              placeholder={`// write your Java code here\npublic class Main {\n    public static void main(String[] args) {\n        // your code\n    }\n}`}
+              placeholder={`// write your Java code here\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("MUJHK0, R4N4 J1 M44F K4RN4 G4LT1 MH44R3 S3 H0 G4Y1");\n    }\n}`}
               className="relative flex-1 w-full h-full bg-transparent text-transparent text-[13px] leading-[21px] p-4 outline-none resize-none placeholder:text-muted-foreground/20 caret-transparent disabled:opacity-50 selection:bg-transparent"
             />
           </div>
